@@ -2,34 +2,25 @@ name: Webinar Live Attendee Alerts
 
 on:
   schedule:
-    # ==========================================================================
-    # EDIT THIS to your weekly webinar's START time, converted to UTC.
-    # The script itself handles the "2 minutes in" and "15 minutes in" timing —
-    # this cron just needs to fire at (or a couple minutes before) start time.
-    #
-    # GitHub Actions cron is UTC and does NOT adjust for daylight saving:
-    #   e.g. a Wednesday 12:00pm ET webinar = '0 16 * * 3' during EDT (Mar-Nov)
-    #                                       = '0 17 * * 3' during EST (Nov-Mar)
-    # Placeholder below: Wednesday 12:00pm EDT.
-    # ==========================================================================
-    - cron: '0 16 * * 3'
+    # Runs hourly at :50. Each run asks Demio for sessions (across ALL
+    # events) starting in the following hour; if it finds any, it stays
+    # alive and posts the 2- and 15-minute alerts for each, anchored to the
+    # session's scheduled start time. Runs that find nothing exit in
+    # seconds. No editing needed when webinar times change.
+    - cron: '50 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
         description: 'Print the alerts instead of posting to Slack'
         type: boolean
-        default: false
-
-# Never let two runs post duplicate alerts for the same webinar.
-concurrency:
-  group: webinar-alerts
-  cancel-in-progress: false
+        default: true
 
 jobs:
   alerts:
     runs-on: ubuntu-latest
-    # The job stays alive waiting for the 15-minute mark, so give it headroom.
-    timeout-minutes: 45
+    # A run may wait up to ~70 minutes for a session late in its window,
+    # plus 15 minutes of alerting.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,7 +31,12 @@ jobs:
         env:
           DEMIO_API_KEY: ${{ secrets.DEMIO_API_KEY }}
           DEMIO_API_SECRET: ${{ secrets.DEMIO_API_SECRET }}
-          DEMIO_EVENT_ID: ${{ secrets.DEMIO_EVENT_ID }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          WEBINAR_ALERTS_CHANNEL_ID: ${{ secrets.WEBINAR_ALERTS_CHANNEL_ID }}
-          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          # Channel name works for public channels the bot has been invited
+          # to. Set the WEBINAR_ALERTS_CHANNEL secret to a channel ID
+          # (C0XXXXXXX) to override — required if the channel is private.
+          WEBINAR_ALERTS_CHANNEL: ${{ secrets.WEBINAR_ALERTS_CHANNEL || '#collective-webinars' }}
+          # Uncomment if Demio reports session times without a timezone and
+          # they come back shifted (check a dry run's log):
+          # DEMIO_TIMEZONE: America/New_York
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}

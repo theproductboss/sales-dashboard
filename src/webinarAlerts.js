@@ -1,13 +1,15 @@
-// Posts "who's live right now" alerts to Slack during a Demio webinar,
-// filtered to the high-revenue registration tiers. Meant to be started at
-// (or just before) the webinar's scheduled start time; it then waits and
-// fires an alert at each configured minute mark (default: 2 and 15).
+// Posts "who's live right now" alerts to Slack during Demio webinars,
+// filtered to the high-revenue registration tiers. Runs hourly (at :50);
+// each run claims the sessions — across ALL events on the account —
+// scheduled to start in the following hour, then waits and fires an alert
+// at each configured minute mark (default: 2 and 15) after each session's
+// scheduled start.
 require('dotenv').config();
 
 const { DateTime } = require('luxon');
 const { requireEnv } = require('./config');
 const { postMessage } = require('./slack');
-const { listUpcomingEvents, getSessionParticipants, findCurrentSession } = require('./demio');
+const { getSessionParticipants, findSessionsInWindow, listUpcomingSessions } = require('./demio');
 
 const DRY_RUN = String(process.env.DRY_RUN).toLowerCase() === 'true';
 
@@ -78,20 +80,23 @@ function displayName(p) {
   return name || '(no name)';
 }
 
-function buildMessage(liveByTier) {
-  const lines = ['These attendees are live!'];
+function buildMessage(liveByTier, header) {
+  const lines = header ? [header, ''] : [];
   let anyone = false;
+  const body = ['These attendees are live!'];
   for (const tier of TARGET_TIERS) {
     const people = liveByTier.get(tier) || [];
     if (people.length === 0) continue;
     anyone = true;
-    lines.push('', `*${tier}*`);
+    body.push('', `*${tier}*`);
     for (const p of people) {
-      lines.push(`${displayName(p)}, ${p.email || '(no email)'}`);
+      body.push(`${displayName(p)}, ${p.email || '(no email)'}`);
     }
   }
   if (!anyone) {
-    return 'No attendees in the $100K+ revenue tiers are live right now.';
+    lines.push('No attendees in the $100K+ revenue tiers are live right now.');
+  } else {
+    lines.push(...body);
   }
   return lines.join('\n');
 }
@@ -100,8 +105,8 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function sendAlert({ auth, dateId, slackToken, channel, label }) {
-  const participants = await getSessionParticipants(auth, dateId);
+async function sendAlert({ auth, session, minutes, slackToken, channel }) {
+  const participants = await getSessionParticipants(auth, session.dateId);
   const liveByTier = new Map();
   for (const p of participants) {
     if (!isLive(p)) continue;
@@ -111,8 +116,11 @@ async function sendAlert({ auth, dateId, slackToken, channel, label }) {
     liveByTier.get(tier).push(p);
   }
 
-  const text = buildMessage(liveByTier);
-  console.log(`--- ${label} (${participants.length} participants in report) ---`);
+  const header = `*${session.eventName}* — ${minutes} minutes in`;
+  const text = buildMessage(liveByTier, header);
+  console.log(
+    `--- ${session.eventName}: ${minutes}-minute alert (${participants.length} participants in report) ---`
+  );
   console.log(text);
   if (!DRY_RUN) {
     await postMessage(slackToken, channel, text);
@@ -120,77 +128,98 @@ async function sendAlert({ auth, dateId, slackToken, channel, label }) {
   }
 }
 
-async function listEvents(auth) {
-  const events = await listUpcomingEvents(auth);
-  if (events.length === 0) {
-    console.log('No upcoming events found on this Demio account.');
+// Wait out one session's minute marks and post the alert at each one,
+// anchored to the session's scheduled start time.
+async function runSessionAlerts({ auth, session, alertMinutes, slackToken, channel }) {
+  console.log(
+    `Claimed "${session.eventName}" session ${session.dateId}, starts ${session.start.toISO()}.`
+  );
+  for (const minutes of alertMinutes) {
+    const fireAt = session.start.plus({ minutes });
+    const waitMs = fireAt.diffNow().as('milliseconds');
+    if (waitMs > 0) {
+      console.log(
+        `[${session.eventName}] waiting ${Math.round(waitMs / 1000)}s until the ${minutes}-minute mark...`
+      );
+      await sleep(waitMs);
+    }
+    try {
+      await sendAlert({ auth, session, minutes, slackToken, channel });
+    } catch (err) {
+      // A failed 2-minute alert shouldn't cancel the 15-minute one.
+      console.error(`[${session.eventName}] ${minutes}-minute alert failed:`, err.message);
+      process.exitCode = 1;
+    }
+  }
+}
+
+async function listEvents(auth, zone) {
+  const sessions = await listUpcomingSessions(auth, zone);
+  if (sessions.length === 0) {
+    console.log('No upcoming sessions found on this Demio account.');
     return;
   }
-  console.log('Upcoming Demio events (use the id as DEMIO_EVENT_ID):');
-  for (const e of events) {
-    console.log(`  id=${e.id}  ${e.name || '(unnamed)'}`);
+  console.log('Upcoming Demio sessions:');
+  for (const s of sessions) {
+    const when = s.start ? s.start.toISO() : '(could not parse start time)';
+    console.log(`  event=${s.eventId} date_id=${s.dateId}  ${when}  ${s.eventName}`);
   }
+}
+
+// Each hourly run (scheduled at :50) claims the one-hour window that starts
+// at the next top of the hour. Computing the window from the *intended* fire
+// time — rather than rounding "now" — keeps runs from claiming a neighbor's
+// window when GitHub starts them late: a run scheduled for 12:50 that
+// actually starts at 13:12 still claims [13:00, 14:00).
+function claimWindow(now) {
+  const windowStart =
+    now.minute >= 50 ? now.startOf('hour').plus({ hours: 1 }) : now.startOf('hour');
+  return { windowStart, windowEnd: windowStart.plus({ hours: 1 }) };
 }
 
 async function main() {
   const auth = { key: requireEnv('DEMIO_API_KEY'), secret: requireEnv('DEMIO_API_SECRET') };
+  // Only needed if Demio returns timezone-naive session times that aren't UTC.
+  const zone = process.env.DEMIO_TIMEZONE || 'utc';
 
   if (process.argv.includes('--list-events')) {
-    await listEvents(auth);
+    await listEvents(auth, zone);
     return;
   }
 
-  const eventId = requireEnv('DEMIO_EVENT_ID');
   const slackToken = requireEnv('SLACK_BOT_TOKEN');
-  const channel = requireEnv('WEBINAR_ALERTS_CHANNEL_ID');
+  const channel = requireEnv('WEBINAR_ALERTS_CHANNEL');
   const alertMinutes = (process.env.WEBINAR_ALERT_MINUTES || '2,15')
     .split(',')
     .map((m) => Number(m.trim()))
     .filter((m) => Number.isFinite(m) && m >= 0)
     .sort((a, b) => a - b);
 
-  const jobStart = DateTime.utc();
-  const session = await findCurrentSession(auth, eventId, jobStart);
-  if (!session) {
-    // Exit cleanly so a skipped week (holiday, rescheduled webinar) doesn't
-    // show up as a failed workflow run.
-    console.log(`No session for event ${eventId} within 3 hours of now — nothing to do.`);
+  const now = DateTime.utc();
+  const { windowStart, windowEnd } = claimWindow(now);
+  console.log(`Claiming sessions starting in [${windowStart.toISO()}, ${windowEnd.toISO()}).`);
+
+  const { claimed, all } = await findSessionsInWindow(auth, { windowStart, windowEnd, zone });
+  if (claimed.length === 0) {
+    // Exit cleanly so quiet hours don't show up as failed workflow runs. The
+    // upcoming-session dump makes timezone misparses visible: if a webinar
+    // you expected to be claimed shows the wrong time here, set DEMIO_TIMEZONE.
+    console.log('No sessions start in this window — nothing to do.');
+    const next = all
+      .filter((s) => s.start && s.start > now)
+      .sort((a, b) => a.start - b.start)
+      .slice(0, 5);
+    for (const s of next) {
+      console.log(`  next: ${s.start.toISO()}  ${s.eventName}`);
+    }
     return;
   }
 
-  // Anchor the minute marks to Demio's scheduled start so a late workflow
-  // launch doesn't shift the alerts. Only trust the parsed start if it's
-  // within 30 minutes of now — otherwise (unparseable/odd timezone) fall
-  // back to "the workflow was started at webinar time".
-  let anchor = jobStart;
-  if (session.start && Math.abs(session.start.diff(jobStart).as('minutes')) <= 30) {
-    anchor = session.start;
-  }
-  console.log(
-    `Session ${session.dateId}: anchoring t=0 at ${anchor.toISO()} (job started ${jobStart.toISO()}).`
+  await Promise.all(
+    claimed.map((session) =>
+      runSessionAlerts({ auth, session, alertMinutes, slackToken, channel })
+    )
   );
-
-  for (const minutes of alertMinutes) {
-    const fireAt = anchor.plus({ minutes });
-    const waitMs = fireAt.diffNow().as('milliseconds');
-    if (waitMs > 0) {
-      console.log(`Waiting ${Math.round(waitMs / 1000)}s until the ${minutes}-minute mark...`);
-      await sleep(waitMs);
-    }
-    try {
-      await sendAlert({
-        auth,
-        dateId: session.dateId,
-        slackToken,
-        channel,
-        label: `${minutes}-minute alert`,
-      });
-    } catch (err) {
-      // A failed 2-minute alert shouldn't cancel the 15-minute one.
-      console.error(`${minutes}-minute alert failed:`, err.message);
-      process.exitCode = 1;
-    }
-  }
 }
 
 if (require.main === module) {
@@ -200,4 +229,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { normalizeTier, revenueTier, isLive, buildMessage, TARGET_TIERS };
+module.exports = { normalizeTier, revenueTier, isLive, buildMessage, claimWindow, TARGET_TIERS };
