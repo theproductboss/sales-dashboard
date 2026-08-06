@@ -1,5 +1,15 @@
 # Sales Dashboard
 
+Two daily Slack reports, no server or database to host:
+
+1. **Sales calls & cash pace** — call bookings from Calendly plus cash pace
+   parsed from the `Daily Cash Report` channel (details below).
+2. **Revenue dashboard** — money actually collected, pulled straight from
+   Stripe and PayPal: month-to-date and year-to-date net revenue, a
+   per-product breakdown (units sold + revenue each), recurring coaching
+   payments received, and failed payments. See
+   [Revenue dashboard](#revenue-dashboard) below.
+
 Posts a daily Slack report of sales call bookings (from Calendly) and cash
 collected pace (from the existing `Daily Cash Report` channel), so the team
 can see at a glance whether Oz and Blake are on pace for the week's goals.
@@ -144,3 +154,104 @@ regexes in that file to match the new wording.
 Edit the `cron` line in `.github/workflows/daily-report.yml`. Remember
 GitHub Actions cron is UTC and doesn't auto-adjust for daylight saving —
 there's a note in that file with both UTC times for ET.
+
+---
+
+# Revenue dashboard
+
+Posts a daily Slack message with, for **month-to-date and year-to-date**:
+
+- Net revenue (gross sales minus refunds), split Stripe vs. PayPal
+- Per-product breakdown: how many of each product sold and revenue each
+  (mini product, coaching program, event, other)
+- Recurring coaching-program payments received (count + dollars)
+- **Failed payments** (count, dollars missed, split by processor)
+
+## Why Stripe + PayPal are the only connections needed
+
+Money always lands in a processor, no matter which cart sold it:
+
+- **SamCart → Stripe**: SamCart is just the checkout; the charge itself is
+  created in Stripe, so it's counted here — **including the Stripe payment
+  profiles / charges that never show up inside SamCart**. Pulling from
+  Stripe (not SamCart) is exactly what closes that gap.
+- **Cart → PayPal**: same idea — whatever checkout feeds PayPal, the
+  transaction is in PayPal's records and gets counted.
+
+So the processors are the source of truth and nothing is double-counted or
+missed. (The trade-off: product names come from the charge description /
+cart item name, which is what the keyword matching below is for.)
+
+## Setup
+
+### 1. Stripe key
+
+1. Stripe Dashboard → **Developers → API keys → Create restricted key**.
+2. Grant **Read** on: **Charges**, **Refunds** (under Payments), and
+   **Invoices** (under Billing — used to identify recurring coaching
+   payments and name them). Everything else: None.
+3. Copy the `rk_live_...` key → GitHub secret `STRIPE_SECRET_KEY`.
+
+A restricted read-only key means this repo's automation can never move
+money or modify anything in Stripe.
+
+### 2. PayPal API app
+
+1. Go to <https://developer.paypal.com/dashboard/applications/live> (log in
+   with the business account) → **Create App**.
+2. On the app's page under **Features**, make sure **Transaction Search**
+   is checked (this is what lets the API list your transactions).
+3. Copy **Client ID** → secret `PAYPAL_CLIENT_ID`, and **Secret** →
+   `PAYPAL_CLIENT_SECRET`.
+
+Note: PayPal's reporting API lags live activity by up to a few hours, and
+Transaction Search may take up to ~24h after first being enabled to start
+returning data.
+
+### 3. GitHub secrets
+
+Add under **Settings → Secrets and variables → Actions**:
+
+- `STRIPE_SECRET_KEY`
+- `PAYPAL_CLIENT_ID`
+- `PAYPAL_CLIENT_SECRET`
+- `SLACK_BOT_TOKEN` (already set up for the calls dashboard)
+- `DASHBOARD_CHANNEL_ID` (already set), or `REVENUE_CHANNEL_ID` to post the
+  revenue report to a different channel
+
+The report still runs if only one processor is configured — it posts what
+it has and flags the missing source.
+
+### 4. Product name keywords — the one thing to tune
+
+Payments are bucketed into products by keyword match against the charge
+description (Stripe/SamCart) or cart item name (PayPal), in
+`src/config.js` → `productCategories`:
+
+- **Mini product** — keywords `mini`, `tiny` (placeholder — set these!)
+- **Coaching program** — keywords `coach`, `program`, `mastermind`; plus
+  any recurring/subscription charge that matches nothing else lands here
+- **Event** — keywords `event`, `ticket`
+- **Other / unmatched** — everything else
+
+You don't have to guess the right keywords up front: the report lists the
+raw names of unmatched payments at the bottom, so run it once
+(`DRY_RUN=true npm run revenue`), see what shows up, and add those words to
+the keyword lists.
+
+Then test: **Actions → Daily Revenue Dashboard → Run workflow**, or locally:
+
+```bash
+DRY_RUN=true npm run revenue   # prints the report instead of posting
+```
+
+## Notes & limits
+
+- Totals are **net cash collected** (successful charges minus refunds) in
+  USD; non-USD payments are excluded and flagged in the report if any exist.
+- "Failed payments" = Stripe declined charges + PayPal denied transactions.
+  Each retry of a recurring payment counts as its own failure.
+- PayPal bank transfers, fees, and withdrawals are excluded so moving money
+  to your bank doesn't look like negative revenue.
+- Schedule lives in `.github/workflows/daily-revenue.yml` (8:05am ET daily,
+  same DST caveat as the other workflow).

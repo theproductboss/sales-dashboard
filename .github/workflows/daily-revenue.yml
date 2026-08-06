@@ -1,0 +1,30 @@
+name: Daily Revenue Dashboard
+
+on:
+  schedule:
+    # 8:05am America/New_York (5 min after the calls dashboard). GitHub cron
+    # is UTC and does not adjust for daylight saving:
+    #   EDT (Mar-Nov): 8:05am ET = 12:05 UTC  -> cron below
+    #   EST (Nov-Mar): 8:05am ET = 13:05 UTC  -> update to '5 13 * * *' when DST ends
+    - cron: '5 12 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  revenue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run revenue
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          PAYPAL_ENV: live
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          DASHBOARD_CHANNEL_ID: ${{ secrets.DASHBOARD_CHANNEL_ID }}
+          REVENUE_CHANNEL_ID: ${{ secrets.REVENUE_CHANNEL_ID }}
+          REPORT_TIMEZONE: America/New_York

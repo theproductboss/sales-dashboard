@@ -29,4 +29,21 @@ const eventCategories = [
   { key: 'blake_calendar', owner: 'blake', label: "Blake's calendar", fallback: true },
 ];
 
-module.exports = { requireEnv, targets, eventCategories };
+// Product buckets for the revenue dashboard. Payments are matched by
+// case-insensitive substring against the charge description (Stripe/SamCart)
+// or cart item name (PayPal) — see categorize() in src/revenue.js.
+//
+// ⚠️ EDIT THE KEYWORDS to match your actual product names as they appear on
+// charges. Anything that doesn't match shows up under "Other / unmatched" in
+// the report with its raw name, so you can copy the right keyword from there.
+//
+// `recurringDefault: true` means subscription/recurring charges that match no
+// keywords still land here (the coaching program is the only recurring billing).
+const productCategories = [
+  { key: 'mini', label: 'Mini product', keywords: ['mini', 'tiny'] },
+  { key: 'coaching', label: 'Coaching program', keywords: ['coach', 'program', 'mastermind'], recurringDefault: true },
+  { key: 'event', label: 'Event', keywords: ['event', 'ticket'] },
+  { key: 'other', label: 'Other / unmatched', fallback: true },
+];
+
+module.exports = { requireEnv, targets, eventCategories, productCategories };

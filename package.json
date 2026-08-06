@@ -5,7 +5,8 @@
   "description": "Daily Slack dashboard for sales call bookings (Calendly) and cash-collected pace ($37k/week target).",
   "main": "src/index.js",
   "scripts": {
-    "report": "node src/index.js"
+    "report": "node src/index.js",
+    "revenue": "node src/revenueReport.js"
   },
   "engines": {
     "node": ">=20"
