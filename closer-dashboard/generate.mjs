@@ -18,15 +18,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TOKEN = process.env.FGF_API_TOKEN || process.env.FGF_TOKEN;
+// FGF_API_TOKEN_2 is an optional fallback tried on 401s, for when scopes are
+// split across two private integrations. One token with all scopes is better.
+const TOKENS = [process.env.FGF_API_TOKEN || process.env.FGF_TOKEN, process.env.FGF_API_TOKEN_2].filter(Boolean);
 const LOC = process.env.FGF_LOCATION_ID || process.env.FGF_LOCATION;
-if (!TOKEN || !LOC) {
+if (!TOKENS.length || !LOC) {
   console.error('Set FGF_API_TOKEN and FGF_LOCATION_ID');
   process.exit(1);
 }
 const TZ = process.env.REPORT_TIMEZONE || 'America/New_York';
 const BASE = 'https://services.leadconnectorhq.com';
-const HEADERS = { Authorization: `Bearer ${TOKEN}`, Version: '2021-07-28', Accept: 'application/json' };
+const headersFor = t => ({ Authorization: `Bearer ${t}`, Version: '2021-07-28', Accept: 'application/json' });
 
 // ---------- period ----------
 function tzOffsetString(date, tz) {
@@ -62,16 +64,17 @@ const prev = monthRange(prevPeriod, TZ);
 // ---------- fetch helpers ----------
 const missingScopes = [];
 async function get(pathname, scopeLabel) {
-  const r = await fetch(BASE + pathname, { headers: HEADERS });
-  if (r.status === 401) {
-    if (scopeLabel && !missingScopes.includes(scopeLabel)) missingScopes.push(scopeLabel);
-    return null;
+  for (const token of TOKENS) {
+    const r = await fetch(BASE + pathname, { headers: headersFor(token) });
+    if (r.status === 401) continue; // try next token
+    if (!r.ok) {
+      console.error(`GET ${pathname} -> ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      return null;
+    }
+    return r.json();
   }
-  if (!r.ok) {
-    console.error(`GET ${pathname} -> ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    return null;
-  }
-  return r.json();
+  if (scopeLabel && !missingScopes.includes(scopeLabel)) missingScopes.push(scopeLabel);
+  return null;
 }
 
 // ---------- appointments ----------
@@ -122,6 +125,7 @@ const inWindow = (ms, a, b) => ms >= a && ms < b;
 const statusOf = s => (s || '').toLowerCase();
 
 let appt = null;
+let undispositioned = 0;
 if (events) {
   const valid = events.filter(e => statusOf(e.status) !== 'invalid');
   const count = st => valid.filter(e => statusOf(e.status) === st).length;
@@ -132,6 +136,10 @@ if (events) {
   const confirmed = count('confirmed') + showed + noshow; // confirmed-then-resolved calls were confirmed too
   const dueToRun = booked - cancelled;
   appt = { booked, confirmed, cancelled, noshow, showed, dueToRun };
+  // Past calls still sitting in a pre-call status were never dispositioned;
+  // they silently deflate the show rate.
+  undispositioned = valid.filter(e =>
+    e.start < Date.now() && ['confirmed', 'new', 'booked'].includes(statusOf(e.status))).length;
 }
 
 const oppTime = o => Date.parse(o.lastStatusChangeAt || o.updatedAt || o.createdAt);
@@ -228,6 +236,7 @@ const cashHtml = cash === null
   : `<div class="co-value">${fmtMoney(cash)}</div><div class="hero-sub">payments actually received this month</div>`;
 
 const warnings = [];
+if (undispositioned) warnings.push(`${undispositioned} past appointment${undispositioned === 1 ? '' : 's'} in this period ${undispositioned === 1 ? 'is' : 'are'} still marked Confirmed — never dispositioned as Showed or No-show. Until closers mark call outcomes, the show-up and no-show rates read falsely low.`);
 if (zeroValueDeals) warnings.push(`${zeroValueDeals} of ${deals} won opportunit${deals === 1 ? 'y' : 'ies'} in this period ha${zeroValueDeals === 1 ? 's' : 've'} no monetary value set — revenue is understated. Enter the full contracted amount on each opportunity at close.`);
 if (missingScopes.length) warnings.push(`Missing API scopes on the private integration: ${missingScopes.join(', ')}. Edit the integration in FGFunnels Settings → Private Integrations and re-run.`);
 const warningsHtml = warnings.length
