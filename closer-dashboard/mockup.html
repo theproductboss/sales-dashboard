@@ -115,6 +115,7 @@
   .hero .label { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
   .hero-value { font-size: 52px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; }
   .hero-sub { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  .co-value { font-size: 38px; font-weight: 700; line-height: 1.05; letter-spacing: -0.015em; margin-top: 8px; }
   .side-value { font-size: 26px; font-weight: 600; line-height: 1.1; margin-top: 6px; }
   .delta { font-size: 13px; font-weight: 600; margin-top: 6px; }
   .delta.up   { color: var(--good); }
@@ -215,16 +216,17 @@
     </div>
   </header>
 
-  <section class="hero" aria-label="Sales value summary">
+  <section class="hero" aria-label="Revenue and cash summary">
     <div>
-      <div class="label">Total sale value · this period</div>
+      <div class="label">Revenue · this period</div>
       <div class="hero-value">$85,800</div>
       <div class="delta up">▲ 18% <span class="vs">vs. Jul 1 – Jul 31</span></div>
+      <div class="hero-sub">full contracted value of deals closed, payment plans included</div>
     </div>
     <div>
-      <div class="label">Cash collected</div>
-      <div class="side-value">$61,150</div>
-      <div class="hero-sub">71% of contracted</div>
+      <div class="label">Cash collected · MTD</div>
+      <div class="co-value">$61,150</div>
+      <div class="hero-sub">payments actually received this month · 71% of contracted</div>
     </div>
     <div>
       <div class="label">Deals closed</div>
@@ -353,6 +355,17 @@
     </p>
 
     <div class="callout">
+      <b>Revenue and cash collected are two different numbers — show both, never merge them.</b>
+      <i>Revenue</i> is the full contracted value of every deal closed in the period: a
+      $2,600 offer on a 4-pay plan counts as $2,600 the day it closes. <i>Cash collected</i>
+      is only the money that actually hit the account this calendar month — deposits,
+      installments landing from earlier months' deals, paid-in-fulls. They also run on
+      different clocks: revenue follows the dashboard's selected date range, cash collected
+      is month-to-date. Expect them to disagree; the gap between them is your outstanding
+      payment-plan balance.
+    </div>
+
+    <div class="callout">
       <b>Pick one show-rate formula and keep it everywhere.</b> This mockup uses
       <i>shows ÷ (booked − cancelled)</i> — "due to run" — so cancellations don't
       inflate the no-show rate. If your team counts it as shows ÷ booked instead,
@@ -366,12 +379,12 @@
       <thead><tr><th>Tile</th><th>Widget setup</th></tr></thead>
       <tbody>
         <tr>
-          <td>Total sale value</td>
-          <td>Source <code>Opportunities</code> → metric <code>Sum of opportunity value</code>, condition <code>Status is Won</code>, date property = the date the opportunity was won. Make it the widest widget in the top row. Add the comparison toggle ("vs. previous period") so the delta shows.</td>
+          <td>Revenue</td>
+          <td>Source <code>Opportunities</code> → metric <code>Sum of opportunity value</code>, condition <code>Status is Won</code>, date property = the date the opportunity was won. For this to include payment plans, the opportunity's <b>value must be the full contracted amount</b> at close — not the deposit. Make it the widest widget in the top row and add the comparison toggle ("vs. previous period") so the delta shows.</td>
         </tr>
         <tr>
           <td>Cash collected</td>
-          <td>If you log payments in FGFunnels: <code>Payments / Transactions</code> source, sum in period. If cash lives elsewhere (e.g. your Daily Cash Report), leave this tile off rather than showing a number that doesn't reconcile.</td>
+          <td>Source <code>Payments / Transactions</code> → sum of successful payments, <b>date range fixed to month-to-date</b> (independent of the dashboard's range). This picks up installments from prior months' deals automatically. If payments don't run through FGFunnels (e.g. cash lives in your Daily Cash Report), leave this tile off rather than showing a number that doesn't reconcile.</td>
         </tr>
         <tr>
           <td>Deals closed / Avg deal size</td>
@@ -414,7 +427,7 @@
     <table>
       <thead><tr><th>Rule</th><th>Why</th></tr></thead>
       <tbody>
-        <tr><td>One hero number</td><td>Total sale value gets the big widget at top-left; nothing else competes at that size. Everything below it is scannable at a glance.</td></tr>
+        <tr><td>Revenue leads, cash beside it</td><td>Revenue gets the biggest widget at top-left; cash collected sits directly beside it one step smaller, so the pair reads together without competing. Nothing below the top band gets hero sizing.</td></tr>
         <tr><td>Counts row, then rates row</td><td>Raw counts (booked / confirmed / cancelled / no-show) in one row of four equal tiles; rates in the row beneath. Never mix a count and a percentage in the same row — the eye can't compare them.</td></tr>
         <tr><td>Four tiles per row, equal width</td><td>Resize each widget to a quarter width. Uneven tile widths are most of why the current dashboard feels messy.</td></tr>
         <tr><td>Delete everything else</td><td>Any widget not in the map above moves to a second dashboard or gets removed. A closer dashboard answers exactly: did they show, did we close, what's it worth.</td></tr>
