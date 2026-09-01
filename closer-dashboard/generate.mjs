@@ -138,8 +138,10 @@ if (events) {
   appt = { booked, confirmed, cancelled, noshow, showed, dueToRun };
   // Past calls still sitting in a pre-call status were never dispositioned;
   // they silently deflate the show rate.
-  undispositioned = valid.filter(e =>
-    e.start < Date.now() && ['confirmed', 'new', 'booked'].includes(statusOf(e.status))).length;
+  var undispositionedList = valid.filter(e =>
+    e.start < Date.now() && ['confirmed', 'new', 'booked'].includes(statusOf(e.status)))
+    .sort((a, b) => a.start - b.start);
+  undispositioned = undispositionedList.length;
 }
 
 const oppTime = o => Date.parse(o.lastStatusChangeAt || o.updatedAt || o.createdAt);
@@ -243,6 +245,29 @@ const warningsHtml = warnings.length
   ? `<div class="callout" style="border-left-color:#ec835a">${warnings.map(w => `<p style="margin:4px 0">⚠ ${w}</p>`).join('')}</div>`
   : '';
 
+// cleanup panel: past calls the closer still needs to mark Showed / No-show
+let cleanupHtml = '';
+if (typeof undispositionedList !== 'undefined' && undispositionedList.length) {
+  const fmtWhen = ms => new Intl.DateTimeFormat('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(ms));
+  const rows = undispositionedList.slice(0, 60).map(e => {
+    const who = userName[e.assigned] || '—';
+    return `<tr><td>${esc(fmtWhen(e.start))}</td><td style="text-align:left">${esc(e.title || '(no title)')}</td><td style="text-align:left">${esc(e.cal)}</td><td style="text-align:left">${esc(who)}</td></tr>`;
+  }).join('\n');
+  const more = undispositionedList.length > 60 ? `<p class="sub">…and ${undispositionedList.length - 60} more.</p>` : '';
+  cleanupHtml = `
+  <section class="panel" style="margin-top:26px" aria-label="Calls needing disposition">
+    <h2>Calls waiting on a disposition (${undispositionedList.length})</h2>
+    <p class="sub">These calls already happened but are still marked Confirmed. In FGFunnels, open each appointment and set its status to Showed or No-show — the rates above correct themselves on the next refresh.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th style="text-align:left">When</th><th style="text-align:left">Contact</th><th style="text-align:left">Calendar</th><th style="text-align:left">Closer</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${more}
+  </section>`;
+}
+
 // ---------- render ----------
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const template = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
@@ -265,7 +290,8 @@ const html = template
   .replaceAll('{{TEAM_CLOSES}}', String(deals))
   .replaceAll('{{TEAM_CLOSE_RATE}}', teamHeld ? fmtPct(teamCloseRate) : '—')
   .replaceAll('{{TEAM_VALUE}}', fmtMoney(revenue))
-  .replaceAll('{{WARNINGS}}', warningsHtml);
+  .replaceAll('{{WARNINGS}}', warningsHtml)
+  .replaceAll('{{CLEANUP}}', cleanupHtml);
 
 const out = process.env.OUT || path.join(__dirname, 'index.html');
 fs.writeFileSync(out, html);
