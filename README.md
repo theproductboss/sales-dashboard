@@ -144,3 +144,112 @@ regexes in that file to match the new wording.
 Edit the `cron` line in `.github/workflows/daily-report.yml`. Remember
 GitHub Actions cron is UTC and doesn't auto-adjust for daylight saving —
 there's a note in that file with both UTC times for ET.
+
+---
+
+# Closer Tracker Recap
+
+A second, independent report: a Slack recap of the closer tracker that posts
+**Monday and Wednesday at 9am ET** (a short pulse) and **Friday at 5pm ET**
+(the full week wrap).
+
+```bash
+npm run closer-recap:sample   # print a recap from the bundled fixture, no credentials needed
+DRY_RUN=true npm run closer-recap   # print a recap from the live sheet
+npm run closer-recap                # post it to Slack
+npm test                            # verify the math against the audited fixture
+```
+
+## Why it recomputes everything instead of reading the tracker's summary cells
+
+The tracker's own `Overview` / `WEEK 1..5` summary blocks do not match the
+call rows underneath them. Audited against Jill's September tab:
+
+| Metric | Tracker says | Actually | What's wrong |
+|---|---|---|---|
+| Total No-Shows (month) | 1 | **12** | Counts rows whose `Sales Status` was literally typed `NO-SHOW`, instead of reading the `NO SHOW?` column |
+| Completed Calls (month) | 5 | **23** | Counts rows with `CALL TYPE` filled in — a column reps mostly only fill on a win — so "completed" collapses to "won" |
+| Show % (month) | 12.20% | **65.7%** | Divides that broken "completed" count by calls booked |
+| Offer % (week 1) | 350% | **77.8%** | Divides offers by the same broken "completed" count (7 offers ÷ 2) instead of by calls held |
+| Overall Close % | 100% | **21.7%** of held | Wins ÷ "completed", and "completed" already equals wins, so it's always 100% |
+| Total Offers Made | 17 | 17 ✅ | correct |
+| Total Wins / Revenue / Cash | 5 / $75,400 / $38,900 | same ✅ | correct |
+
+So the counting columns are fine and the **rate** columns are all derived
+from one bad denominator. This job reads the raw call rows and derives:
+
+```
+Show %   = calls held ÷ (booked − reschedules − rows not logged yet)
+Offer %  = offers made ÷ calls held          (not ÷ wins)
+Close %  = wins ÷ calls held, and wins ÷ offers made
+```
+
+Rows with a lead name but nothing else filled in (Kelly, Shakila in week 3)
+are **excluded from every denominator** and listed under "Fix in the
+tracker" instead — an unlogged row is a data gap, not a missed call.
+Reschedules are excluded the same way: they haven't happened yet rather than
+having been missed. A rate with no denominator prints as `—`, never `0%`.
+
+## A new tracker each month
+
+Nothing is hardcoded to a month or a tab name. On each run the job reads
+every tab, keeps the ones whose `<MONTH> OVERALL` summary row matches the
+current month, finds the `WEEK n (m/d-m/d)` blocks inside them, and maps
+columns by their header text. Last month's and next month's leftover tabs
+are ignored automatically, as are unnamed template tabs.
+
+If a month's tracker labels things differently and auto-detection misses,
+set `CLOSER_TABS` to an explicit comma-separated list of tab names.
+
+Column headers are matched as "header contains" — `LEAD NAME`, `OFFER
+MADE?`, `NO SHOW?`, `LEAD CXL?`, `Sales Status`, `TOTAL REVENUE GENERATED`,
+`CASH COLLECTED TODAY`, `CALL TYPE`. Reword them freely; just don't drop the
+keyword.
+
+## Setup
+
+### 1. Google service account (read-only access to the sheet)
+
+1. <https://console.cloud.google.com> → create (or pick) a project.
+2. **APIs & Services → Library → Google Sheets API → Enable**.
+3. **APIs & Services → Credentials → Create credentials → Service account**.
+   Name it something like `closer-tracker-reader`. No roles needed.
+4. Open the service account → **Keys → Add key → Create new key → JSON**.
+   Download it.
+5. Copy the `client_email` out of that JSON (it looks like
+   `closer-tracker-reader@your-project.iam.gserviceaccount.com`) and
+   **share the closer tracker with it as a Viewer**, exactly like sharing
+   with a person.
+6. The whole JSON file's contents become `GOOGLE_SERVICE_ACCOUNT_JSON`.
+   Base64-encoding it first (`base64 -w0 key.json`) also works and avoids
+   newline mangling in secrets.
+
+### 2. Slack
+
+Reuses the existing `SLACK_BOT_TOKEN` and its `chat:write` scope. Invite the
+bot to whichever channel should get the recap and set
+`CLOSER_RECAP_CHANNEL_ID`.
+
+### 3. GitHub secrets
+
+Add `GOOGLE_SERVICE_ACCOUNT_JSON`, `CLOSER_TRACKER_SHEET_ID`, and
+`CLOSER_RECAP_CHANNEL_ID` (`SLACK_BOT_TOKEN` is already there). Optionally
+add a repo **variable** `CLOSER_TRACKER_URL` to link the sheet from the
+message footer.
+
+Then **Actions → Closer Tracker Recap → Run workflow**, with
+`dry_run: true` for a no-post test — the run log prints the exact message.
+
+## Changing the cadence
+
+Edit the two `cron` lines in `.github/workflows/closer-recap.yml`. The job
+picks its own style from the day (Friday → wrap, otherwise → pulse); set
+`RECAP_MODE` to override. Daily instead of Mon/Wed/Fri is
+`- cron: '0 13 * * 1-4'` plus the existing Friday line.
+
+## KPI flags
+
+✅ / ⚠️ / 🔴 come from `SHOW_RATE_KPI` (default 0.70) and `OFFER_RATE_KPI`
+(default 0.90), which are the KPIs written into the tracker itself. There's
+no close-rate KPI anywhere in the sheet, so close rate is reported
+**unflagged** until you set `CLOSE_RATE_KPI`.

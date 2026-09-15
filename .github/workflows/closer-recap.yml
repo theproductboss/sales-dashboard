@@ -1,0 +1,45 @@
+name: Closer Tracker Recap
+
+on:
+  schedule:
+    # Mon/Wed 9:00am ET — mid-week pulse.
+    # Fri 5:00pm ET — full week wrap.
+    # GitHub Actions cron is UTC and does NOT adjust for daylight saving:
+    #   EDT (Mar-Nov):  9am ET = 13:00 UTC · 5pm ET = 21:00 UTC  <- set below
+    #   EST (Nov-Mar): 9am ET = 14:00 UTC · 5pm ET = 22:00 UTC  <- shift both when DST ends
+    - cron: '0 13 * * 1,3'
+    - cron: '0 21 * * 5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Recap style (blank = pulse on Mon-Thu, wrap on Fri)'
+        required: false
+        type: choice
+        options: ['', 'pulse', 'wrap']
+        default: ''
+      dry_run:
+        description: 'Print the recap instead of posting to Slack'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test
+      - run: npm run closer-recap
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          CLOSER_TRACKER_SHEET_ID: ${{ secrets.CLOSER_TRACKER_SHEET_ID }}
+          CLOSER_TRACKER_URL: ${{ vars.CLOSER_TRACKER_URL }}
+          CLOSER_RECAP_CHANNEL_ID: ${{ secrets.CLOSER_RECAP_CHANNEL_ID }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          REPORT_TIMEZONE: America/New_York
+          RECAP_MODE: ${{ inputs.mode }}
+          DRY_RUN: ${{ inputs.dry_run }}

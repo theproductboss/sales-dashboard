@@ -2,10 +2,13 @@
   "name": "sales-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Daily Slack dashboard for sales call bookings (Calendly) and cash-collected pace ($37k/week target).",
+  "description": "Slack dashboards for the sales team: daily call bookings + cash pace (Calendly), and a Mon/Wed/Fri closer recap audited from the closer tracker sheet.",
   "main": "src/index.js",
   "scripts": {
-    "report": "node src/index.js"
+    "report": "node src/index.js",
+    "closer-recap": "node src/closerRecap.js",
+    "closer-recap:sample": "FIXTURE_GRIDS=test/fixtures/september-tracker.json DRY_RUN=true node src/closerRecap.js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=20"
