@@ -249,7 +249,19 @@ picks its own style from the day (Friday → wrap, otherwise → pulse); set
 
 ## KPI flags
 
-✅ / ⚠️ / 🔴 come from `SHOW_RATE_KPI` (default 0.70) and `OFFER_RATE_KPI`
-(default 0.90), which are the KPIs written into the tracker itself. There's
-no close-rate KPI anywhere in the sheet, so close rate is reported
-**unflagged** until you set `CLOSE_RATE_KPI`.
+✅ / ⚠️ / 🔴 come from three floors:
+
+| Env var | Default | Flagged against |
+|---|---|---|
+| `SHOW_RATE_KPI` | 0.70 | calls held ÷ calls that were supposed to happen |
+| `OFFER_RATE_KPI` | 0.90 | offers made ÷ calls held |
+| `CLOSE_RATE_KPI` | 0.20 | wins ÷ **calls held** |
+
+Show and offer are the KPIs written into the tracker itself. The close-rate
+floor isn't in the sheet — 20% is the team's number, and it's flagged
+against wins ÷ calls held, the stricter of the two close rates in the
+recap. (Wins ÷ offers made is also reported, unflagged, since it's the
+number that says whether the pitch converts once the closer gets to give
+it.)
+
+✅ at or above the floor, ⚠️ within 20% below it, 🔴 further below.

@@ -13,13 +13,14 @@ const { postMessage } = require('./slack');
 const TIME_ZONE = process.env.REPORT_TIMEZONE || 'America/New_York';
 const DRY_RUN = String(process.env.DRY_RUN).toLowerCase() === 'true';
 
+// Show and offer KPIs are the ones written into the tracker itself. The
+// close-rate floor isn't in the sheet anywhere — 20% is the number the team
+// runs to. It's flagged against close rate on *calls held*, the stricter of
+// the two close rates reported (wins ÷ held, not wins ÷ offers made).
 const kpis = {
   show: Number(process.env.SHOW_RATE_KPI || 0.7),
   offer: Number(process.env.OFFER_RATE_KPI || 0.9),
-  // No close-rate KPI is stated anywhere in the tracker, so by default the
-  // close rate is reported without a ✅/🔴 flag. Set CLOSE_RATE_KPI (e.g.
-  // 0.25) once there's an agreed number and it starts getting flagged.
-  close: process.env.CLOSE_RATE_KPI ? Number(process.env.CLOSE_RATE_KPI) : null,
+  close: Number(process.env.CLOSE_RATE_KPI || 0.2),
 };
 
 // "wrap" = the fuller end-of-week writeup (week-over-week deltas + month by

@@ -9,8 +9,14 @@ function money(amount) {
   return `$${Math.round(amount || 0).toLocaleString('en-US')}`;
 }
 
-function flag(value, kpi) {
+// Below this many calls a single result swings the rate by 20+ points, so
+// the rate is still printed but not graded — a 🔴 on a Tuesday with three
+// calls in the book tells a closer nothing useful.
+const MIN_SAMPLE = 5;
+
+function flag(value, kpi, sample) {
   if (value === null || value === undefined || !kpi) return '';
+  if (sample !== undefined && sample < MIN_SAMPLE) return '';
   if (value >= kpi) return ' ✅';
   if (value >= kpi * 0.8) return ' ⚠️';
   return ' 🔴';
@@ -31,13 +37,19 @@ function list(names, limit = 6) {
 
 function statLine(stats, { kpis, prior = null }) {
   return [
-    `booked *${stats.booked}* · held *${stats.held}* · show *${pct(stats.showRate)}*${flag(stats.showRate, kpis.show)}${
-      prior ? delta(stats.showRate, prior.showRate) : ''
-    }`,
-    `offers *${stats.offers}* · offer rate *${pct(stats.offerRate)}*${flag(stats.offerRate, kpis.offer)}`,
+    `booked *${stats.booked}* · held *${stats.held}* · show *${pct(stats.showRate)}*${flag(
+      stats.showRate,
+      kpis.show,
+      stats.expected
+    )}${prior ? delta(stats.showRate, prior.showRate) : ''}`,
+    `offers *${stats.offers}* · offer rate *${pct(stats.offerRate)}*${flag(
+      stats.offerRate,
+      kpis.offer,
+      stats.offersLogged
+    )}`,
     `wins *${stats.wins}* · close *${pct(stats.closeRateOnHeld)}* of held · *${pct(
       stats.closeRateOnOffers
-    )}* of offers${flag(stats.closeRateOnHeld, kpis.close)}`,
+    )}* of offers${flag(stats.closeRateOnHeld, kpis.close, stats.held)}`,
     `cash *${money(stats.cash)}*${stats.revenue !== stats.cash ? ` · contracted ${money(stats.revenue)}` : ''}`,
   ];
 }
@@ -163,8 +175,13 @@ function buildRecap({ closers, team, teamMonth, asOf, mode, kpis, monthLabel, we
       monthLines.push(
         `   *${closer.name}* — ${m.booked} booked · ${m.held} held · ${pct(m.showRate)} show${flag(
           m.showRate,
-          kpis.show
-        )} · ${m.offers} offers · ${m.wins} wins · ${pct(m.closeRateOnOffers)} close of offers · ${money(m.cash)}`
+          kpis.show,
+          m.expected
+        )} · ${m.offers} offers · ${m.wins} wins · ${pct(m.closeRateOnHeld)} close of held${flag(
+          m.closeRateOnHeld,
+          kpis.close,
+          m.held
+        )} · ${money(m.cash)}`
       );
     }
   }

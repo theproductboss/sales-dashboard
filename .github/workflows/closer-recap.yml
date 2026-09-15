@@ -41,5 +41,10 @@ jobs:
           CLOSER_RECAP_CHANNEL_ID: ${{ secrets.CLOSER_RECAP_CHANNEL_ID }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           REPORT_TIMEZONE: America/New_York
+          # Optional repo variables — leaving them unset uses the defaults
+          # baked into src/closerRecap.js (0.70 / 0.90 / 0.20).
+          SHOW_RATE_KPI: ${{ vars.SHOW_RATE_KPI }}
+          OFFER_RATE_KPI: ${{ vars.OFFER_RATE_KPI }}
+          CLOSE_RATE_KPI: ${{ vars.CLOSE_RATE_KPI }}
           RECAP_MODE: ${{ inputs.mode }}
           DRY_RUN: ${{ inputs.dry_run }}
