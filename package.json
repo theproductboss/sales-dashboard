@@ -8,7 +8,8 @@
     "report": "node src/index.js",
     "closer-recap": "node src/closerRecap.js",
     "closer-recap:sample": "FIXTURE_GRIDS=test/fixtures/september-tracker.json DRY_RUN=true node src/closerRecap.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "grids": "node scripts/driveExportToGrids.js"
   },
   "engines": {
     "node": ">=20"

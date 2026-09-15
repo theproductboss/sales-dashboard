@@ -240,6 +240,32 @@ message footer.
 Then **Actions → Closer Tracker Recap → Run workflow**, with
 `dry_run: true` for a no-post test — the run log prints the exact message.
 
+## Running it without a service account
+
+There are two ways to get the sheet's contents in. The Sheets API path
+above is the self-contained one. The other path needs no Google credentials
+at all: a scheduled Claude session reads the tracker with the Google Drive
+connector that's already attached to the account, converts that export back
+into cells, and runs the same code on it.
+
+```bash
+# 1. a Claude session reads the sheet with the Drive connector, saving the
+#    result to drive-export.txt
+# 2. turn that export back into cells
+npm run grids -- drive-export.txt grids.json
+# 3. same parser, same maths, same message
+FIXTURE_GRIDS=grids.json DRY_RUN=true npm run closer-recap
+```
+
+`scripts/driveExportToGrids.js` handles the connector's markdown quirks —
+merged cell ranges repeated across columns, escaped `#DIV/0!`, and the
+`{"fileContent": "..."}` envelope. Verified to produce a byte-identical
+recap to the Sheets API path on the September tracker.
+
+This is the path the scheduled Claude task uses, which is why the recap can
+post to Slack without a Slack app, a bot invite, or a Google service
+account.
+
 ## Changing the cadence
 
 Edit the two `cron` lines in `.github/workflows/closer-recap.yml`. The job
