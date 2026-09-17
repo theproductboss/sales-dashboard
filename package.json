@@ -2,10 +2,11 @@
   "name": "sales-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Daily Slack dashboard for sales call bookings (Calendly) and cash-collected pace ($37k/week target).",
+  "description": "Daily Slack dashboard for sales call bookings (Calendly) and cash-collected pace, plus automated Zoom sales-call transcript pulls into Google Drive.",
   "main": "src/index.js",
   "scripts": {
-    "report": "node src/index.js"
+    "report": "node src/index.js",
+    "transcripts": "node src/pullTranscripts.js"
   },
   "engines": {
     "node": ">=20"

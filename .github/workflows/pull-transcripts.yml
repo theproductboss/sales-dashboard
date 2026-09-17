@@ -1,0 +1,45 @@
+name: Pull Zoom Transcripts
+
+on:
+  schedule:
+    # Every 6 hours. Zoom needs roughly 2x the meeting length to produce a
+    # transcript (occasionally up to 24 hours), so a call recorded in the
+    # morning is typically picked up by the afternoon run. The job is
+    # idempotent — anything already in Drive is skipped — so running often
+    # is cheap and just shortens the wait.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: 'How many days back to scan (max 30 per Zoom request; longer ranges are chunked)'
+        required: false
+        default: '7'
+      dry_run:
+        description: 'Print what would be pulled without writing to Drive'
+        required: false
+        default: 'false'
+
+jobs:
+  transcripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run transcripts
+        env:
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_HOST_EMAILS: ${{ secrets.ZOOM_HOST_EMAILS }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          GOOGLE_IMPERSONATE_SUBJECT: ${{ secrets.GOOGLE_IMPERSONATE_SUBJECT }}
+          TRANSCRIPT_DRIVE_FOLDER_ID: ${{ secrets.TRANSCRIPT_DRIVE_FOLDER_ID }}
+          TRANSCRIPT_TOPIC_INCLUDE: ${{ vars.TRANSCRIPT_TOPIC_INCLUDE }}
+          TRANSCRIPT_TOPIC_EXCLUDE: ${{ vars.TRANSCRIPT_TOPIC_EXCLUDE }}
+          TRANSCRIPT_LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          REPORT_TIMEZONE: America/New_York

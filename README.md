@@ -144,3 +144,167 @@ regexes in that file to match the new wording.
 Edit the `cron` line in `.github/workflows/daily-report.yml`. Remember
 GitHub Actions cron is UTC and doesn't auto-adjust for daylight saving —
 there's a note in that file with both UTC times for ET.
+
+---
+
+# Zoom call transcripts
+
+Pulls the transcript of every recorded Zoom sales call automatically and files
+it in a Google Drive folder as readable markdown — no going into Zoom and
+downloading anything by hand.
+
+Runs every 6 hours via GitHub Actions. Each run is idempotent: anything already
+in the Drive folder is skipped, so re-running costs nothing and nothing gets
+duplicated.
+
+**Currently scoped to Jill's calls only** (`ZOOM_HOST_EMAILS`). Adding Oz or
+Blake later is just appending their Zoom login emails to that one secret,
+comma-separated.
+
+## What you get
+
+One markdown file per call, named
+`2026-09-15 Jill - Discovery call - Dana Reed [85123456789].md`, containing:
+
+- Host, local date/time, scheduled length, actual transcript length, meeting ID,
+  and a link back to the Zoom recording
+- A **talk share** table (words per speaker, and each speaker's percentage) — a
+  rough but useful proxy for who dominated the call
+- The full transcript, speaker-attributed, with consecutive lines from the same
+  speaker merged into readable paragraphs and a timestamp on each turn
+
+Zoom's raw `.vtt` is one fragment per line and close to unreadable; this is the
+same content in a form you can actually skim or hand to an analysis step later.
+
+## How it works
+
+1. Mints a Zoom Server-to-Server OAuth token (`account_credentials` grant, one
+   hour TTL, no refresh token — a fresh one per run).
+2. Looks up each host in `ZOOM_HOST_EMAILS` directly by email.
+3. Lists that host's cloud recordings over the lookback window. Zoom rejects a
+   `from`/`to` range wider than one month, so longer backfills are split into
+   29-day chunks automatically.
+4. Skips meetings whose topic matches `TRANSCRIPT_TOPIC_EXCLUDE` (or misses
+   `TRANSCRIPT_TOPIC_INCLUDE`, if you set it).
+5. For each remaining meeting, finds the `TRANSCRIPT` recording file (a VTT),
+   checks Drive for it, and if it's new: downloads, parses, and uploads.
+
+Dedupe is keyed on Zoom's recording-file ID, stored in Drive's `appProperties`.
+That means no state file to keep in sync, and renaming a file in Drive won't
+cause it to be re-pulled.
+
+## Setup
+
+### 1. Zoom: turn on cloud recording with transcripts
+
+In the Zoom web portal for **The Product Bosses account**, as an admin:
+**Settings → Recording**:
+
+- **Cloud recording** — on, and on for Jill's user specifically
+- **Create audio transcript** — on (this is the setting that produces the VTT;
+  without it there is no transcript to pull, and it can't be applied
+  retroactively to calls already recorded)
+
+Jill needs a **licensed** seat on this account — Basic (free) seats can't record
+to the cloud at all.
+
+### 2. Zoom: create a Server-to-Server OAuth app
+
+1. <https://marketplace.zoom.us> → **Develop → Build App → Server-to-Server OAuth**.
+   You need admin rights on the Product Bosses account to create it.
+2. Copy the **Account ID**, **Client ID**, and **Client Secret**.
+3. Under **Scopes**, add:
+   - `cloud_recording:read:list_user_recordings:admin` — list a user's recordings
+   - `user:read:user:admin` — resolve Jill's email to her Zoom user
+   - Add `user:read:list_users:admin` *only* if you later leave
+     `ZOOM_HOST_EMAILS` blank to pull the whole account.
+4. **Activate** the app.
+
+Server-to-Server OAuth apps are internal to your account — they do **not** go
+through Zoom's ~4-week marketplace review.
+
+### 3. Google: service account + Drive folder
+
+1. <https://console.cloud.google.com> → create (or pick) a project → **APIs &
+   Services → Enable APIs** → enable **Google Drive API**.
+2. **IAM & Admin → Service Accounts → Create**. Then **Keys → Add Key → JSON**
+   and download it. You need two fields out of that JSON: `client_email` and
+   `private_key`.
+3. Create the Drive folder for transcripts and **share it with the service
+   account's `client_email`** as **Editor**.
+4. Get the folder ID from its URL:
+   `https://drive.google.com/drive/folders/<THIS_PART>`
+
+> **Use a Shared Drive folder if you can.** Service accounts have no Drive
+> storage quota of their own, so uploading into a regular *My Drive* folder
+> fails with `storageQuotaExceeded` — the file would be owned by the service
+> account, and it has nowhere to put it. A folder on a **Shared Drive** is owned
+> by the drive, not the uploader, so it works. If you're on Workspace and want a
+> My Drive folder instead, enable **domain-wide delegation** on the service
+> account and set `GOOGLE_IMPERSONATE_SUBJECT` to a user's email — the job then
+> writes as that person. The code detects this specific failure and tells you
+> which fix to apply.
+
+### 4. GitHub repo secrets
+
+**Settings → Secrets and variables → Actions**. As **secrets**:
+
+- `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`
+- `ZOOM_HOST_EMAILS` — Jill's Zoom login email
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL` — the `client_email` from the JSON key
+- `GOOGLE_PRIVATE_KEY` — the `private_key` from the JSON key. Paste it whole,
+  including the `-----BEGIN PRIVATE KEY-----` lines. Newlines being flattened to
+  literal `\n` is expected and handled.
+- `TRANSCRIPT_DRIVE_FOLDER_ID`
+- `GOOGLE_IMPERSONATE_SUBJECT` — only for the domain-wide delegation route
+
+As **variables** (optional, not secret):
+
+- `TRANSCRIPT_TOPIC_INCLUDE` / `TRANSCRIPT_TOPIC_EXCLUDE`
+
+Then **Actions → Pull Zoom Transcripts → Run workflow**, with **dry run** set to
+`true` for a first pass — it prints what it *would* pull and touches neither
+Drive nor any credentials for it.
+
+## Local testing
+
+```bash
+npm install
+cp .env.example .env    # fill in the values from setup above
+DRY_RUN=true npm run transcripts    # list what would be pulled, write nothing
+npm run transcripts                 # actually pull into Drive
+```
+
+To backfill history, raise the lookback (it chunks automatically):
+
+```bash
+TRANSCRIPT_LOOKBACK_DAYS=90 npm run transcripts
+```
+
+## Things worth knowing
+
+**Transcripts lag the call.** Zoom takes roughly 2x the meeting length to
+produce one, and occasionally up to 24 hours. A call that just ended shows up as
+`… transcript not ready` and gets picked up on a later run — that's normal, not
+a failure.
+
+**English only.** Zoom's audio transcription doesn't support other languages.
+
+**Speaker names are Zoom display names**, whatever the participant was called in
+that meeting. A prospect who joined as "iPhone" appears as "iPhone". Lines Zoom
+couldn't attribute show up as "Unknown".
+
+**Transcripts are only as private as the Drive folder.** These contain whatever
+prospects said on the call, so keep the folder's sharing tight — that's exactly
+why they aren't committed into this repo.
+
+**Nothing here is retroactive.** Enabling audio transcripts only affects calls
+recorded *after* you turn it on. Calls already in the cloud with no transcript
+file can't have one generated after the fact.
+
+## Analysis
+
+Not built yet, by design — worth looking at real transcripts first to decide
+what's actually worth scoring. The output format is already set up for it: one
+self-contained markdown file per call, speaker-attributed, with talk share
+precomputed.
