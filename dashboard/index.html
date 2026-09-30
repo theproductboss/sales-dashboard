@@ -1,0 +1,498 @@
+<meta charset="utf-8">
+<title>Collective Growth Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column scoreboard. Month + week picker on top, month goal hero,
+   then webinar and sales-call scorecards, week-over-week table, back-solve, data notes. */
+:root {
+  --bg: #f7f5f4;
+  --surface: #ffffff;
+  --ink: #221a1c;
+  --ink-2: #5d5256;
+  --ink-3: #8c8185;
+  --line: #e7e1e2;
+  --accent: #7b2335;
+  --accent-soft: #f3e6e9;
+  --good: #0f7a2c; --good-bg: #e3f3e6;
+  --warn: #8a5a00; --warn-bg: #fbefd2;
+  --bad: #b3261e;  --bad-bg: #fbe4e2;
+  --none-bg: #efebec;
+  --bar: #7b2335;
+  --bar-track: #efe8ea;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171314; --surface: #211b1d; --ink: #f2ecee; --ink-2: #c3b8bc; --ink-3: #93878b;
+    --line: #372e31; --accent: #e59aab; --accent-soft: #3a2328;
+    --good: #6fd68a; --good-bg: #173222; --warn: #f2c35b; --warn-bg: #3a2d10;
+    --bad: #ff8a80; --bad-bg: #3d1a19; --none-bg: #2c2527; --bar: #d9788e; --bar-track: #342a2d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171314; --surface: #211b1d; --ink: #f2ecee; --ink-2: #c3b8bc; --ink-3: #93878b;
+  --line: #372e31; --accent: #e59aab; --accent-soft: #3a2328;
+  --good: #6fd68a; --good-bg: #173222; --warn: #f2c35b; --warn-bg: #3a2d10;
+  --bad: #ff8a80; --bad-bg: #3d1a19; --none-bg: #2c2527; --bar: #d9788e; --bar-track: #342a2d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 36px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 700; }
+h3 { font-size: 15px; font-weight: 600; font-family: var(--f-body); }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+
+header.top { display: grid; gap: 18px; }
+.titlerow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.chip.plain { background: var(--none-bg); color: var(--ink-2); }
+
+.picker { display: grid; gap: 10px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 14px; border-radius: 8px; cursor: pointer; }
+.seg button:hover { border-color: var(--accent); }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.seg.weeks button { font-size: 13px; padding: 5px 11px; }
+.seg button:focus-visible, .wow tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section { display: grid; gap: 16px; min-width: 0; }
+section > *, .wrap > * { min-width: 0; }
+.sechead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.goal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 10px; }
+.goal .big { font-family: var(--f-display); font-size: 44px; font-weight: 700; line-height: 1; }
+.goal .big small { font-size: 20px; color: var(--ink-3); font-weight: 500; }
+.meter { position: relative; height: 10px; border-radius: 5px; background: var(--bar-track); overflow: visible; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--bar); }
+.meter .pace { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 1px; }
+.goal .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.kpi .val { font-family: var(--f-display); font-size: 32px; font-weight: 700; line-height: 1.1; }
+.kpi .sub { font-size: 13px; color: var(--ink-2); }
+.pill { justify-self: start; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.pill::before { font-size: 11px; }
+.pill.good { background: var(--good-bg); color: var(--good); } .pill.good::before { content: "✓"; }
+.pill.warn { background: var(--warn-bg); color: var(--warn); } .pill.warn::before { content: "◐"; }
+.pill.bad { background: var(--bad-bg); color: var(--bad); } .pill.bad::before { content: "✕"; }
+.pill.none { background: var(--none-bg); color: var(--ink-3); } .pill.none::before { content: "–"; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.panel > .ph { padding: 14px 16px 6px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); }
+tbody td { border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tbody td:first-child { font-family: var(--f-body); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.total td { font-weight: 600; background: var(--none-bg); }
+tr.qual td:first-child { font-weight: 600; }
+td.gap { color: var(--ink-3); }
+.ratebar { display: inline-grid; grid-template-columns: 90px auto; gap: 8px; align-items: center; }
+.ratebar .track { position: relative; height: 8px; background: var(--bar-track); border-radius: 4px; }
+.ratebar .fill { position: absolute; inset: 0 auto 0 0; background: var(--bar); border-radius: 4px; }
+.ratebar .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.none { background: transparent; }
+.wow tbody tr { cursor: pointer; }
+.wow tbody tr:hover td { background: var(--accent-soft); }
+.wow tbody tr.sel td { background: var(--accent-soft); }
+details { padding: 4px 16px 14px; }
+summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; }
+
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.scale { display: flex; gap: 4px; font-size: 12px; }
+.scale span { flex: 1; text-align: center; padding: 3px 0; border-radius: 4px; background: var(--none-bg); color: var(--ink-3); }
+.scale span.on { background: var(--good-bg); color: var(--good); font-weight: 600; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--ink-2); }
+.empty strong { color: var(--ink); display: block; font-family: var(--f-display); font-size: 17px; margin-bottom: 4px; }
+
+.solve td:nth-child(2), .solve th:nth-child(2) { color: var(--ink-2); }
+ul.notes { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); font-size: 14px; max-width: 75ch; }
+footer { font-size: 13px; color: var(--ink-3); }
+@media (max-width: 520px) { .goal .big { font-size: 36px; } .kpi .val { font-size: 28px; } }
+@media (prefers-reduced-motion: no-preference) { .meter .fill, .ratebar .fill { transition: width .4s ease; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="titlerow">
+      <div>
+        <div class="eyebrow">Marketing &amp; sales</div>
+        <h1>Collective Growth Scoreboard</h1>
+      </div>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="picker">
+      <div class="seg" id="months" role="group" aria-label="Month"></div>
+      <div class="seg weeks" id="weeks" role="group" aria-label="Week"></div>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-goal">
+    <div class="sechead"><h2 id="h-goal">Monthly goal</h2><span class="small muted" id="goal-note"></span></div>
+    <div class="hero" id="hero"></div>
+  </section>
+
+  <section aria-labelledby="h-web">
+    <div class="sechead"><h2 id="h-web">Webinars</h2><span class="small muted" id="web-src"></span></div>
+    <div id="web"></div>
+  </section>
+
+  <section aria-labelledby="h-calls">
+    <div class="sechead"><h2 id="h-calls">Sales calls</h2><span class="small muted">Source: Closer Tracker (Google Sheet)</span></div>
+    <div id="calls"></div>
+  </section>
+
+  <section aria-labelledby="h-wow">
+    <div class="sechead"><h2 id="h-wow">Week over week</h2><span class="small muted">Select a week to filter the page</span></div>
+    <div id="wow"></div>
+  </section>
+
+  <section aria-labelledby="h-solve">
+    <div class="sechead"><h2 id="h-solve">What 30 members takes</h2><span class="small muted">Worked back from the close rate</span></div>
+    <div id="solve"></div>
+  </section>
+
+  <section aria-labelledby="h-notes">
+    <div class="sechead"><h2 id="h-notes">About this data</h2></div>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const pct = (v, d = 1) => v == null ? "—" : (v * 100).toFixed(d) + "%";
+  const money = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
+  const int = (v) => v == null ? "—" : Math.round(v).toLocaleString("en-US");
+  const rate = (n, d) => d > 0 ? n / d : null;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function status(v, target) {
+    if (v == null) return "none";
+    if (v >= target) return "good";
+    if (v >= target * 0.85) return "warn";
+    return "bad";
+  }
+  const statusText = { good: "On target", warn: "Close", bad: "Below target", none: "No data" };
+  const pill = (s, text) => `<span class="pill ${s}">${text || statusText[s]}</span>`;
+
+  let D, state = { month: null, week: null };
+
+  function load() {
+    fetch("data.json", { cache: "no-store" })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((d) => {
+        D = d;
+        const withData = D.months.filter((m) => D.calls.some((c) => c.month === m.key) || D.webinars.some((w) => w.month === m.key));
+        let saved = null;
+        try { saved = localStorage.getItem("cgs-month"); } catch (e) {}
+        state.month = D.months.some((m) => m.key === saved) ? saved : (withData.length ? withData[withData.length - 1].key : D.months[0].key);
+        render();
+      })
+      .catch((err) => { console.error(err);
+        document.querySelector(".wrap").insertAdjacentHTML("beforeend",
+          `<div class="empty"><strong>The numbers didn't load</strong>The data file for this page couldn't be read. Reload the page; if it keeps happening, ask Claude to republish the dashboard.</div>`);
+      });
+  }
+
+  // ---------- aggregation ----------
+  function callsFor(month, week) {
+    return D.calls.filter((c) => c.month === month && (!week || c.week === week));
+  }
+  function webinarsFor(month, week) {
+    return D.webinars.filter((w) => w.month === month && (!week || w.week === week));
+  }
+  function sumCalls(rows) {
+    const keys = ["booked", "held", "no_show", "cancelled", "rescheduled", "not_logged", "offers", "wins", "pif", "plan", "revenue", "cash"];
+    const t = Object.fromEntries(keys.map((k) => [k, 0]));
+    rows.forEach((r) => keys.forEach((k) => (t[k] += r[k] || 0)));
+    t.n = rows.length;
+    t.show = rate(t.held, t.booked);
+    t.offer = rate(t.offers, t.held);
+    t.close = rate(t.wins, t.held);
+    t.pifShare = rate(t.pif, t.pif + t.plan);
+    return t;
+  }
+  function sumWebinars(list) {
+    const groups = [
+      { key: "under", label: "Under $50k", rows: [] },
+      { key: "$50k–$100k", label: "$50k–$100k", rows: [] },
+      { key: "$100k–$500k", label: "$100k–$500k", rows: [] },
+      { key: "$500k+", label: "$500k+", rows: [] },
+    ];
+    const detail = {};
+    list.forEach((w) => w.bands.forEach((b) => {
+      const g = groups.find((g) => g.key === (b.min >= 50000 ? b.group : "under"));
+      g.rows.push(b);
+      const d = (detail[b.band] ||= { band: b.band, registrants: 0, attended: 0, booked: 0, qual: b.min >= 50000, inferred: false });
+      d.registrants += b.registrants; d.attended += b.attended; d.booked += b.booked; d.inferred ||= !!b.inferred;
+    }));
+    groups.forEach((g) => ["registrants", "attended", "booked"].forEach((k) => (g[k] = g.rows.reduce((s, r) => s + r[k], 0))));
+    const qual = groups.slice(1);
+    const t = {
+      n: list.length, groups, detail: Object.values(detail),
+      reg: groups.reduce((s, g) => s + g.registrants, 0),
+      att: groups.reduce((s, g) => s + g.attended, 0),
+      booked: groups.reduce((s, g) => s + g.booked, 0),
+      qReg: qual.reduce((s, g) => s + g.registrants, 0),
+      qAtt: qual.reduce((s, g) => s + g.attended, 0),
+      qBooked: qual.reduce((s, g) => s + g.booked, 0),
+    };
+    t.qualShare = rate(t.qReg, t.reg);
+    t.show = rate(t.att, t.reg);
+    t.qBookAtt = rate(t.qBooked, t.qAtt);
+    t.qBookReg = rate(t.qBooked, t.qReg);
+    return t;
+  }
+  function pifTier(v) {
+    const p = D.targets.pif;
+    if (v == null) return ["none", "No wins yet"];
+    if (v >= p.best) return ["good", "Best (70/30)"];
+    if (v >= p.better) return ["good", "Better (60/40)"];
+    if (v >= p.good) return ["good", "Good (50/50)"];
+    return ["bad", "Below 50/50"];
+  }
+
+  // ---------- render ----------
+  function render() {
+    const m = D.months.find((x) => x.key === state.month);
+    const wk = state.week ? m.weeks.find((w) => w.week === state.week) : null;
+    const periodLabel = wk ? wk.label : `${m.label} ${m.year}`;
+
+    $("meta").innerHTML = `<span class="chip">${esc(D.version)}</span><span class="chip plain">Updated ${new Date(D.updated + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>`;
+
+    $("months").innerHTML = D.months.map((x) =>
+      `<button type="button" id="m-${x.key}" data-m="${x.key}" aria-pressed="${x.key === state.month}">${esc(x.label)}</button>`).join("");
+    $("weeks").innerHTML = `<button type="button" id="w-all" data-w="" aria-pressed="${!state.week}">Whole month</button>` +
+      m.weeks.map((w) => `<button type="button" id="w-${m.key}-${w.week}" data-w="${w.week}" aria-pressed="${w.week === state.week}">${esc(w.label)}</button>`).join("");
+
+    renderHero(m);
+    renderWebinars(m, wk, periodLabel);
+    renderCalls(m, wk, periodLabel);
+    renderWow(m);
+    renderSolve(m);
+    $("notes").innerHTML = D.notes.map((n) => `<li>${esc(n)}</li>`).join("");
+    $("foot").textContent = "V2 will refresh these numbers automatically from WebinarJam, EverWebinar and the Closer Tracker. Until then, numbers are entered by hand.";
+  }
+
+  function monthProgress(m) {
+    const start = new Date(`${m.key}-01T00:00:00`);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    const now = new Date(Math.max(Date.now(), new Date(D.updated + "T23:59:59").getTime()));
+    if (now >= end) return 1;
+    if (now <= start) return 0;
+    return (now - start) / (end - start);
+  }
+
+  function renderHero(m) {
+    const t = sumCalls(callsFor(m.key));
+    const prog = monthProgress(m);
+    const has = t.n > 0;
+    const card = (label, val, goal, fmt, extra) => {
+      const share = Math.min(1, (val || 0) / goal);
+      const expected = goal * prog;
+      const st = !has ? "none" : prog === 0 ? "none" : status(val / expected, 1);
+      const paceText = prog >= 1 ? (val >= goal ? "Goal hit" : "Month closed below goal") : (prog === 0 ? "Month hasn't started" : `Pace for today: ${fmt(expected)}`);
+      return `<div class="goal">
+        <div class="eyebrow">${label}</div>
+        <div class="big num">${has ? fmt(val) : "—"} <small>/ ${fmt(goal)}</small></div>
+        <div class="meter" role="img" aria-label="${label}: ${fmt(val)} of ${fmt(goal)}">
+          <div class="fill" style="width:${(share * 100).toFixed(1)}%"></div>
+          ${prog > 0 && prog < 1 ? `<div class="pace" style="left:${(prog * 100).toFixed(1)}%" title="Where you should be today"></div>` : ""}
+        </div>
+        <div class="foot"><span>${has ? pill(st, st === "good" ? "On pace" : st === "warn" ? "Slightly behind" : "Behind pace") : pill("none")}</span><span>${paceText}</span></div>
+        ${extra ? `<div class="small muted">${extra}</div>` : ""}
+      </div>`;
+    };
+    $("hero").innerHTML =
+      card("New members", t.wins, m.goalMembers, int, has ? `Collective, Insiders and Inner Circle combined · ${money(t.revenue)} in contracts signed` : "") +
+      card("Cash collected", t.cash, m.goalCash, money, has ? `${pct(rate(t.cash, t.revenue), 0)} of contract value collected up front` : "");
+    $("goal-note").textContent = `${m.label} goal: ${m.goalMembers} members · ${money(m.goalCash)} cash`;
+  }
+
+  function kpi(label, value, target, sub, stOverride) {
+    const st = stOverride || status(value, target);
+    return `<div class="kpi">
+      <div class="eyebrow">${label}</div>
+      <div class="val num">${pct(value)}</div>
+      ${pill(st)}
+      <div class="sub">${sub}</div>
+    </div>`;
+  }
+
+  function emptyState(what, m) {
+    return `<div class="empty"><strong>No ${what} for this period yet</strong>${
+      m.key >= "2026-10" ? "October numbers start loading the week of Oct 5. Until then, send them over and they'll be added by hand." : "Nothing was recorded for this period."}</div>`;
+  }
+
+  function renderWebinars(m, wk, periodLabel) {
+    const list = webinarsFor(m.key, wk && wk.week);
+    if (!list.length) { $("web").innerHTML = emptyState("webinar numbers", m); $("web-src").textContent = ""; return; }
+    const T = D.targets, w = sumWebinars(list);
+    $("web-src").textContent = list.map((x) => `${x.platform} · ${x.format} · ${x.label}`).join("  |  ");
+    const tick = (T.webQualBook * 100).toFixed(0);
+    const bandRow = (g, cls = "") => {
+      const r = rate(g.booked, g.attended);
+      return `<tr class="${cls}"><td>${esc(g.label || g.band)}${g.inferred ? " *" : ""}</td>
+        <td>${int(g.registrants)}</td><td>${int(g.attended)}</td><td>${pct(rate(g.attended, g.registrants))}</td><td>${int(g.booked)}</td>
+        <td><span class="ratebar" title="${pct(r)} of attendees booked"><span class="track"><span class="fill" style="width:${Math.min(100, (r || 0) * 100)}%"></span><span class="tick" style="left:${tick}%"></span></span><span>${pct(r)}</span></span></td>
+        <td>${pct(rate(g.booked, g.registrants))}</td></tr>`;
+    };
+    $("web").innerHTML = `
+      <div class="kpis">
+        ${kpi("Registrants at $50k+", w.qualShare, T.webQualified, `${int(w.qReg)} of ${int(w.reg)} registrants · target 25%`)}
+        ${kpi("Show-up rate", w.show, T.webShow, `${int(w.att)} of ${int(w.reg)} attended · target 20%`)}
+        ${kpi("$50k+ attendees who booked", w.qBookAtt, T.webQualBook, `${int(w.qBooked)} of ${int(w.qAtt)} · target 20%`)}
+        ${kpi("$50k+ registrants who booked", w.qBookReg, T.webQualBook, `${int(w.qBooked)} of ${int(w.qReg)} · target 20%`)}
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Bookings by revenue level · ${esc(periodLabel)}</h3><span class="small muted">Line on the bar = 20% target</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>Revenue level</th><th>Registrants</th><th>Attended</th><th>% attended</th><th>Booked</th><th>% of attendees booked</th><th>% of registrants booked</th></tr></thead>
+          <tbody>
+            ${bandRow(w.groups[0])}
+            ${w.groups.slice(1).map((g) => bandRow(g, "qual")).join("")}
+            ${bandRow({ label: "$50k+ total", registrants: w.qReg, attended: w.qAtt, booked: w.qBooked }, "total")}
+            ${bandRow({ label: "All registrants", registrants: w.reg, attended: w.att, booked: w.booked }, "total")}
+          </tbody>
+        </table></div>
+        <details><summary>Show every revenue level</summary>
+          <div class="scroll"><table>
+            <thead><tr><th>Revenue level</th><th>Registrants</th><th>Attended</th><th>% attended</th><th>Booked</th><th>% of attendees booked</th><th>% of registrants booked</th></tr></thead>
+            <tbody>${w.detail.map((d) => bandRow(d, d.qual ? "qual" : "")).join("")}</tbody>
+          </table></div>
+          ${w.detail.some((d) => d.inferred) ? `<p class="small muted">* Worked out from the column total. See the data notes below.</p>` : ""}
+        </details>
+      </div>`;
+  }
+
+  function renderCalls(m, wk, periodLabel) {
+    const rows = callsFor(m.key, wk && wk.week);
+    if (!rows.length) { $("calls").innerHTML = emptyState("sales calls", m); return; }
+    const T = D.targets, t = sumCalls(rows);
+    const [pst, ptxt] = pifTier(t.pifShare);
+    const p = T.pif;
+    const on = (lo, hi) => t.pifShare != null && t.pifShare >= lo && (hi == null || t.pifShare < hi) ? "on" : "";
+    const closers = {};
+    rows.forEach((r) => (closers[r.closer] ||= []).push(r));
+    $("calls").innerHTML = `
+      <div class="kpis">
+        ${kpi("Show-up rate", t.show, T.callShow, `${int(t.held)} held of ${int(t.booked)} booked · target 80%`)}
+        ${kpi("Offers made", t.offer, T.offer, `${int(t.offers)} offers on ${int(t.held)} held calls · target 90%`)}
+        ${kpi("Close rate", t.close, T.close, `${int(t.wins)} closed of ${int(t.held)} held calls · target 30%`)}
+        <div class="kpi">
+          <div class="eyebrow">Paid in full</div>
+          <div class="val num">${pct(t.pifShare, 0)}</div>
+          ${pill(pst, ptxt)}
+          <div class="sub">${int(t.pif)} paid in full · ${int(t.plan)} on a payment plan</div>
+          <div class="scale" aria-label="Paid-in-full goal levels"><span class="${on(p.good, p.better)}">50/50 good</span><span class="${on(p.better, p.best)}">60/40 better</span><span class="${on(p.best)}">70/30 best</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>By closer · ${esc(periodLabel)}</h3><span class="small muted">${int(t.no_show)} no-shows · ${int(t.cancelled)} cancelled · ${int(t.rescheduled)} rescheduled · ${int(t.not_logged)} not logged</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>Closer</th><th>Booked</th><th>Held</th><th>Show %</th><th>Offer %</th><th>Closed</th><th>Close %</th><th>Paid in full</th><th>Contracts</th><th>Cash</th></tr></thead>
+          <tbody>${Object.entries(closers).map(([name, rs]) => {
+            const c = sumCalls(rs);
+            return `<tr><td>${esc(name)}</td><td>${int(c.booked)}</td><td>${int(c.held)}</td>
+              <td><span class="dot ${status(c.show, T.callShow)}"></span>${pct(c.show)}</td>
+              <td><span class="dot ${status(c.offer, T.offer)}"></span>${pct(c.offer)}</td>
+              <td>${int(c.wins)}</td>
+              <td><span class="dot ${status(c.close, T.close)}"></span>${pct(c.close)}</td>
+              <td>${c.pif + c.plan ? `${int(c.pif)} of ${int(c.pif + c.plan)}` : "—"}</td>
+              <td>${money(c.revenue)}</td><td>${money(c.cash)}</td></tr>`;
+          }).join("")}</tbody>
+        </table></div>
+      </div>`;
+  }
+
+  function renderWow(m) {
+    const T = D.targets;
+    const cell = (v, target) => v == null ? `<td class="gap">—</td>` : `<td><span class="dot ${status(v, target)}"></span>${pct(v, 0)}</td>`;
+    const rows = m.weeks.map((w) => {
+      const cr = callsFor(m.key, w.week), wr = webinarsFor(m.key, w.week);
+      const c = cr.length ? sumCalls(cr) : null, x = wr.length ? sumWebinars(wr) : null;
+      const sel = state.week === w.week ? "sel" : "";
+      return `<tr class="${sel}" tabindex="0" data-w="${w.week}" aria-label="Filter to ${esc(w.label)}">
+        <td>${esc(w.label)}</td>
+        <td>${x ? int(x.reg) : "—"}</td>${cell(x && x.qualShare, T.webQualified)}${cell(x && x.show, T.webShow)}${cell(x && x.qBookAtt, T.webQualBook)}
+        <td>${c ? int(c.booked) : "—"}</td>${cell(c && c.show, T.callShow)}${cell(c && c.offer, T.offer)}${cell(c && c.close, T.close)}
+        <td>${c ? int(c.wins) : "—"}</td><td>${c ? money(c.cash) : "—"}</td></tr>`;
+    }).join("");
+    const mc = callsFor(m.key), mw = webinarsFor(m.key);
+    const c = mc.length ? sumCalls(mc) : null, x = mw.length ? sumWebinars(mw) : null;
+    $("wow").innerHTML = `<div class="panel wow"><div class="scroll"><table>
+      <thead>
+        <tr><th></th><th colspan="4" style="text-align:center">Webinars</th><th colspan="4" style="text-align:center">Sales calls</th><th colspan="2" style="text-align:center">Results</th></tr>
+        <tr><th>Week</th><th>Registrants</th><th>$50k+ reg.</th><th>Show-up</th><th>$50k+ booked</th><th>Booked</th><th>Show-up</th><th>Offers</th><th>Close</th><th>Members</th><th>Cash</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="total"><td>${esc(m.label)} total</td>
+        <td>${x ? int(x.reg) : "—"}</td>${cell(x && x.qualShare, T.webQualified)}${cell(x && x.show, T.webShow)}${cell(x && x.qBookAtt, T.webQualBook)}
+        <td>${c ? int(c.booked) : "—"}</td>${cell(c && c.show, T.callShow)}${cell(c && c.offer, T.offer)}${cell(c && c.close, T.close)}
+        <td>${c ? int(c.wins) : "—"}</td><td>${c ? money(c.cash) : "—"}</td></tr>
+        <tr><td colspan="11" class="small muted" style="text-align:left;font-family:var(--f-body)">Targets: 25% at $50k+ · 20% webinar show-up · 20% of $50k+ attendees book · 80% call show-up · 90% offers · 30% close. A dash means nothing was recorded.</td></tr>
+      </tfoot></table></div></div>`;
+  }
+
+  function renderSolve(m) {
+    const T = D.targets, goal = m.goalMembers;
+    const cr = callsFor(m.key), wr = webinarsFor(m.key);
+    const c = cr.length ? sumCalls(cr) : null, w = wr.length ? sumWebinars(wr) : null;
+    const chain = (close, show, qBook, qShare, wShow) => {
+      const held = close ? goal / close : null;
+      const booked = held && show ? held / show : null;
+      const qAtt = booked && qBook ? booked / qBook : null;
+      const reg = qAtt && qShare && wShow ? qAtt / (qShare * wShow) : null;
+      return { held, booked, qAtt, reg };
+    };
+    const tgt = chain(T.close, T.callShow, T.webQualBook, T.webQualified, T.webShow);
+    const act = chain(c && c.close, c && c.show, w && w.qBookAtt, w && w.qualShare, w && w.show);
+    const row = (label, a, b, rule) => `<tr><td>${label}</td><td>${int(a)}</td><td>${b == null ? "—" : int(b)}</td><td style="text-align:left;font-family:var(--f-body)" class="small muted">${rule}</td></tr>`;
+    $("solve").innerHTML = `<div class="panel solve"><div class="scroll"><table>
+      <thead><tr><th>To close ${goal} members you need</th><th>At target rates</th><th>At ${esc(m.label)}'s rates</th><th style="text-align:left">Because</th></tr></thead>
+      <tbody>
+        ${row("Sales calls held", tgt.held, act.held, `Close rate: 30% target · ${pct(c && c.close)} actual`)}
+        ${row("Sales calls booked", tgt.booked, act.booked, `Call show-up: 80% target · ${pct(c && c.show)} actual`)}
+        ${row("$50k+ webinar attendees", tgt.qAtt, act.qAtt, `$50k+ attendees who book: 20% target · ${pct(w && w.qBookAtt)} actual`)}
+        ${row("Webinar registrants", tgt.reg, act.reg, `$50k+ share × show-up: 25% × 20% target · ${pct(w && w.qualShare)} × ${pct(w && w.show)} actual`)}
+      </tbody></table></div>
+      <p class="small muted" style="padding:0 16px 14px;margin:0">This assumes every booked call comes from a webinar. Calls from other sources lower the number of registrants you need.</p></div>`;
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", (e) => {
+    const mb = e.target.closest("[data-m]");
+    if (mb) { state.month = mb.dataset.m; state.week = null; try { localStorage.setItem("cgs-month", state.month); } catch (err) {} render(); return; }
+    const wb = e.target.closest("[data-w]");
+    if (wb) { const v = wb.dataset.w || null; state.week = state.week === v && wb.tagName === "TR" ? null : v; render(); }
+  });
+  document.addEventListener("keydown", (e) => {
+    const tr = e.target.closest && e.target.closest("tr[data-w]");
+    if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tr.click(); }
+  });
+
+  load();
+})();
+</script>

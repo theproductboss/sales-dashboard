@@ -1,0 +1,266 @@
+{
+ "updated": "2026-09-30",
+ "version": "V1 · manual entry",
+ "targets": {
+  "webQualified": 0.25,
+  "webShow": 0.2,
+  "webQualBook": 0.2,
+  "callShow": 0.8,
+  "offer": 0.9,
+  "close": 0.3,
+  "pif": {
+   "good": 0.5,
+   "better": 0.6,
+   "best": 0.7
+  }
+ },
+ "months": [
+  {
+   "key": "2026-09",
+   "label": "September",
+   "year": 2026,
+   "goalMembers": 30,
+   "goalCash": 120000,
+   "weeks": [
+    {
+     "week": "2026-08-31",
+     "label": "Sep 1–6"
+    },
+    {
+     "week": "2026-09-07",
+     "label": "Sep 7–13"
+    },
+    {
+     "week": "2026-09-14",
+     "label": "Sep 14–20"
+    },
+    {
+     "week": "2026-09-21",
+     "label": "Sep 21–27"
+    },
+    {
+     "week": "2026-09-28",
+     "label": "Sep 28–30"
+    }
+   ]
+  },
+  {
+   "key": "2026-10",
+   "label": "October",
+   "year": 2026,
+   "goalMembers": 30,
+   "goalCash": 150000,
+   "weeks": [
+    {
+     "week": "2026-09-28",
+     "label": "Oct 1–4"
+    },
+    {
+     "week": "2026-10-05",
+     "label": "Oct 5–11"
+    },
+    {
+     "week": "2026-10-12",
+     "label": "Oct 12–18"
+    },
+    {
+     "week": "2026-10-19",
+     "label": "Oct 19–25"
+    },
+    {
+     "week": "2026-10-26",
+     "label": "Oct 26–31"
+    }
+   ]
+  },
+  {
+   "key": "2026-11",
+   "label": "November",
+   "year": 2026,
+   "goalMembers": 30,
+   "goalCash": 150000,
+   "weeks": [
+    {
+     "week": "2026-11-02",
+     "label": "Nov 1–8"
+    },
+    {
+     "week": "2026-11-09",
+     "label": "Nov 9–15"
+    },
+    {
+     "week": "2026-11-16",
+     "label": "Nov 16–22"
+    },
+    {
+     "week": "2026-11-23",
+     "label": "Nov 23–30"
+    }
+   ]
+  }
+ ],
+ "webinars": [
+  {
+   "id": "demio-2026-09-28",
+   "month": "2026-09",
+   "week": "2026-09-28",
+   "label": "Week of Sep 28",
+   "platform": "Demio",
+   "format": "Live",
+   "source": "Demio revenue-level report (entered manually)",
+   "bands": [
+    {
+     "band": "Zero",
+     "min": 0,
+     "registrants": 63,
+     "attended": 10,
+     "booked": 1
+    },
+    {
+     "band": "Under $5,000",
+     "min": 0,
+     "registrants": 73,
+     "attended": 14,
+     "booked": 3,
+     "inferred": true
+    },
+    {
+     "band": "$5,000–$10,000",
+     "min": 0,
+     "registrants": 21,
+     "attended": 5,
+     "booked": 0
+    },
+    {
+     "band": "$10,000–$25,000",
+     "min": 0,
+     "registrants": 17,
+     "attended": 4,
+     "booked": 1
+    },
+    {
+     "band": "$25,000–$50,000",
+     "min": 0,
+     "registrants": 24,
+     "attended": 4,
+     "booked": 3
+    },
+    {
+     "band": "$50,000–$100,000",
+     "min": 50000,
+     "group": "$50k–$100k",
+     "registrants": 26,
+     "attended": 9,
+     "booked": 1
+    },
+    {
+     "band": "$100,000–$500,000",
+     "min": 100000,
+     "group": "$100k–$500k",
+     "registrants": 22,
+     "attended": 10,
+     "booked": 1
+    },
+    {
+     "band": "$500,000–$1,000,000",
+     "min": 500000,
+     "group": "$500k+",
+     "registrants": 4,
+     "attended": 2,
+     "booked": 2
+    },
+    {
+     "band": "$1,000,000–$5,000,000",
+     "min": 1000000,
+     "group": "$500k+",
+     "registrants": 1,
+     "attended": 0,
+     "booked": 0
+    }
+   ]
+  }
+ ],
+ "calls": [
+  {
+   "week": "2026-08-31",
+   "closer": "Jill",
+   "booked": 16,
+   "held": 8,
+   "no_show": 8,
+   "cancelled": 0,
+   "rescheduled": 0,
+   "not_logged": 1,
+   "offers": 7,
+   "wins": 2,
+   "pif": 2,
+   "plan": 0,
+   "revenue": 19600,
+   "cash": 19600,
+   "month": "2026-09",
+   "label": "Sep 1–6"
+  },
+  {
+   "week": "2026-09-07",
+   "closer": "Jill",
+   "booked": 13,
+   "held": 10,
+   "no_show": 3,
+   "cancelled": 0,
+   "rescheduled": 2,
+   "not_logged": 1,
+   "offers": 10,
+   "wins": 3,
+   "pif": 1,
+   "plan": 2,
+   "revenue": 55800,
+   "cash": 19300,
+   "month": "2026-09",
+   "label": "Sep 7–13"
+  },
+  {
+   "week": "2026-09-14",
+   "closer": "Jill",
+   "booked": 15,
+   "held": 11,
+   "no_show": 3,
+   "cancelled": 1,
+   "rescheduled": 0,
+   "not_logged": 1,
+   "offers": 8,
+   "wins": 0,
+   "pif": 0,
+   "plan": 0,
+   "revenue": 0,
+   "cash": 0,
+   "month": "2026-09",
+   "label": "Sep 14–20"
+  },
+  {
+   "week": "2026-09-28",
+   "closer": "Jill",
+   "booked": 3,
+   "held": 3,
+   "no_show": 0,
+   "cancelled": 0,
+   "rescheduled": 0,
+   "not_logged": 0,
+   "offers": 3,
+   "wins": 0,
+   "pif": 0,
+   "plan": 0,
+   "revenue": 0,
+   "cash": 0,
+   "month": "2026-09",
+   "label": "Sep 28–30"
+  }
+ ],
+ "notes": [
+  "Sales calls come from the closer tabs in “Closer Tracker – September 2026”. Only Jill's tab has September 2026 calls; Oz, Jacqueline, Lordisha, Kim, Lindsay and Lacey have none logged.",
+  "No calls are logged for Sep 21–27. If calls happened that week, they're missing from the tracker.",
+  "The tracker's MONTHLY SNAPSHOT tab adds Amy's 10 calls to September, but those rows are dated November 2024. This dashboard leaves them out.",
+  "4 calls had no outcome filled in (no show, offer or status), so they're counted as not logged instead of held. 2 rescheduled calls aren't counted.",
+  "Pay in full vs. payment plan is read from cash collected: a win is pay-in-full when cash collected equals total revenue.",
+  "In the webinar table, the booking count for the Under $5,000 row was covered in the screenshot; 3 is worked out from the under-$50k total of 8.",
+  "Membership tier (Collective / Insiders / Inner Circle) isn't in the tracker yet, so members are shown as one total."
+ ]
+}

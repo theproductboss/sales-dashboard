@@ -165,21 +165,14 @@ doesn't exist yet, that's the list of columns to add before we automate.
 - During overlap (Demio and WebinarJam both running), both feed the same
   metrics, tagged by platform.
 
-## 7. Open questions (need your answers before building)
+## 7. Decisions (answered 2026-09-30)
 
-1. **Q1 — Webinar booking rate (W3) denominator.** 20% of $50k+
-   **registrants**, or 20% of $50k+ **attendees**? (For evergreen, "attended"
-   = watched the replay/session.)
-2. **Q2 — Tier goals for October.** How do the 30 split across Collective /
-   Insiders / Inner Circle? Or is it just 30 total for now?
-3. **Q3 — Close rate denominator.** 30% of **calls held** (my default) or 30%
-   of **offers made**?
-4. **Q4 — Payment split.** "At least 50/50" — do you want **at least half
-   pay-in-full**, or just to see the split with 50/50 as the reference?
-5. **Q5 — Does "a member" = a closed sales call?** Or can people join a tier
-   without a call (e.g., buying Collective directly from the webinar)? If so,
-   where is that recorded?
-6. **Q6 — Where do you want to look at it?** A private web page (my default),
-   a Google Sheet tab, or also a daily/weekly Slack summary?
-7. **Q7 — Google Sheet link + who's on it.** Share the closers' sheet (or a
-   copy) so I can map its columns.
+1. **Webinar booking rate** — primary: 20% of **$50k+ attendees** book. Also shown: % of $50k+ registrants.
+2. **Monthly goal** — 30 members total (no tier split yet). Cash goal **$150,000/month** from October (September's sheet goal was $120,000).
+3. **Close rate** — closed ÷ calls **held** (people who actually showed up).
+4. **Payment split** — at least 50% pay-in-full. 50/50 = good, 60/40 = better, 70/30 = best.
+5. **Members** — every member comes through a sales call, so members = closed calls.
+6. **Where** — private web page (claude.ai artifact). Source in `dashboard/`.
+7. **Closer data** — "Closer Tracker – September 2026" Google Sheet, one tab per closer, one row per call.
+
+Rhythm: weeks of Sep 28 and Oct 5 are loaded by hand; automated feeds start after that.
