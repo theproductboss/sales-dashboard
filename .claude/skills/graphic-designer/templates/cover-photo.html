@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="size" content="{{W}}x{{H}}">{{google_fonts}}<style>{{brand_css}}:root{--w:{{W}}px;--h:{{H}}px}{{base_css}}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 22%,rgba(0,0,0,.35) 50%,color-mix(in srgb,var(--primary) 75%,#000) 100%)}
+.txt{position:absolute;left:88px;right:88px;bottom:190px;color:#fff}
+.txt .kicker{color:#fff;margin-bottom:34px;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.headline{font-size:118px;color:#fff}
+.swipe{margin-top:44px;font-size:28px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;opacity:.85}
+.foot{color:#fff}
+</style></head><body><div class="page">
+<img class="photo" src="{{image}}" style="object-position:{{image_pos}}">
+<div class="shade"></div>
+<div class="txt"><div class="kicker">{{kicker}}</div><h1 class="headline">{{headline}}</h1><div class="swipe">{{note}}</div></div>
+<div class="foot">{{brand_mark}}<span class="counter">{{counter}}</span></div>
+</div></body></html>
