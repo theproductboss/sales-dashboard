@@ -6,14 +6,16 @@
 ---
 
 ## Business
-- **Owner:** [Your name]
+- **Owner:** Lauren Brown
 - **Business name:** Primally Pure
 - **Website:** https://www.primallypure.com
 - **What we sell (one sentence):** Clean skincare, body care and non-toxic home products made only with real, organically certified ingredients, so clean beauty is safe, effective and simple.
 - **Ingredient story:** grass-fed tallow, organic botanicals, pure essential oils (never synthetic fragrance), clean-burning beeswax + coconut wax, glass recyclable jars.
 
 ## Products
-*(Prices from primallypure.com, Oct 21 2026. Site best-seller tags marked ★. Confirm which 3–5 you want to push.)*
+*(Prices from primallypure.com, Oct 21 2026. Site best-seller tags marked ★.)*
+
+**Holiday 2026 focus products (push these):** Holiday Collection · Holiday Home Collection · The Jet Set · Warm Citrus Spice Candle · Antioxidant Balm
 
 | Product / collection | Price | What makes it special | Photo in brand-assets/products/ |
 |---|---|---|---|
@@ -28,9 +30,9 @@
 | Other gift-friendly bundles: Starter Kit ★ $60, Baby Kit ★ $62, Men's Grooming $92, Spa Kit $66, Deodorant Trio ★ $40 | $40–92 | Gift by recipient | none yet |
 
 ## Customer
-- **Who buys:** [e.g. "Women 30–55 buying for themselves and as hostess gifts"]
-- **Why they buy:** 1. [ ] 2. [ ] 3. [ ]
-- **What makes them hesitate:** 1. [ ] 2. [ ] 3. [ ]
+- **Who buys:** Health-conscious people, most often women and mothers, and holistic-lifestyle enthusiasts who prioritize non-toxic, animal-based, organic skincare. They actively avoid synthetic chemicals, artificial fragrance and conventional deodorant, and choose grass-fed tallow and natural ingredients instead.
+- **Why they buy:** 1. Ingredients they can trust: organic, grass-fed tallow, essential oils only 2. It actually works on their skin 3. Swapping toxic products out of the whole home and family routine (body, home, baby) *(draft — confirm)*
+- **What makes them hesitate:** 1. Price vs. drugstore/conventional 2. Natural deodorant adjustment period / "will it work for me?" 3. Unsure which product or routine to start with *(draft — confirm)*
 
 ## Channels
 | Platform | Handle | Main? (Y/N) | How often you post |
