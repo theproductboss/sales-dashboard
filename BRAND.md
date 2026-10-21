@@ -8,19 +8,24 @@
 ## Business
 - **Owner:** [Your name]
 - **Business name:** Primally Pure
-- **Website:** [https://yourshop.com]
-- **What we sell (one sentence):** [e.g. "Small-batch soy candles inspired by Pacific Northwest hikes."]
+- **Website:** https://www.primallypure.com
+- **What we sell (one sentence):** Clean skincare, body care and non-toxic home products made only with real, organically certified ingredients, so clean beauty is safe, effective and simple.
+- **Ingredient story:** grass-fed tallow, organic botanicals, pure essential oils (never synthetic fragrance), clean-burning beeswax + coconut wax, glass recyclable jars.
 
 ## Products
+*(Prices from primallypure.com, Oct 21 2026. Site best-seller tags marked ★. Confirm which 3–5 you want to push.)*
+
 | Product / collection | Price | What makes it special | Photo in brand-assets/products/ |
 |---|---|---|---|
-| Holiday collection (candle, whipped body butter, deodorant, lip balm, body wash) + "Soil to Skin" canvas gift pouch | [$] | Seasonal scent, forest-green packaging | holiday-candle.png, holiday-gift-set.png |
-| Antioxidant Balm | [$] | [One line] | antioxidant-balm.png, antioxidant-balm-lifestyle.png |
-| Candles & home: Warm Citrus Spice candle + room spray, Bergamot + Eucalyptus candle | [$] | [One line] | none yet (seen in feed) |
-| Daily essentials: Hand Sanitizer, Dry Shampoo, Old Fashioned Beard Oil, Baking Soda Free Deodorant | [$] | Cleanse + replenish; gentle for sensitive skin | none yet (seen in feed) |
-| Coffee Mask, Lip Oil | [$] | [One line] | none yet (seen in feed) |
-
-*(Products seen in the photos and IG feed — prices, top sellers and one-liners still to confirm.)*
+| **Holiday Collection** (limited edition) ★ — Candle $46/$58, Whipped Body Butter $18–64, Deodorant $18 ★, Body Wash $22–48, Hand Soap $44, Room Spray $36, Tinted Lip Balm $12 | $12–64 | Only here for the holidays. Candle: black spruce, sweet cinnamon + vanilla in beeswax/coconut wax. Body butter: icy sweet mint + toasty vanilla with a natural-mineral shimmer. | holiday-candle.png |
+| **Holiday Home Collection** ★ (Hand Soap + Room Spray + Candle) | $114 | "Nostalgic, non-toxic aromas" — a whole-home holiday set, no synthetic fragrance | none yet |
+| **The Jet Set** ★ (Holiday edition: body wash, deodorant, whipped body butter, tinted lip balm in the "Soil to Skin" canvas pouch) | $64–95 | Giftable travel kit | holiday-gift-set.png |
+| **Antioxidant Balm** | $42–72 | Grass-fed tallow + antioxidant superfoods + botanical fatty acids; supports the barrier, brightens, "glow-ready, naturally" | antioxidant-balm.png, antioxidant-balm-lifestyle.png |
+| **Warm Citrus Spice** Candle ★ $54–70, Room Spray $36, Hand Soap $44, Home Collection $120 | $36–120 | Citrus spice with cacao, honey, golden hay + apple blossom — the scent behind the top-performing cider reel | none yet |
+| Deodorants ★ (Lavender, Charcoal, Blue Tansy, Vanilla + Citrus; Baking Soda Free line) | $14–22 | The original hero category | none yet |
+| Lip Oil / Latte Lip Oil ★, Lip Balm Set ★ | $20 / $28 | Stocking stuffers | none yet |
+| Skin-type skincare bundles (Foundation / Routine / Ritual) | $81–210 | Routines by skin type: dry, sensitive, acne-prone, oil-rich, balanced | none yet |
+| Other gift-friendly bundles: Starter Kit ★ $60, Baby Kit ★ $62, Men's Grooming $92, Spa Kit $66, Deodorant Trio ★ $40 | $40–92 | Gift by recipient | none yet |
 
 ## Customer
 - **Who buys:** [e.g. "Women 30–55 buying for themselves and as hostess gifts"]
