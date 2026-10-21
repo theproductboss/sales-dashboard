@@ -1,0 +1,16 @@
+{
+  "brand": {"primary": "#3F4E3D", "accent": "#3F4E3D", "background": "#F3F1EC",
+            "font_head": "Cormorant Garamond", "font_body": "Figtree",
+            "google_fonts": "family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Figtree:wght@400;500;600",
+            "name": "Primally Pure", "handle": "PRACTICE CUT · not for posting"},
+  "size": "1080x1920",
+  "output": "get-cozy-practice-reel.mp4",
+  "keep_audio": true,
+  "clips": [
+    {"file": "/home/user/sales-dashboard/output/reel-1/sdr/IMG_4916.mp4", "start": 1.2, "end": 3.2, "text": "Get cozy this holiday season", "text_pos": "top"},
+    {"file": "/home/user/sales-dashboard/output/reel-1/sdr/IMG_4915.mp4", "start": 0.4, "end": 2.4, "text": "Unwrap a slower evening", "text_pos": "top"},
+    {"file": "/home/user/sales-dashboard/output/reel-1/sdr/IMG_4916.mp4", "start": 6.6, "end": 8.6, "text": "Light it. Breathe in.", "text_pos": "top"},
+    {"file": "/home/user/sales-dashboard/output/reel-1/sdr/IMG_4916.mp4", "start": 8.6, "end": 10.0, "punch": 1.18, "text": "Stay a while.", "text_pos": "top"}
+  ],
+  "end_card": {"headline": "Get cozy this holiday season", "cta": "Comment COZY", "seconds": 2.5}
+}

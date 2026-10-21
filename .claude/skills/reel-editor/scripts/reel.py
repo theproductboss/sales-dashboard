@@ -161,7 +161,7 @@ def build(plan_file):
                 fc = f"[0:v]{vf}[v];[v][{ov_idx}:v]overlay=0:0[vo]"
             else:
                 fc = f"[0:v]{vf}[vo]"
-            amap = "0:a" if has_audio else "1:a"
+            amap = "0:a:0" if has_audio else "1:a"
             args += ["-filter_complex", fc, "-map", "[vo]", "-map", amap, "-shortest",
                      "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                      "-c:a", "aac", "-ar", "48000", "-ac", "2", str(out)]

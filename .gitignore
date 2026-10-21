@@ -3,3 +3,5 @@ node_modules/
 footage/
 output/*/frames/
 __pycache__/
+output/*/sdr/
+output/*/check/
