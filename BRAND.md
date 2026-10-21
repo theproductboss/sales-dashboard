@@ -54,8 +54,16 @@
 |---|---|---|---|
 | [Brand] | [url] | [@handle] | [type] |
 
+## Content that performs
+| Post | Date | Format | Why it worked | Results |
+|---|---|---|---|---|
+| [Warm cider reel](https://www.instagram.com/reel/DecHJvTTUnc/) | Oct 13, 2026 | Reel with trending audio ("Sweetness", Max Holm) | Turns a product **scent** (Warm Citrus Spice) into a cozy lifestyle moment (a cider recipe) instead of selling the product directly. "Comment RECIPE" CTA drives comments + DMs. Comments: "can smell it through the phone", "fall in a mug". | 293 likes, 67 comments (comments ≈ 23% of likes, very high) |
+
+**Pattern to repeat:** scent → sensory seasonal ritual (recipe, DIY, home moment) + comment-a-keyword CTA with a freebie.
+
 ## Calls to action
-- **Default CTA:** [e.g. "Shop the link in bio" / "Comment GIFT and we'll DM you the guide"]
+- **Default CTA:** [to confirm]
+- **Seen working:** "Comment RECIPE" keyword → recipe sent by DM
 - **Other CTAs we use:** [ ]
 
 ---
