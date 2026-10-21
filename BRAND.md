@@ -14,9 +14,13 @@
 ## Products
 | Product / collection | Price | What makes it special | Photo in brand-assets/products/ |
 |---|---|---|---|
-| [Product] | [$] | [One line] | [filename or "none yet"] |
-| [Product] | [$] | [One line] | [filename] |
-| [Product] | [$] | [One line] | [filename] |
+| Holiday collection (candle, whipped body butter, deodorant, lip balm, body wash) + "Soil to Skin" canvas gift pouch | [$] | Seasonal scent, forest-green packaging | holiday-candle.png, holiday-gift-set.png |
+| Antioxidant Balm | [$] | [One line] | antioxidant-balm.png, antioxidant-balm-lifestyle.png |
+| Candles & home: Warm Citrus Spice candle + room spray, Bergamot + Eucalyptus candle | [$] | [One line] | none yet (seen in feed) |
+| Daily essentials: Hand Sanitizer, Dry Shampoo, Old Fashioned Beard Oil, Baking Soda Free Deodorant | [$] | Cleanse + replenish; gentle for sensitive skin | none yet (seen in feed) |
+| Coffee Mask, Lip Oil | [$] | [One line] | none yet (seen in feed) |
+
+*(Products seen in the photos and IG feed — prices, top sellers and one-liners still to confirm.)*
 
 ## Customer
 - **Who buys:** [e.g. "Women 30–55 buying for themselves and as hostess gifts"]
@@ -57,28 +61,37 @@
 ---
 
 ## Visual identity
-*(Filled in from your logo and the photos you uploaded — draft, awaiting your confirmation.)*
+*(Filled in from your logo, product photos and recent IG feed — draft, awaiting your confirmation.)*
 
 ### Colors
 | Role | Hex | Notes |
 |---|---|---|
 | Primary | #3F4E3D | Deep forest green — Holiday candle and gift-set packaging |
 | Secondary | #1E1D21 | Near-black — Antioxidant Balm jar |
-| Accent | #A9A795 | Soft sage-khaki — lifted from the green packaging in light |
+| Accent | #958F80 | Warm stone/khaki — the textured paper background on text graphics (e.g. "Daily Essentials") |
 | Background | #F3F1EC | Warm off-white, like the studio backdrops |
 | Text | #303433 | Charcoal from the wordmark |
-| Neutral (extra) | #E4D8C7 | Natural canvas — gift-set pouch, for warm panels |
+| Neutral (extra) | #E4D8C7 | Natural canvas / sand — gift pouch, cream & blush packaging, warm panels |
+| Sage (extra) | #A9A795 | Soft sage from the green packaging in light |
 
 ### Fonts
-- **Headlines:** Cormorant Garamond — Google Font (closest free match to the elegant serif on the product labels, e.g. "Antioxidant Balm", "Holiday")
-- **Body / labels:** Montserrat — Google Font (closest free match to the wide, geometric sans of the wordmark)
-- **Style notes:** Brand name and small labels in ALL CAPS with very wide letter-spacing; product names and headlines in a serif, sentence/title case. Thin, light weights — nothing heavy or bubbly.
+- **Headlines:** Cormorant Garamond — Google Font. Elegant serif in title case, often with **one word in italic** for emphasis ("*Daily* Essentials", "*Grounded* Wellness").
+- **Kicker / eyebrow labels:** DM Mono — Google Font. Small ALL-CAPS monospace, wide spacing ("PRODUCTS YOU MIGHT NOT KNOW WE HAD", "BARBARA O'NEILL").
+- **Body:** Figtree — Google Font. Clean, friendly sans in sentence case for short benefit lines ("Cleanse hands + replenish moisture").
+- **Style notes:** The wordmark itself is a wide, thin geometric sans in spaced caps — always use the logo file, never retype it. Use "+" instead of "and" in short lines. Thin weights; nothing heavy or bubbly.
+- **Google Fonts string:** family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@400&family=Figtree:wght@400;500;600
 
 ### Photo style
-Clean, minimal, bright and soft-lit. Product on seamless off-white/light-grey backgrounds with gentle shadows; occasional flat lays (gift set spilling from a canvas pouch). Lifestyle shots: natural-looking skin, white tee, marble/tile bathroom, warm natural light.
+Two modes:
+1. **Clean product shots** — products on seamless off-white or warm stone backgrounds, soft light, gentle shadows; tidy flat lays.
+2. **Warm, moody lifestyle** — golden-hour light with long shadows, dark wood tables, olive/earthy linens, natural textures (canvas, plaster). Seasonal props in autumn/holiday: white pumpkins, sunflowers, hydrangeas, cinnamon sticks, dried orange slices. Hands-in-frame moments (lighting a candle with a match). People shots feel natural and real, never glossy.
 
 ### Layout habits
-Lots of white space, quiet and premium. Product centered with room around it. Text small and restrained; no stickers, bursts, or busy patterns. Logo is a spaced-out wordmark, not an icon.
+- Quiet, premium, editorial. Lots of breathing room; centered compositions.
+- **Text graphics:** textured stone/khaki paper background, mono kicker at top → large serif headline with one italic word → product cut-outs in a neat grid, each with a serif name + one-line sans benefit underneath.
+- **Text on photos:** only over a soft dark gradient at the bottom; white serif headline, a short sans subhead, and a thin hairline arrow (→) as the swipe cue. Series label + guest name in a thin top bar separated by a hairline (e.g. "*Grounded* Wellness ——— BARBARA O'NEILL").
+- Thin hairline rules and arrows instead of buttons, badges or stickers.
+- Feed mixes Reels (product/lifestyle moments) and carousels (education, product roundups, guest expert series).
 
 ### Graphic rules
 - Always: Not set yet
@@ -87,7 +100,7 @@ Lots of white space, quiet and premium. Product centered with room around it. Te
 ### Assets
 - **Logo:** brand-assets/logo/primally-pure-wordmark.png (charcoal wordmark on white, no transparent version yet)
 - **Product photos:** brand-assets/products/ — holiday-candle.png, antioxidant-balm.png, antioxidant-balm-lifestyle.png, holiday-gift-set.png
-- **Past posts we love:** brand-assets/past-posts/ (none yet)
+- **Past posts we love:** brand-assets/past-posts/ig-feed-2026-10.webp (recent IG grid)
 - **Inspiration (style only):** brand-assets/inspiration/ (none yet)
 
 ### Saved layouts
