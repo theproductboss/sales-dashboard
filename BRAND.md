@@ -10,6 +10,7 @@
 - **Business name:** Primally Pure
 - **Website:** https://www.primallypure.com
 - **What we sell (one sentence):** Clean skincare, body care and non-toxic home products made only with real, organically certified ingredients, so clean beauty is safe, effective and simple.
+- **Founder:** Bethany McDaniel. Started in 2013–14 rendering tallow from her family's organic livestock farm (Primal Pastures, Southern California) after struggling with sensitive, acne-prone skin.
 - **Ingredient story:** grass-fed tallow, organic botanicals, pure essential oils (never synthetic fragrance), clean-burning beeswax + coconut wax, glass recyclable jars.
 
 ## Products
@@ -31,35 +32,57 @@
 
 ## Customer
 - **Who buys:** Health-conscious people, most often women and mothers, and holistic-lifestyle enthusiasts who prioritize non-toxic, animal-based, organic skincare. They actively avoid synthetic chemicals, artificial fragrance and conventional deodorant, and choose grass-fed tallow and natural ingredients instead.
-- **Why they buy:** 1. Ingredients they can trust: organic, grass-fed tallow, essential oils only 2. It actually works on their skin 3. Swapping toxic products out of the whole home and family routine (body, home, baby) *(draft — confirm)*
-- **What makes them hesitate:** 1. Price vs. drugstore/conventional 2. Natural deodorant adjustment period / "will it work for me?" 3. Unsure which product or routine to start with *(draft — confirm)*
+- **Why they buy** *(from Lauren + public reviews, Oct 2026)*:
+  1. **A natural deodorant that actually works.** This is the #1 praise in reviews: all-day odor control, "the only natural deodorant that works without irritation."
+  2. **Ingredients they can read and trust.** Organic, grass-fed tallow, essential oils only. No aluminum, parabens, synthetic fragrance, triclosan or talc. "I can pronounce all of the ingredients."
+  3. **Gentle on sensitive and eczema-prone skin.** The founder built it for her own sensitive skin, and it's a big draw for moms and babies.
+  4. **Swap the whole routine.** One trusted brand across face, body, home and baby makes the non-toxic switch easy, with bundles and kits for each.
+  5. **Scent + ritual.** Real essential-oil scents and beautiful glass packaging make everyday care feel like a cozy, intentional ritual ("fall in a mug", "smell it through the phone").
+- **What makes them hesitate** *(confirmed by Lauren: 1 + 2)*:
+  1. **Price vs. drugstore/conventional.** Answer with value: how long a jar lasts, cost per use, bundles/kits, and ingredient quality.
+  2. **The natural-deodorant adjustment period.** "Will it work for me?" Answer with honest expectations, the Baking Soda Free line for sensitive skin, and real customer results.
+  3. *(from reviews)* Tallow skepticism ("beef fat on my face?") and texture: some find body butter tacky or deodorant clumpy. Answer with education (why tallow, how to apply a pea-size amount, warm it between fingers).
+  4. *(from reviews)* Scent strength for sensitive noses. Point to unscented options.
+- **Proof points:** 4.7★ from ~1,900 reviews on the deodorant page; "12,000+ five-star reviews" brand-wide (as cited in a partner article — confirm before using in a post).
 
 ## Channels
 | Platform | Handle | Main? (Y/N) | How often you post |
 |---|---|---|---|
-| Instagram | @[handle] | [Y/N] | [e.g. 3x/week] |
-| Facebook | [page] | [Y/N] | [ ] |
-| TikTok | @[handle] | [Y/N] | [ ] |
-| Pinterest | @[handle] | [Y/N] | [ ] |
-| Email | [platform] | [Y/N] | [ ] |
+| Instagram | @primallypure | Y | [confirm] — mix of Reels + carousels |
+| Facebook | — | N | — |
+| TikTok | — | N | — |
+| Pinterest | — | N | — |
+| Email | — | N (not handled by Studio for now) | — |
 
-- **Where people buy:** [Website / Amazon / Etsy / wholesale / markets]
+- **Where people buy:** primallypure.com (main) and Amazon. *(Note: some Amazon listings for the brand appear to be third-party resellers; point social traffic to the website.)*
 
 ## Offers & promos
 | Offer | Dates | Status |
 |---|---|---|
-| [e.g. Holiday gift set] | [dates] | [current focus / upcoming / evergreen] |
-| [Offer] | [dates] | [status] |
+| Limited-edition Holiday Collection (Candle, Whipped Body Butter, Deodorant, Body Wash, Hand Soap, Room Spray, Tinted Lip Balm) | Live now through the holidays (while it lasts) | **current focus** |
+| Holiday Home Collection ($114) | Live now | current focus |
+| The Jet Set — Holiday edition ($64–95) | Live now | current focus (gift) |
+| Warm Citrus Spice (candle, room spray, hand soap, home collection) | Autumn | current focus (scent of the season) |
+| Antioxidant Balm ($42–72) | Evergreen | current focus (skincare hero) |
+| Clean Start Bundle ($48) / Starter Kit ($60) | Evergreen | entry offer for first-timers |
+| Black Friday / Cyber Monday | [dates + offer to confirm] | upcoming |
 
 ## Voice
-- **Three words:** [e.g. warm, witty, down-to-earth]
-- **Things we say:** [phrases you actually use]
-- **Words we never use:** [be specific: "luxe", "elevate", "game-changer"]
+*(Drafted from primallypure.com copy and IG captions — edit anytime.)*
+- **Three words:** warm, pure, intentional
+- **How it sounds:** calm and confident, never preachy. Sensory and cozy ("the coziest ambiance", "fall in a mug"). Educational about ingredients, without fear-mongering.
+- **Things we say:** "clean-burning beeswax", "pure essential oils", "non-toxic", "grass-fed tallow", "wellness, comfort and joy", "glow-ready, naturally", "a more intentional holiday season", "Soil to Skin". Use "+" in short lines ("Cleanse hands + replenish moisture").
+- **Words we never use:** "chemical-free" (everything is chemicals), "cure", "heal", "treats [condition]", "miracle", hype words like "game-changer", "obsessed", "holy grail", and "luxe". No shaming of other people's choices.
 
 ## Brands we watch
+*(Starting list from research — add your own; used by competitor-research.)*
 | Brand | Website | Social handles | Type (competitor / dream brand / style crush) |
 |---|---|---|---|
-| [Brand] | [url] | [@handle] | [type] |
+| Clae | [to find] | [to find] | competitor (grass-fed tallow) |
+| Ancestral Cosmetics | [to find] | [to find] | competitor (tallow) |
+| Esca | [to find] | [to find] | competitor (tallow balms + deodorant) |
+| Hearth & Homestead | [to find] | [to find] | competitor (whipped tallow) |
+| Native | native.com | @native | competitor (mainstream "natural" deodorant) |
 
 ## Content that performs
 | Post | Date | Format | Why it worked | Results |
@@ -69,14 +92,14 @@
 **Pattern to repeat:** scent → sensory seasonal ritual (recipe, DIY, home moment) + comment-a-keyword CTA with a freebie.
 
 ## Calls to action
-- **Default CTA:** [to confirm]
-- **Seen working:** "Comment RECIPE" keyword → recipe sent by DM
-- **Other CTAs we use:** [ ]
+- **Default CTA:** "Shop the Holiday Collection — link in bio"
+- **Engagement CTA (proven):** "Comment [KEYWORD] and we'll DM you the [recipe/guide/ritual]", as with the RECIPE cider reel
+- **Other CTAs we use:** "Save this for your holiday list", "Send this to the friend who…", "Tap to shop"
 
 ---
 
 ## Visual identity
-*(Filled in from your logo, product photos and recent IG feed — draft, awaiting your confirmation.)*
+*(Filled in from your logo, product photos and recent IG feed.)*
 
 ### Colors
 | Role | Hex | Notes |
@@ -109,8 +132,9 @@ Two modes:
 - Feed mixes Reels (product/lifestyle moments) and carousels (education, product roundups, guest expert series).
 
 ### Graphic rules
-- Always: Not set yet
-- Never: Not set yet
+- Always: use the real wordmark file (never retype the logo); one italic word in serif headlines; generous white space; hairline rules/arrows for swipe cues; real product photos.
+- Always: product claims must match the product page; no medical or SPF/sun-protection claims beyond the label.
+- Never: stickers, bursts, badges, neon/saturated colors, heavy or bubbly fonts, busy patterns, light text on a busy photo without a dark fade.
 
 ### Assets
 - **Logo:** brand-assets/logo/primally-pure-wordmark.png (charcoal wordmark on white, no transparent version yet)
