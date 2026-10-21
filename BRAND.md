@@ -137,10 +137,10 @@ Two modes:
 - Never: stickers, bursts, badges, neon/saturated colors, heavy or bubbly fonts, busy patterns, light text on a busy photo without a dark fade.
 
 ### Assets
-- **Logo:** brand-assets/logo/primally-pure-wordmark.png (charcoal wordmark on white, no transparent version yet)
+- **Logo:** brand-assets/logo/primally-pure-wordmark.png (original), plus transparent primally-pure-wordmark-charcoal.png and primally-pure-wordmark-white.png
 - **Product photos:** brand-assets/products/ — holiday-candle.png, antioxidant-balm.png, antioxidant-balm-lifestyle.png, holiday-gift-set.png
 - **Past posts we love:** brand-assets/past-posts/ig-feed-2026-10.webp (recent IG grid)
 - **Inspiration (style only):** brand-assets/inspiration/ (none yet)
 
 ### Saved layouts
-- [none yet]
+- **brand-assets/layouts/primally-pure-carousels.py** — Primally Pure carousel system (Oct 2026): grainy stone cover with arch photo frame, centered product slide (arch photo + mono kicker + serif headline with italic word + price), numbered ingredient/tip slide, big-stat review slide, comment-keyword CTA. Series label + counter top bar, white/charcoal transparent wordmark bottom center. Edit the slide lists at the bottom, run `python3 brand-assets/layouts/primally-pure-carousels.py .`, then `render.py output/<project>`.
