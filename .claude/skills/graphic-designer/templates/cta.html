@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="size" content="{{W}}x{{H}}">{{google_fonts}}<style>{{brand_css}}:root{--w:{{W}}px;--h:{{H}}px}{{base_css}}
+.page{background:var(--accent);color:#fff}
+.circle{position:absolute;right:-160px;top:-160px;width:720px;height:720px;border-radius:50%;overflow:hidden;border:18px solid rgba(255,255,255,.18)}
+.circle img{width:100%;height:100%;object-fit:cover}
+.txt{position:absolute;left:88px;right:88px;bottom:200px}
+.txt .kicker{color:#fff;opacity:.85;margin-bottom:34px}
+.headline{font-size:108px;margin-bottom:54px}
+.pill{background:#fff;color:var(--accent)}
+.handle{margin-top:34px;font-size:32px;font-weight:500;opacity:.9}
+.foot{color:#fff}
+</style></head><body><div class="page">
+<div class="circle"><img src="{{image}}" style="object-position:{{image_pos}}"></div>
+<div class="txt"><div class="kicker">{{kicker}}</div><h2 class="headline">{{headline}}</h2><span class="pill">{{cta}}</span><div class="handle">{{handle}}</div></div>
+<div class="foot">{{brand_mark}}<span class="counter">{{counter}}</span></div>
+</div></body></html>

@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="size" content="{{W}}x{{H}}">{{google_fonts}}<style>{{brand_css}}:root{--w:{{W}}px;--h:{{H}}px}{{base_css}}
+.page{background:var(--bg)}
+.txt{position:absolute;left:88px;right:88px;top:150px}
+.txt .kicker{margin-bottom:40px}
+.headline{font-size:124px;color:var(--primary)}
+.arch{position:absolute;right:88px;bottom:150px;width:470px;height:600px;border-radius:235px 235px 28px 28px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.35)}
+.arch img{width:100%;height:100%;object-fit:cover}
+.blob{position:absolute;right:-120px;bottom:-140px;width:620px;height:620px;border-radius:50%;background:var(--secondary);opacity:.35}
+.note{position:absolute;left:88px;bottom:170px;width:380px;font-size:34px;line-height:1.35;color:var(--text)}
+.foot{color:var(--primary)}
+</style></head><body><div class="page">
+<div class="blob"></div>
+<div class="txt"><div class="kicker">{{kicker}}</div><h1 class="headline">{{headline}}</h1></div>
+<div class="arch"><img src="{{image}}" style="object-position:{{image_pos}}"></div>
+<div class="note">{{note}}</div>
+<div class="foot">{{brand_mark}}<span class="counter">{{counter}}</span></div>
+</div></body></html>
