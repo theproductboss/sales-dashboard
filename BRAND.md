@@ -75,14 +75,14 @@
 - **Words we never use:** "chemical-free" (everything is chemicals), "cure", "heal", "treats [condition]", "miracle", hype words like "game-changer", "obsessed", "holy grail", and "luxe". No shaming of other people's choices.
 
 ## Brands we watch
-*(Starting list from research — add your own; used by competitor-research.)*
+*(Researched Oct 21, 2026 — full report: output/research/2026-10-21-competitor-research.md)*
 | Brand | Website | Social handles | Type (competitor / dream brand / style crush) |
 |---|---|---|---|
-| Clae | [to find] | [to find] | competitor (grass-fed tallow) |
-| Ancestral Cosmetics | [to find] | [to find] | competitor (tallow) |
-| Esca | [to find] | [to find] | competitor (tallow balms + deodorant) |
-| Hearth & Homestead | [to find] | [to find] | competitor (whipped tallow) |
-| Native | native.com | @native | competitor (mainstream "natural" deodorant) |
+| Toups & Co Organics | toupsandco.com | [to confirm] | competitor (tallow skincare + clean makeup) |
+| FATCO | fatco.com | [to confirm] | competitor (tallow body care, cheeky voice) |
+| Native | nativecos.com | @native | competitor (mainstream "clean" deodorant) |
+| Nécessaire | necessaire.com | @necessaire | dream brand / style crush (premium body care) |
+| Vintage Tradition | vintagetradition.com | [to confirm] | competitor (tallow) — not yet researched |
 
 ## Content that performs
 | Post | Date | Format | Why it worked | Results |
