@@ -40,7 +40,7 @@ Actions secrets for a scheduled report) — never in the repo.
 
 ## Open questions
 
-- Output destination: shareable page, Slack post, spreadsheet, or Notion.
+- Output destination: **shareable page** (decided).
 - One-off analysis vs. recurring report.
 
 ## Running it
