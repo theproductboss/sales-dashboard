@@ -28,7 +28,7 @@ There are no Stripe Connect accounts — each Stripe account has its own key.
 |---|---|
 | `STRIPE_API_KEY` | ClickFunnels payments |
 | `STRIPE_FGFUNNELS_API_KEY` | FG Funnels payments |
-| `SAMCART_API_KEY` | SamCart orders (if added) |
+| `STRIPE_SAMCART_API_KEY` | SamCart payments (separate Stripe account) |
 | `KIT_API_KEY` | Kit v4 API (needed for an unattended/scheduled report) |
 
 Any further Stripe accounts follow the pattern `STRIPE_<NAME>_API_KEY`.
@@ -40,6 +40,5 @@ Actions secrets for a scheduled report) — never in the repo.
 
 ## Open questions
 
-- Which Stripe account (if any) SamCart charges through.
 - Output destination: shareable page, Slack post, spreadsheet, or Notion.
 - One-off analysis vs. recurring report.
