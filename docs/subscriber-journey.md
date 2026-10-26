@@ -42,3 +42,10 @@ Actions secrets for a scheduled report) — never in the repo.
 
 - Output destination: shareable page, Slack post, spreadsheet, or Notion.
 - One-off analysis vs. recurring report.
+
+## Running it
+
+`npm run journey -- <output.json>` (needs `KIT_API_KEY` and the `STRIPE_*`
+keys in the environment). Writes subscriber tag histories + matched Stripe
+charges to a JSON file (default `journey-data.json`, gitignored — it holds
+subscriber PII). That file is the input for the shareable journey page.
