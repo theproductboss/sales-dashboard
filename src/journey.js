@@ -21,6 +21,7 @@ const IGNORED_TAG_PATTERNS = [/^Imported /i, /^\[temp\]/i, /^Resend needed/i, /^
 // Which business each Stripe key's account covers.
 const STRIPE_ACCOUNT_LABELS = {
   STRIPE_API_KEY: 'ClickFunnels',
+  STRIPE_CLICKFUNNELS_API_KEY: 'ClickFunnels',
   STRIPE_FGFUNNELS_API_KEY: 'FG Funnels',
   STRIPE_SAMCART_API_KEY: 'SamCart',
 };
@@ -129,28 +130,44 @@ function chargeProduct(charge) {
   return charge.description || charge.calculated_statement_descriptor || null;
 }
 
+// Look charges up per subscriber email (via the Stripe customers with that
+// email) instead of listing every charge on the account. Guest charges with
+// no customer attached are not found this way.
+async function chargesForEmail(apiKey, email) {
+  const byId = new Map();
+  const customers = await stripePaginate(apiKey, '/customers', [['email', email]]);
+  for (const cust of customers) {
+    for (const c of await stripePaginate(apiKey, '/charges', [['customer', cust.id]])) byId.set(c.id, c);
+  }
+  return [...byId.values()];
+}
+
 async function collectStripe(emails) {
   const keyNames = Object.keys(process.env).filter((k) => /^STRIPE_.*API_KEY$/.test(k));
   const purchases = [];
   for (const keyName of keyNames) {
     const account = STRIPE_ACCOUNT_LABELS[keyName] || keyName;
-    const charges = await stripePaginate(process.env[keyName], '/charges', [
-      ['expand[]', 'data.customer'],
-    ]);
-    console.error(`${account}: ${charges.length} charges`);
-    for (const c of charges) {
-      const email = chargeEmail(c);
-      if (!c.paid || !email || !emails.has(email)) continue;
-      purchases.push({
-        email,
-        account,
-        createdAt: new Date(c.created * 1000).toISOString(),
-        amount: c.amount / 100,
-        amountRefunded: c.amount_refunded / 100,
-        currency: c.currency,
-        product: chargeProduct(c),
-      });
-    }
+    let count = 0;
+    const queue = [...emails];
+    await Promise.all(Array.from({ length: 5 }, async () => {
+      while (queue.length) {
+        const email = queue.shift();
+        for (const c of await chargesForEmail(process.env[keyName], email)) {
+          if (!c.paid) continue;
+          count++;
+          purchases.push({
+            email,
+            account,
+            createdAt: new Date(c.created * 1000).toISOString(),
+            amount: c.amount / 100,
+            amountRefunded: c.amount_refunded / 100,
+            currency: c.currency,
+            product: chargeProduct(c),
+          });
+        }
+      }
+    }));
+    console.error(`${account}: ${count} matched charges`);
   }
   return { accounts: keyNames.map((k) => STRIPE_ACCOUNT_LABELS[k] || k), purchases };
 }
