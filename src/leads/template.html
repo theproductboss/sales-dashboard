@@ -1,0 +1,510 @@
+<title>Webinar Lead Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+  /* Layout: a working tool, scanned top-down: filters + question, totals, two breakdowns, then the lead list. */
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --border: #e1e4ea; --text: #1a1e26; --muted: #5d6676;
+    --accent: #2f55d4; --accent-soft: #e8edff; --on-accent: #ffffff;
+    --good: #23803a; --good-soft: #e4f3e8; --warn: #9a5800; --warn-soft: #fdf1dc; --pill: #edf0f4;
+    --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-figure: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131a; --surface: #181c24; --border: #2a303b; --text: #e5e8ee; --muted: #98a2b3;
+      --accent: #8aa2ff; --accent-soft: #222b4a; --on-accent: #0d1020;
+      --good: #6cd987; --good-soft: #1b3324; --warn: #ffbf66; --warn-soft: #3a2b12; --pill: #252b35;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #181c24; --border: #2a303b; --text: #e5e8ee; --muted: #98a2b3;
+    --accent: #8aa2ff; --accent-soft: #222b4a; --on-accent: #0d1020;
+    --good: #6cd987; --good-soft: #1b3324; --warn: #ffbf66; --warn-soft: #3a2b12; --pill: #252b35;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font-body); }
+  .wrap { max-width: 1280px; margin: 0 auto; padding-block: 24px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+  h1 { font-size: 22px; margin: 0; text-wrap: balance; }
+  h2 { font-size: 15px; margin: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
+  .filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+  .filters .wide { grid-column: span 2; }
+  input, select, button { font: inherit; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
+  button:disabled { opacity: .55; cursor: default; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ask form { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ask input { flex: 1 1 260px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .examples button { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--pill); border-color: transparent; color: var(--muted); }
+  .examples button:hover { color: var(--text); }
+  .answer { margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--accent-soft); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 80ch; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .kpi .label { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+  .kpi .value { font: 600 32px/1.1 var(--font-figure); font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+  .kpi .sub { font-size: 12px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 > * { min-width: 0; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } .filters .wide { grid-column: span 1; } }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface); }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--text); }
+  td.num, th.num { text-align: right; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--pill); color: var(--muted); }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.accent { background: var(--accent-soft); color: var(--accent); }
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
+  .footnote { max-width: 90ch; margin: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Webinar Lead Tracker</h1>
+    <span class="muted small" id="synced"></span>
+  </header>
+  <div id="banner"></div>
+
+  <section class="card">
+    <div class="filters">
+      <label class="wide">Search name, email, phone, or ad
+        <input id="q" type="search" placeholder="e.g. jane@ or spring_promo">
+      </label>
+      <label>Registered
+        <select id="range">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="all">All time</option>
+          <option value="custom">Custom dates…</option>
+        </select>
+      </label>
+      <label>From <input id="from" type="date"></label>
+      <label>To <input id="to" type="date"></label>
+      <label>Webinar
+        <select id="webinar">
+          <option value="any">Any webinar date</option>
+          <option value="past">Webinar already happened</option>
+          <option value="upcoming">Webinar still upcoming</option>
+        </select>
+      </label>
+      <label>Ad source <select id="source"></select></label>
+      <label>Campaign <select id="campaign"></select></label>
+      <label>Status
+        <select id="status">
+          <option value="all">Everyone</option>
+          <option value="attended">Attended live</option>
+          <option value="noshow">Didn't attend live</option>
+          <option value="booked">Booked a call</option>
+          <option value="notbooked">No call booked</option>
+          <option value="paid">Paid</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card ask" id="askCard">
+    <div class="toolbar"><h2>Ask about your leads</h2></div>
+    <form id="askForm">
+      <input id="question" type="text" placeholder="e.g. Where did jane@example.com come from?" aria-label="Question" autocomplete="off">
+      <button class="primary" id="askBtn">Ask</button>
+      <button type="button" id="stopBtn" hidden>Stop</button>
+    </form>
+    <div class="examples" id="examples">
+      <button type="button">Which campaign booked the most calls in the last 30 days?</button>
+      <button type="button">How many people are signed up for the next webinar?</button>
+      <button type="button">Which ad has the best show-up rate?</button>
+      <button type="button">Who paid in the last 2 weeks, and which ad did they come from?</button>
+    </div>
+    <div class="answer" id="answer" hidden></div>
+    <p class="muted small" id="askNote" hidden></p>
+  </section>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="toolbar">
+        <h2>By ad</h2>
+        <select id="groupBy" aria-label="Group ads by">
+          <option value="campaign">utm_campaign</option>
+          <option value="content">utm_content</option>
+          <option value="source">utm_source</option>
+          <option value="medium">utm_medium</option>
+          <option value="term">utm_term</option>
+        </select>
+      </div>
+      <div class="table-wrap"><table id="byAd"></table></div>
+    </section>
+    <section class="card">
+      <div class="toolbar"><h2>By webinar date</h2></div>
+      <div class="table-wrap"><table id="byWebinar"></table></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2 id="leadsTitle">Leads</h2>
+      <button id="csv" type="button">Export CSV</button>
+    </div>
+    <div class="table-wrap"><table id="leads"></table></div>
+    <div style="text-align:center;margin-top:12px"><button id="more" class="primary" type="button" hidden>Show more</button></div>
+  </section>
+
+  <p class="muted small footnote">
+    Attendance and booking rates only count leads whose webinar has already happened, so next week's
+    registrants don't drag the numbers down. Bookings and payments only count if they came in on or after the
+    lead registered. A lead's ad and registration date come from their first registration.
+  </p>
+</div>
+
+<script>
+const DATA = __LEADS_DATA__;
+const TZ = DATA.timeZone || 'America/New_York';
+const $ = (id) => document.getElementById(id);
+const state = { sortKey: 'registeredAt', sortDir: -1, limit: 200 };
+
+const fmtDate = (iso, withTime) => iso ? new Intl.DateTimeFormat('en-US', Object.assign(
+  { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' },
+  withTime ? { hour: 'numeric', minute: '2-digit' } : {})).format(new Date(iso)) : '';
+const dayKey = (iso) => iso ? new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso)) : '';
+const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+const pct = (n, d) => d ? Math.round((n / d) * 100) + '%' : '—';
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// One filter shape shared by the on-page controls and the question tools.
+function matchLead(l, f) {
+  const reg = dayKey(l.registeredAt);
+  if (f.from && reg < f.from) return false;
+  if (f.to && reg > f.to) return false;
+  if (f.webinar === 'past' && !l.webinarHappened) return false;
+  if (f.webinar === 'upcoming' && l.webinarHappened) return false;
+  if (f.webinarDate && dayKey(l.webinarDate) !== f.webinarDate) return false;
+  for (const key of ['source', 'medium', 'campaign', 'content']) {
+    const want = f[key];
+    if (!want) continue;
+    if (want === '(none)' ? l.utm[key] : String(l.utm[key]).toLowerCase() !== String(want).toLowerCase()) return false;
+  }
+  const s = f.status;
+  if (s === 'attended' && !l.attendedLive) return false;
+  if (s === 'noshow' && (l.attendedLive || !l.webinarHappened)) return false;
+  if (s === 'booked' && !l.bookedCall) return false;
+  if (s === 'notbooked' && l.bookedCall) return false;
+  if (s === 'paid' && !l.paid) return false;
+  if (f.query) {
+    const hay = [l.name, l.email, l.phone, l.revenueLevel, ...Object.values(l.utm)].join(' ').toLowerCase();
+    if (!hay.includes(String(f.query).trim().toLowerCase())) return false;
+  }
+  return true;
+}
+
+function currentFilters() {
+  return { query: $('q').value, from: $('from').value, to: $('to').value, webinar: $('webinar').value,
+    source: $('source').value, campaign: $('campaign').value, status: $('status').value };
+}
+const filtered = () => { const f = currentFilters(); return DATA.leads.filter((l) => matchLead(l, f)); };
+
+function fillSelect(el, key, label) {
+  const values = [...new Set(DATA.leads.map((l) => l.utm[key]).filter(Boolean))].sort();
+  el.innerHTML = `<option value="">All ${label}</option><option value="(none)">(no UTM)</option>` +
+    values.map((v) => `<option>${esc(v)}</option>`).join('');
+}
+
+function applyRangePreset() {
+  const v = $('range').value;
+  if (v === 'custom') return;
+  if (v === 'all') { $('from').value = ''; $('to').value = ''; return; }
+  $('from').value = dayKey(new Date(Date.now() - Number(v) * 86400000).toISOString());
+  $('to').value = dayKey(new Date().toISOString());
+}
+
+function summarize(leads) {
+  const happened = leads.filter((l) => l.webinarHappened);
+  return {
+    leads: leads.length,
+    happened: happened.length,
+    upcoming: leads.length - happened.length,
+    attended: happened.filter((l) => l.attendedLive).length,
+    bookedEligible: happened.filter((l) => l.bookedCall).length,
+    booked: leads.filter((l) => l.bookedCall).length,
+    paid: leads.filter((l) => l.paid).length,
+    revenue: leads.reduce((s, l) => s + (l.paidAmount || 0), 0),
+  };
+}
+
+function renderKpis(s) {
+  const tile = (label, value, sub) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  $('kpis').innerHTML = [
+    tile('Leads registered', s.leads.toLocaleString(), `${s.upcoming} still waiting on their webinar`),
+    tile('Attended live', s.attended.toLocaleString(), `${pct(s.attended, s.happened)} of ${s.happened} whose webinar happened`),
+    tile('Booked a call', s.booked.toLocaleString(), `${pct(s.bookedEligible, s.happened)} of leads whose webinar happened`),
+    tile('Paid', s.paid.toLocaleString(), `${money(s.revenue)} new cash · ${pct(s.paid, s.booked)} of booked`),
+  ].join('');
+}
+
+// keyFn picks the group a lead belongs to; labelFn renders that group's first column.
+function groupTable(el, leads, keyFn, labelFn, labelHeader, sortFn) {
+  const groups = new Map();
+  for (const l of leads) {
+    const k = keyFn(l);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(l);
+  }
+  const rows = [...groups.entries()].map(([k, ls]) => ({ key: k, label: labelFn(ls[0]), s: summarize(ls) }));
+  rows.sort(sortFn);
+  el.innerHTML = `<thead><tr><th>${labelHeader}</th><th class="num">Leads</th><th class="num">Live</th><th class="num">Booked</th><th class="num">Book %</th><th class="num">Paid</th><th class="num">Cash</th></tr></thead><tbody>` +
+    rows.map(({ label, s }) => `<tr><td>${label}</td><td class="num">${s.leads}</td><td class="num">${s.happened ? s.attended + ' <span class="muted small">' + pct(s.attended, s.happened) + '</span>' : '<span class="pill">upcoming</span>'}</td><td class="num">${s.booked}</td><td class="num">${pct(s.bookedEligible, s.happened)}</td><td class="num">${s.paid}</td><td class="num">${s.revenue ? money(s.revenue) : ''}</td></tr>`).join('') +
+    (rows.length ? '' : '<tr><td colspan="7" class="muted">No leads match these filters.</td></tr>') + '</tbody>';
+}
+
+const columns = [
+  { key: 'name', label: 'Lead', get: (l) => (l.name || l.email).toLowerCase(),
+    html: (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>` },
+  { key: 'registeredAt', label: 'Registered', get: (l) => l.registeredAt || '', html: (l) => esc(fmtDate(l.registeredAt, true)) },
+  { key: 'webinarDate', label: 'Webinar', get: (l) => l.webinarDate || '',
+    html: (l) => `${esc(fmtDate(l.webinarDate, true) || 'Unknown')}${l.webinarHappened ? '' : ' <span class="pill accent">upcoming</span>'}${l.registrationCount > 1 ? ` <span class="pill" title="Registered ${l.registrationCount} times">×${l.registrationCount}</span>` : ''}` },
+  { key: 'ad', label: 'Ad (source / campaign / content)', get: (l) => [l.utm.source, l.utm.campaign, l.utm.content].join('/'),
+    html: (l) => l.utm.source || l.utm.campaign ? `${esc(l.utm.source || '—')} / ${esc(l.utm.campaign || '—')}<div class="muted small">${esc(l.utm.content)}${l.utm.medium ? ' · ' + esc(l.utm.medium) : ''}</div>` : '<span class="muted">no UTM</span>' },
+  { key: 'revenueLevel', label: 'Revenue', get: (l) => l.revenueLevel || '', html: (l) => esc(l.revenueLevel) },
+  { key: 'attendedLive', label: 'Live?', get: (l) => (l.attendedLive ? 2 : l.webinarHappened ? 0 : 1),
+    html: (l) => l.attendedLive ? '<span class="pill good">Attended</span>' : l.webinarHappened ? `<span class="pill warn">No-show</span>${l.attendedReplay ? ' <span class="pill">replay</span>' : ''}` : '<span class="pill">Not yet</span>' },
+  { key: 'bookedAt', label: 'Call booked', get: (l) => l.bookedAt || '',
+    html: (l) => l.bookedCall ? `<span class="pill good">Booked</span> <span class="small">${esc(fmtDate(l.bookedAt))}</span>` : l.webinarHappened ? '<span class="muted">No</span>' : '<span class="muted">Not yet eligible</span>' },
+  { key: 'paidAmount', label: 'Paid', num: true, get: (l) => l.paidAmount || 0,
+    html: (l) => l.paid ? `<strong>${money(l.paidAmount)}</strong><div class="muted small" title="${esc(l.products.join(', '))}">${esc(fmtDate(l.paidAt))}</div>` : '' },
+];
+
+function renderLeads(leads) {
+  const col = columns.find((c) => c.key === state.sortKey) || columns[1];
+  const sorted = [...leads].sort((a, b) => {
+    const x = col.get(a), y = col.get(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * state.sortDir;
+  });
+  const shown = sorted.slice(0, state.limit);
+  $('leadsTitle').textContent = `Leads (${leads.length.toLocaleString()})`;
+  $('leads').innerHTML = '<thead><tr>' + columns.map((c) => `<th class="sortable${c.num ? ' num' : ''}" data-key="${c.key}">${c.label}${c.key === state.sortKey ? (state.sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr></thead><tbody>' +
+    shown.map((l) => '<tr>' + columns.map((c) => `<td${c.num ? ' class="num"' : ''}>${c.html(l)}</td>`).join('') + '</tr>').join('') +
+    (shown.length ? '' : `<tr><td colspan="${columns.length}" class="muted">No leads match these filters.</td></tr>`) + '</tbody>';
+  $('more').hidden = sorted.length <= state.limit;
+}
+
+function render() {
+  const leads = filtered();
+  renderKpis(summarize(leads));
+  const dim = $('groupBy').value;
+  groupTable($('byAd'), leads, (l) => l.utm[dim] || '', (l) => esc(l.utm[dim] || '(no UTM)'), 'utm_' + dim,
+    (a, b) => b.s.leads - a.s.leads);
+  groupTable($('byWebinar'), leads, (l) => l.webinarDate || '',
+    (l) => l.webinarDate ? esc(fmtDate(l.webinarDate, true)) + (l.webinarHappened ? '' : ' <span class="pill accent">upcoming</span>') : 'Unknown',
+    'Webinar session', (a, b) => b.key.localeCompare(a.key));
+  renderLeads(leads);
+}
+
+// ---- CSV export: the claude.ai viewer saves files through the downloads capability ----
+function buildCsv() {
+  const header = ['Name', 'Email', 'Phone', 'Registered', 'Webinar date', 'Webinar happened', 'Attended live', 'Attended replay', 'Revenue level',
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'Booked call', 'Booked at', 'Paid', 'Paid amount', 'Products'];
+  const rows = filtered().map((l) => [l.name, l.email, l.phone, l.registeredAt, l.webinarDate, l.webinarHappened, l.attendedLive, l.attendedReplay, l.revenueLevel,
+    l.utm.source, l.utm.medium, l.utm.campaign, l.utm.content, l.utm.term, l.bookedCall, l.bookedAt, l.paid, l.paidAmount, l.products.join('; ')]);
+  return [header, ...rows].map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+async function exportCsv() {
+  const filename = `leads-${dayKey(new Date().toISOString())}.csv`;
+  const downloads = window.claude ? await window.claude.use('downloads') : null;
+  if (downloads) {
+    try { await downloads.save({ filename, data: buildCsv() }); } catch { /* viewer declined or saving is unavailable */ }
+    return;
+  }
+  if (window.claude) { $('csv').hidden = true; return; }
+  // Opened as a plain local file: a normal download link works.
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buildCsv()], { type: 'text/csv' }));
+  a.download = filename;
+  a.click();
+}
+
+// ---- Ask about your leads ----
+const compactLead = (l) => ({
+  name: l.name, email: l.email, phone: l.phone || undefined,
+  registered: dayKey(l.registeredAt), webinar: l.webinarDate ? fmtDate(l.webinarDate, true) : 'unknown',
+  webinarHappened: l.webinarHappened, attendedLive: l.attendedLive, attendedReplay: l.attendedReplay || undefined,
+  revenueLevel: l.revenueLevel || undefined,
+  utm: Object.fromEntries(Object.entries(l.utm).filter(([, v]) => v)),
+  bookedCall: l.bookedCall ? dayKey(l.bookedAt) : false,
+  paid: l.paid ? `${money(l.paidAmount)} on ${dayKey(l.paidAt)} (${l.products.join('; ')})` : false,
+  timesRegistered: l.registrationCount > 1 ? l.registrationCount : undefined,
+});
+
+const filterSchema = {
+  query: { type: 'string', description: 'Text to match in name, email, phone, revenue level, or any UTM value' },
+  from: { type: 'string', description: 'Registered on or after this date, YYYY-MM-DD' },
+  to: { type: 'string', description: 'Registered on or before this date, YYYY-MM-DD' },
+  webinar: { type: 'string', enum: ['any', 'past', 'upcoming'], description: 'Whether their webinar has happened yet' },
+  webinarDate: { type: 'string', description: 'Only leads whose webinar session is on this date, YYYY-MM-DD' },
+  source: { type: 'string', description: 'Exact utm_source, or "(none)" for no UTM' },
+  medium: { type: 'string', description: 'Exact utm_medium' },
+  campaign: { type: 'string', description: 'Exact utm_campaign, or "(none)" for no UTM' },
+  content: { type: 'string', description: 'Exact utm_content' },
+  status: { type: 'string', enum: ['all', 'attended', 'noshow', 'booked', 'notbooked', 'paid'] },
+};
+const pickFilters = (input) => Object.fromEntries(Object.keys(filterSchema).filter((k) => input[k]).map((k) => [k, String(input[k])]));
+const groupers = {
+  utm_source: (l) => l.utm.source || '(no UTM)', utm_medium: (l) => l.utm.medium || '(no UTM)',
+  utm_campaign: (l) => l.utm.campaign || '(no UTM)', utm_content: (l) => l.utm.content || '(no UTM)',
+  webinar_date: (l) => l.webinarDate ? dayKey(l.webinarDate) : 'unknown',
+  registered_week: (l) => { const d = new Date(l.registeredAt); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return 'week of ' + dayKey(d.toISOString()); },
+  revenue_level: (l) => l.revenueLevel || '(unknown)',
+};
+const statsOut = (s) => ({ leads: s.leads, webinarHappened: s.happened, stillUpcoming: s.upcoming, attendedLive: s.attended,
+  attendRate: pct(s.attended, s.happened), bookedCall: s.booked, bookRate: pct(s.bookedEligible, s.happened), paid: s.paid, cash: money(s.revenue) });
+
+const askTools = [
+  {
+    name: 'find_leads',
+    description: 'Finds individual leads matching the filters and returns how many matched plus up to `limit` of them (default 25, max 60) with their registration, webinar, attendance, UTM ad, booking and payment details. Use it to look up a person or list who did something.',
+    inputSchema: { type: 'object', properties: { ...filterSchema, limit: { type: 'number' } } },
+    execute(input) {
+      const f = pickFilters(input);
+      const matches = DATA.leads.filter((l) => matchLead(l, f));
+      const limit = Math.min(Number(input.limit) || 25, 60);
+      return { totalMatched: matches.length, leads: matches.slice(0, limit).map(compactLead) };
+    },
+  },
+  {
+    name: 'count_leads',
+    description: 'Counts leads matching the filters: leads, attended live, booked a call, paid and cash, with attendance and booking rates over leads whose webinar has happened. Optionally splits the counts by group_by. Use it for any how-many or which-ad-performed-best question.',
+    inputSchema: { type: 'object', properties: { ...filterSchema,
+      group_by: { type: 'string', enum: Object.keys(groupers) } } },
+    execute(input) {
+      const f = pickFilters(input);
+      const matches = DATA.leads.filter((l) => matchLead(l, f));
+      const out = { total: statsOut(summarize(matches)) };
+      const g = groupers[input.group_by];
+      if (g) {
+        const groups = new Map();
+        matches.forEach((l) => { const k = g(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(l); });
+        out.groups = [...groups.entries()].map(([k, ls]) => ({ group: k, ...statsOut(summarize(ls)) }))
+          .sort((a, b) => b.leads - a.leads).slice(0, 60);
+      }
+      return out;
+    },
+  },
+];
+
+function askPrompt(question, withTools) {
+  const sources = [...new Set(DATA.leads.map((l) => l.utm.source).filter(Boolean))];
+  const campaigns = [...new Set(DATA.leads.map((l) => l.utm.campaign).filter(Boolean))];
+  const lines = [
+    'You answer questions from a sales team about their webinar leads. Answer in plain language, briefly, for a non-technical reader.',
+    'Give the specific numbers and names. Use short bullet points for lists. Do not use markdown headings or tables.',
+    'If the data cannot answer the question, say what is missing.',
+    '',
+    `Today is ${dayKey(new Date().toISOString())} (${TZ}). Data last synced ${fmtDate(DATA.generatedAt, true)}.`,
+    'How the data works: each lead registered for a WebinarJam webinar. "Attended live" comes from WebinarJam. "Booked a call" means their email showed up in the Calendly calls-booked Slack channel on or after they registered. "Paid" means their email appeared in a new-payment message in the payments Slack channel on or after they registered. The ad is their first registration\'s UTM tags. Leads whose webinar has not happened yet have not had a chance to attend or book, so rates only count leads whose webinar has happened.',
+    `There are ${DATA.leads.length} leads in total. utm_source values: ${sources.join(', ') || 'none'}. utm_campaign values: ${campaigns.join(', ') || 'none'}.`,
+    `The person asking currently has these page filters set (only use them if the question refers to "these" or "this view"): ${JSON.stringify(pickFilters(currentFilters()))}.`,
+  ];
+  if (withTools) {
+    lines.push('Use the find_leads and count_leads tools to get the facts. Prefer one well-filtered call over many.');
+  } else {
+    // Without tools, send the leads in the current view, trimmed to fit the prompt limit.
+    const rows = [];
+    let size = 0;
+    for (const l of filtered()) {
+      const row = JSON.stringify(compactLead(l));
+      if (size + row.length > 180000) break;
+      rows.push(row); size += row.length;
+    }
+    lines.push(`Here are ${rows.length} of the ${filtered().length} leads in the current view, one JSON object per line:`, rows.join('\n'));
+  }
+  lines.push('', `Question: ${question}`);
+  return lines.join('\n');
+}
+
+let askAbort = null;
+function showAnswer(text) {
+  const el = $('answer');
+  el.hidden = false;
+  el.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/^#+\s*/gm, '');
+}
+function setAsking(on) {
+  $('askBtn').disabled = on;
+  $('stopBtn').hidden = !on;
+}
+async function ask(question) {
+  question = question.trim();
+  if (!question) return;
+  const sample = window.claude ? await window.claude.use('sample') : null;
+  if (!sample) { $('askNote').hidden = false; $('askNote').textContent = 'Questions work when this page is opened on claude.ai.'; return; }
+  const limits = await sample.limits().catch(() => null);
+  const withTools = Boolean(limits && limits.tools);
+  askAbort = new AbortController();
+  setAsking(true);
+  showAnswer('Thinking…');
+  try {
+    const options = { signal: askAbort.signal, onText: ({ text: t }) => showAnswer(t) };
+    if (withTools) options.tools = askTools;
+    else options.cache = false;
+    const { text } = await sample(askPrompt(question, withTools), options);
+    showAnswer(text || 'No answer came back. Try rephrasing the question.');
+  } catch (err) {
+    const partial = err && err.text ? err.text + '\n\n' : '';
+    const why = {
+      cancelled: 'Stopped.',
+      not_granted: 'Claude needs your permission to answer questions here. Allow it from this page\'s Permissions menu, then ask again.',
+      rate_limited: 'Too many questions at once. Wait a minute and ask again.',
+      prompt_too_large: 'There are too many leads in view to send. Narrow the filters and ask again.',
+    }[err && err.code] || 'Something went wrong getting an answer. Try again in a moment.';
+    showAnswer(partial + why);
+  } finally {
+    setAsking(false);
+    askAbort = null;
+  }
+}
+
+$('synced').textContent = `Synced ${fmtDate(DATA.generatedAt, true)} · ${DATA.leads.length.toLocaleString()} leads total`;
+if (DATA.warnings && DATA.warnings.length) $('banner').innerHTML = DATA.warnings.map((w) => `<div class="banner">${esc(w)}</div>`).join('');
+else $('banner').hidden = true;
+fillSelect($('source'), 'source', 'sources');
+fillSelect($('campaign'), 'campaign', 'campaigns');
+applyRangePreset();
+$('range').addEventListener('change', () => { applyRangePreset(); state.limit = 200; render(); });
+['from', 'to'].forEach((id) => $(id).addEventListener('change', () => { $('range').value = 'custom'; render(); }));
+['q', 'webinar', 'source', 'campaign', 'status', 'groupBy'].forEach((id) => $(id).addEventListener('input', () => { state.limit = 200; render(); }));
+$('leads').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-key]');
+  if (!th) return;
+  state.sortDir = state.sortKey === th.dataset.key ? -state.sortDir : -1;
+  state.sortKey = th.dataset.key;
+  render();
+});
+$('more').addEventListener('click', () => { state.limit += 200; render(); });
+$('csv').addEventListener('click', exportCsv);
+$('askForm').addEventListener('submit', (e) => { e.preventDefault(); ask($('question').value); });
+$('stopBtn').addEventListener('click', () => askAbort && askAbort.abort());
+$('examples').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('question').value = b.textContent;
+  ask(b.textContent);
+});
+render();
+</script>

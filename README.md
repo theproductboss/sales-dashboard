@@ -19,6 +19,9 @@ can see at a glance whether Oz and Blake are on pace for the week's goals.
 Runs automatically every day at 8am ET via GitHub Actions and posts to a
 dedicated Slack channel. No server or database to host.
 
+This repo also builds a **searchable webinar lead tracker**. See
+[Lead tracker](#lead-tracker) below.
+
 ---
 
 ## How it works
@@ -144,3 +147,95 @@ regexes in that file to match the new wording.
 Edit the `cron` line in `.github/workflows/daily-report.yml`. Remember
 GitHub Actions cron is UTC and doesn't auto-adjust for daylight saving —
 there's a note in that file with both UTC times for ET.
+
+---
+
+## Lead tracker
+
+A searchable page of every webinar lead, showing the ad they came from,
+whether they showed up live, whether they booked a call, and whether they paid.
+
+**What it answers:**
+- How many leads registered between two dates (presets: 7 / 30 / 90 days)
+- How many attended live vs. no-showed
+- How many went on to book a call, and how many paid
+- All of the above broken down **by ad** (utm_campaign / content / source /
+  medium / term) and **by webinar session**
+- Who a specific person is: search by name, email, phone, or UTM
+
+Leads whose webinar hasn't happened yet show as **upcoming / "Not yet
+eligible"** and are left out of attendance and booking rates, so next week's
+registrants don't make this week's ads look bad.
+
+### How it works
+
+| Data | Source | Matched by |
+|---|---|---|
+| Leads, registration date, webinar session, live attendance, UTMs, phone, revenue level | WebinarJam API (`/webinars`, `/webinar`, `/registrants`) | n/a |
+| Call booked | `#collective-calls-booked` (the Calendly → Zapier messages) | email |
+| Paid | `#payments` "New Payment from … (email)" messages | email |
+
+- One row per email. If someone registered more than once, the **first**
+  registration sets their registration date and ad (first-touch), and the
+  **latest** session is the webinar shown.
+- A booking or payment only counts if it came in **on or after** they
+  registered. Someone who booked months earlier from another source doesn't
+  count as a webinar conversion.
+- Recurring `Subscription Payment: 198.00` messages have no email, so they're
+  ignored. Only new payments are matched.
+- If WebinarJam doesn't return a revenue answer, the revenue level falls back
+  to the one in their call-booked message ("Under 50k", "$25,000-$50,000").
+
+### Where it lives
+
+The tracker is a **private page on claude.ai**, shared with the team from its
+**Share** menu. Nobody outside the people it's shared with can open it, and
+no lead data is stored in this repo or on GitHub.
+
+On that page, anyone on the team can:
+- search and filter leads, sort the list, and export what they're looking at to CSV
+- type a question in **Ask about your leads** ("Where did jane@… come from?",
+  "Which campaign booked the most calls last month?"). Claude answers from
+  the leads on the page, using each viewer's own Claude account.
+
+**Refreshing the data:** a scheduled Claude Code cloud task runs
+`npm run leads` and republishes `dist/artifact.html` to the same page. That
+cloud environment needs the secrets listed below.
+
+### Setup
+
+1. **WebinarJam API key.** WebinarJam has to approve API access first. Follow
+   [Apply for an API key](https://support.webinarjam.com/en/articles/15370143-apply-for-an-api-key-for-webinarjam-or-everwebinar),
+   then copy the key from your account's API settings.
+2. **Slack bot access.** Use the same Slack app as the daily dashboard.
+   Make sure it has `channels:history` and `groups:history`, then invite it
+   to both channels:
+   `/invite @YourBotName` in `#collective-calls-booked` and in `#payments`.
+3. **Environment secrets** for the cloud environment that runs the refresh:
+   - `WEBINARJAM_API_KEY`
+   - `SLACK_BOT_TOKEN` (the same bot token the daily dashboard uses)
+   - `CALLS_BOOKED_CHANNEL_ID`: `C09UEM5M1V5`
+   - `PAYMENTS_CHANNEL_ID`: `G017H4V9ACS`
+   - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated IDs to limit which
+     webinars are included. Leave unset for all.
+
+### Run it locally
+
+```bash
+npm run leads:demo   # made-up data, no keys needed; writes dist/lead-tracker.html
+npm run leads        # real data from .env; writes dist/lead-tracker.html and dist/artifact.html
+npm test
+```
+
+### First real run: check the WebinarJam fields
+
+WebinarJam's docs don't fully specify the registrant response, so a few
+fields are mapped defensively in `normalizeRegistrant()` in
+`src/leads/webinarjam.js`:
+- **Webinar session date:** from the registrant's `schedule` (an ID looked up
+  against the webinar's schedules, or a date), falling back to `date_live`.
+  If the "Webinar" column shows **Unknown** for many leads, this mapping
+  needs adjusting.
+- **Revenue level:** any field whose name contains "revenue". If your
+  registration question is worded differently, update `findRevenueLevel()`.
+- **Pagination:** handles both a plain list and a `{ data, last_page }` shape.
