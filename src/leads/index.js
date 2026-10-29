@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { requireEnv } = require('../config');
 const { fetchAllRegistrations } = require('./webinarjam');
-const { fetchBookings, fetchPayments } = require('./slackActivity');
+const { fetchBookings, fetchPayments, fetchThreadEmails } = require('./slackActivity');
+const { buildNameIndex, matchItems } = require('./matchPeople');
 const { buildLeads } = require('./buildLeads');
 const { renderTracker } = require('./render');
 const { sampleInputs } = require('./sampleData');
@@ -41,31 +42,49 @@ async function loadInputs() {
   } else {
     warnings.push('PAYMENTS_CHANNEL_ID is not set — "Paid" is blank.');
   }
-  return { registrations, bookings, payments, warnings };
+  // Look in the thread under any payment whose email isn't a lead's, in
+  // case a teammate posted the email they registered with.
+  const leadEmails = new Set(registrations.map((r) => r.email));
+  const threadEmails = new Map();
+  for (const p of payments) {
+    if (!p.replyCount || leadEmails.has(p.email)) continue;
+    try {
+      threadEmails.set(p.ts, await fetchThreadEmails(slackToken, paymentsChannel, p.ts));
+    } catch (err) {
+      warnings.push(`Couldn't read a payment thread (${err.message}); matching by thread was skipped for it.`);
+    }
+  }
+  return { registrations, bookings, payments, warnings, threadEmails };
 }
 
 function loadAliases(file) {
   if (!file) return {};
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-  return Object.fromEntries(Object.entries(raw).map(([from, to]) => [from.trim().toLowerCase(), String(to).trim().toLowerCase()]));
+  return Object.fromEntries(Object.entries(raw).map(([from, to]) => [from.trim().toLowerCase(), to ? String(to).trim().toLowerCase() : null]));
 }
 
 async function main() {
-  const { registrations, bookings, payments, warnings } = await loadInputs();
+  const { registrations, bookings, payments, warnings, threadEmails } = await loadInputs();
 
-  // Someone who books or pays with a different email than they registered
-  // with is matched by hand: the aliases file maps that other email to their
-  // registration email. It holds customer emails, so it lives with the
-  // private tracker page, never in this repo.
-  const aliases = loadAliases(ALIASES_FILE);
-  const resolve = (item) => ({ ...item, email: aliases[item.email] || item.email });
-  const leads = buildLeads(registrations, bookings.map(resolve), payments.map(resolve));
+  // Bookings and payments made under a different email than the
+  // registration are linked by hand-entered aliases, the payment's Slack
+  // thread, or an exact full-name match (see matchPeople.js). The aliases
+  // file holds customer emails, so it lives with the private tracker page,
+  // never in this repo.
+  const context = {
+    aliases: loadAliases(ALIASES_FILE),
+    leadEmails: new Set(registrations.map((r) => r.email)),
+    nameIndex: buildNameIndex(registrations),
+  };
+  const matchedBookings = matchItems(bookings, context);
+  const matchedPayments = matchItems(payments, { ...context, threadEmails });
+  const leads = buildLeads(registrations, matchedBookings, matchedPayments);
 
-  const leadEmails = new Set(leads.map((l) => l.email));
-  const unmatchedPayments = payments
-    .map(resolve)
-    .filter((p) => !leadEmails.has(p.email))
+  const unmatchedPayments = matchedPayments
+    .filter((p) => !context.leadEmails.has(p.email))
+    .map(({ email, name, paidAt, amount, product }) => ({ email, name, paidAt, amount, product }))
     .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+  const autoMatched = [...matchedBookings, ...matchedPayments].filter((i) => i.matchedBy === 'name' || i.matchedBy === 'thread');
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const payload = { generatedAt: new Date().toISOString(), timeZone: TIME_ZONE, warnings, leads, unmatchedPayments };
@@ -77,7 +96,8 @@ async function main() {
 
   console.log(
     `${registrations.length} registrations → ${leads.length} leads; ` +
-      `${bookings.length} bookings and ${payments.length} payments found in Slack.`
+      `${bookings.length} bookings and ${payments.length} payments found in Slack; ` +
+      `${autoMatched.length} linked to a lead by name or Slack thread.`
   );
   warnings.forEach((w) => console.warn(`warning: ${w}`));
   console.log(`Wrote ${outFile} and ${path.join(OUT_DIR, 'artifact.html')}`);

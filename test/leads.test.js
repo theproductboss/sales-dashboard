@@ -10,6 +10,8 @@ const msg = (text) => ({ text, ts: '1793288439.879679' });
 test('parses both #collective-calls-booked formats', () => {
   assert.deepEqual(parseBookingMessage(msg('Arren Leo <mailto:arreneleo@gmail.com|arreneleo@gmail.com> booked an Under 50k call!')), {
     email: 'arreneleo@gmail.com',
+    name: 'Arren Leo',
+    ts: '1793288439.879679',
     bookedAt: '2026-10-29T15:40:39.879Z',
     callType: 'Under 50k',
   });
@@ -115,3 +117,38 @@ test('rendered page escapes lead data inside the script tag', () => {
   assert.ok(!html.includes('</script><b>'));
 });
 
+
+test('links a payment under another email by alias, Slack thread, or exact full name', () => {
+  const { buildNameIndex, matchItems } = require('../src/leads/matchPeople');
+  const regs = [
+    { email: 'emily@reg.com', firstName: 'Emily', lastName: 'Brown' },
+    { email: 'sam1@reg.com', firstName: 'Sam', lastName: 'Lee' },
+    { email: 'sam2@reg.com', firstName: 'Sam', lastName: 'Lee' },
+    { email: 'jo@reg.com', firstName: 'Jo', lastName: '' },
+    { email: 'zoe@reg.com', firstName: 'Zoë', lastName: 'West' },
+  ];
+  const ctx = {
+    aliases: { 'alias@pay.com': 'jo@reg.com', 'nope@pay.com': null },
+    leadEmails: new Set(regs.map((r) => r.email)),
+    nameIndex: buildNameIndex(regs),
+    threadEmails: new Map([['t1', ['someone@else.com', 'jo@reg.com']]]),
+  };
+  const [byName, ambiguous, firstOnly, byAlias, never, byThread, accent, direct] = matchItems([
+    { email: 'emily@pay.com', name: 'emily  BROWN' },
+    { email: 'sam@pay.com', name: 'Sam Lee' },
+    { email: 'jo@pay.com', name: 'Jo' },
+    { email: 'alias@pay.com', name: 'Whoever' },
+    { email: 'nope@pay.com', name: 'Emily Brown' },
+    { email: 'thread@pay.com', name: 'Unknown', ts: 't1' },
+    { email: 'z@pay.com', name: 'Zoe West' },
+    { email: 'emily@reg.com', name: 'Emily Brown' },
+  ], ctx);
+  assert.deepEqual([byName.email, byName.matchedBy, byName.originalEmail], ['emily@reg.com', 'name', 'emily@pay.com']);
+  assert.equal(ambiguous.email, 'sam@pay.com', 'two leads share the name, so no guess');
+  assert.equal(firstOnly.email, 'jo@pay.com', 'first names alone never match');
+  assert.deepEqual([byAlias.email, byAlias.matchedBy], ['jo@reg.com', 'alias']);
+  assert.equal(never.email, 'nope@pay.com', 'a null alias blocks auto-matching');
+  assert.deepEqual([byThread.email, byThread.matchedBy], ['jo@reg.com', 'thread']);
+  assert.deepEqual([accent.email, accent.matchedBy], ['zoe@reg.com', 'name']);
+  assert.equal(direct.matchedBy, undefined);
+});

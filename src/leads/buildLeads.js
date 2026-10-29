@@ -27,6 +27,14 @@ function buildLeads(registrations, bookings, payments, now = new Date()) {
     const leadPayments = (paymentsByEmail.get(email) || []).filter((p) => afterSignup(p.paidAt));
     const firstBooking = leadBookings.sort((a, b) => a.bookedAt.localeCompare(b.bookedAt))[0];
 
+    // Bookings and payments that were linked from another email, so the
+    // page can show how they were matched.
+    const how = { alias: 'linked by hand', thread: 'matched from the Slack thread', name: 'matched by name' };
+    const otherEmails = [
+      ...leadBookings.filter((b) => b.originalEmail).map((b) => `Booked as ${b.originalEmail} (${how[b.matchedBy]})`),
+      ...leadPayments.filter((p) => p.originalEmail).map((p) => `Paid as ${p.originalEmail} (${how[p.matchedBy]})`),
+    ];
+
     const named = regs.find((r) => r.firstName || r.lastName) || first;
     leads.push({
       email,
@@ -48,6 +56,7 @@ function buildLeads(registrations, bookings, payments, now = new Date()) {
       paidAt: leadPayments.length ? leadPayments.map((p) => p.paidAt).sort()[0] : null,
       paidAmount: leadPayments.reduce((sum, p) => sum + p.amount, 0),
       products: [...new Set(leadPayments.map((p) => p.product))],
+      otherEmails: [...new Set(otherEmails)],
     });
   }
 

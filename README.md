@@ -224,9 +224,19 @@ cloud environment needs the secrets listed below.
 
 ### Someone paid or booked with a different email
 
-The tracker matches bookings and payments to leads by email. When someone
-used a different email (registered as `jane@gmail.com`, paid as
-`jane@herbrand.com`), add the pair to `email-aliases.json`, which is published
+The tracker matches bookings and payments to leads by email. When the email
+doesn't match a registration, each refresh tries, in order:
+
+1. **A hand-entered link** in `email-aliases.json` (below).
+2. **The payment's Slack thread:** if a teammate posted an email there that
+   belongs to a webinar lead, the payment goes to that lead.
+3. **Exact full name:** if the first and last name on the payment or booking
+   match exactly one lead's registration, it goes to that lead. First names
+   alone never match, and neither do names two leads share.
+
+Matches from 2 and 3 show a tag on the lead ("Paid as … (matched by name)") so
+the team can check them. To link a pair by hand, or to stop a wrong automatic
+match (map the email to `null`), edit `email-aliases.json`, which is published
 with the private tracker page (never committed here, since it holds customer
 emails):
 

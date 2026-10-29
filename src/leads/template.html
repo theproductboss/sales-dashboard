@@ -191,9 +191,10 @@
 
   <details class="card" id="unmatchedCard" hidden>
     <summary><h2 style="display:inline">Payments not matched to a lead</h2> <span class="muted small" id="unmatchedCount"></span></summary>
-    <p class="muted small" style="max-width:80ch">These new payments came through #payments with an email that isn't on any webinar registration.
-      Most are people who didn't come from a webinar. If one is a webinar lead who paid with a different email,
-      ask Claude to link the two emails and their payment will be added on the next refresh.</p>
+    <p class="muted small" style="max-width:80ch">These new payments came through #payments with an email that isn't on any webinar registration,
+      and no lead has the same full name or an email posted in the payment's Slack thread. Most are people who didn't come from
+      a webinar. If one is a webinar lead who paid with a different email, reply in that payment's Slack thread with the email they
+      registered with (it's picked up on the next hourly refresh), or ask Claude to link the two emails.</p>
     <div class="table-wrap"><table id="unmatched"></table></div>
   </details>
 
@@ -242,7 +243,7 @@ function matchLead(l, f) {
   if (s === 'notbooked' && l.bookedCall) return false;
   if (s === 'paid' && !l.paid) return false;
   if (f.query) {
-    const hay = [l.name, l.email, l.phone, l.revenueLevel, ...Object.values(l.utm)].join(' ').toLowerCase();
+    const hay = [l.name, l.email, l.phone, l.revenueLevel, ...Object.values(l.utm), ...(l.otherEmails || [])].join(' ').toLowerCase();
     if (!hay.includes(String(f.query).trim().toLowerCase())) return false;
   }
   return true;
@@ -348,7 +349,7 @@ function groupTable(el, leads, keyFn, labelFn, labelHeader, sortFn) {
 
 function drillList(leads, kind) {
   const ad = (l) => l.utm.source || l.utm.campaign ? `${esc(l.utm.source || '—')} / ${esc(l.utm.campaign || '—')}` : '<span class="muted">no UTM</span>';
-  const who = (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>`;
+  const who = (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>${otherEmailsHtml(l)}`;
   const live = (l) => l.attendedLive ? '<span class="pill good">Attended</span>' : l.webinarHappened ? '<span class="pill warn">No-show</span>' : '<span class="pill">Not yet</span>';
   if (kind === 'paid') {
     const people = leads.filter((l) => l.paid).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
@@ -360,9 +361,13 @@ function drillList(leads, kind) {
     people.map((l) => `<tr><td>${who(l)}</td><td>${esc(fmtDate(l.bookedAt))}</td><td>${esc(l.revenueLevel)}</td><td>${live(l)}</td><td>${l.paid ? `<strong>${money(l.paidAmount)}</strong>` : '<span class="muted">Not yet</span>'}</td><td>${ad(l)}</td></tr>`).join('') + '</tbody></table>';
 }
 
+// "Paid as other@x.com (matched by name)": shows how a booking or payment
+// under another email was tied to this lead, so the team can check it.
+const otherEmailsHtml = (l) => (l.otherEmails || []).map((t) => `<div class="small"><span class="pill accent">${esc(t)}</span></div>`).join('');
+
 const columns = [
   { key: 'name', label: 'Lead', get: (l) => (l.name || l.email).toLowerCase(),
-    html: (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>` },
+    html: (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>${otherEmailsHtml(l)}` },
   { key: 'registeredAt', label: 'Registered', get: (l) => l.registeredAt || '', html: (l) => esc(fmtDate(l.registeredAt, true)) },
   { key: 'webinarDate', label: 'Webinar', get: (l) => l.webinarDate || '',
     html: (l) => `${esc(fmtDate(l.webinarDate, true) || 'Unknown')}${l.webinarHappened ? '' : ' <span class="pill accent">upcoming</span>'}${l.registrationCount > 1 ? ` <span class="pill" title="Registered ${l.registrationCount} times">×${l.registrationCount}</span>` : ''}` },

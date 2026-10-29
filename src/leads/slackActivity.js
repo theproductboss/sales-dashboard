@@ -37,8 +37,11 @@ function parseBookingMessage(message) {
   if (!email) return null;
 
   const revenueMatch = text.match(/estimated revenue\s*([^)]+)\)/i) || text.match(/booked an?\s+(.+?)\s+call/i);
+  const nameMatch = text.match(/^(.*?)\s*<mailto:/i);
   return {
     email,
+    name: nameMatch ? nameMatch[1].trim() : '',
+    ts: message.ts,
     bookedAt: slackTsToIso(message.ts),
     callType: revenueMatch ? revenueMatch[1].trim() : '',
   };
@@ -60,6 +63,8 @@ function parsePaymentMessage(message) {
   return {
     email,
     name: nameMatch ? nameMatch[1].trim() : '',
+    ts: message.ts,
+    replyCount: message.reply_count || 0,
     paidAt: slackTsToIso(message.ts),
     amount: Number(match[2].replace(/,/g, '')),
     product: match[1].replace(/\s*-\s*$/, '').trim(),
@@ -76,4 +81,17 @@ async function fetchPayments(token, channelId, oldest) {
   return messages.map(parsePaymentMessage).filter(Boolean);
 }
 
-module.exports = { fetchBookings, fetchPayments, parseBookingMessage, parsePaymentMessage, extractEmail };
+// Every email address the team posted in the thread under a message.
+async function fetchThreadEmails(token, channelId, ts) {
+  const data = await slackFetch(token, 'conversations.replies', { channel: channelId, ts, limit: '200' });
+  const replies = (data.messages || []).filter((m) => m.ts !== ts);
+  const emails = new Set();
+  for (const m of replies) {
+    for (const match of String(m.text || '').matchAll(/(?:mailto:)?([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/gi)) {
+      emails.add(match[1].toLowerCase());
+    }
+  }
+  return [...emails];
+}
+
+module.exports = { fetchBookings, fetchPayments, fetchThreadEmails, parseBookingMessage, parsePaymentMessage, extractEmail };
