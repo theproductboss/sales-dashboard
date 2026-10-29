@@ -71,6 +71,7 @@ function sampleInputs(now = DateTime.now().setZone('America/New_York')) {
       }
     }
   }
+  payments.push({ email: 'someone.else@example.com', name: 'Morgan Example', paidAt: now.minus({ days: 2 }).toUTC().toISO(), amount: 8000, product: 'The Product Boss Collective - 1 Year [PIF]' });
   return { registrations, bookings, payments };
 }
 

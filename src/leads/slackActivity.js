@@ -56,8 +56,10 @@ function parsePaymentMessage(message) {
   const email = extractEmail(text);
   if (!email) return null;
 
+  const nameMatch = text.match(/New Payment from\s+([^(<]*?)\s*[(<]/i);
   return {
     email,
+    name: nameMatch ? nameMatch[1].trim() : '',
     paidAt: slackTsToIso(message.ts),
     amount: Number(match[2].replace(/,/g, '')),
     product: match[1].replace(/\s*-\s*$/, '').trim(),

@@ -222,6 +222,23 @@ cloud environment needs the secrets listed below.
    - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated webinar IDs to use
      instead of matching by name.
 
+### Someone paid or booked with a different email
+
+The tracker matches bookings and payments to leads by email. When someone
+used a different email (registered as `jane@gmail.com`, paid as
+`jane@herbrand.com`), add the pair to `email-aliases.json`, which is published
+with the private tracker page (never committed here, since it holds customer
+emails):
+
+```json
+{ "jane@herbrand.com": "jane@gmail.com" }
+```
+
+The key is the email they paid or booked with, and the value is the email
+they registered with. Run locally with `LEAD_EMAIL_ALIASES_FILE=path/to/email-aliases.json`.
+The page's **Payments not matched to a lead** list shows the payments that
+might need one.
+
 ### Run it locally
 
 ```bash

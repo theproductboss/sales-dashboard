@@ -60,7 +60,7 @@
   .examples button { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--pill); border-color: transparent; color: var(--muted); }
   .examples button:hover { color: var(--text); }
   .answer { margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--peach); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 80ch; }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
   .kpi { border-top: 3px solid var(--accent); }
   .kpi .label { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .16em; text-transform: uppercase; }
@@ -83,6 +83,8 @@
   .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
   .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
   .footnote { max-width: 90ch; margin: 0; }
+  details.card > summary { cursor: pointer; list-style-position: outside; margin-left: 14px; }
+  details.card[open] > summary { margin-bottom: 10px; }
 </style>
 
 <div class="wrap">
@@ -181,9 +183,18 @@
     <div style="text-align:center;margin-top:12px"><button id="more" class="primary" type="button" hidden>Show more</button></div>
   </section>
 
+  <details class="card" id="unmatchedCard" hidden>
+    <summary><h2 style="display:inline">Payments not matched to a lead</h2> <span class="muted small" id="unmatchedCount"></span></summary>
+    <p class="muted small" style="max-width:80ch">These new payments came through #payments with an email that isn't on any webinar registration.
+      Most are people who didn't come from a webinar. If one is a webinar lead who paid with a different email,
+      ask Claude to link the two emails and their payment will be added on the next refresh.</p>
+    <div class="table-wrap"><table id="unmatched"></table></div>
+  </details>
+
   <p class="muted small footnote">
-    Attendance and booking rates only count leads whose webinar has already happened, so next week's
-    registrants don't drag the numbers down. Bookings and payments only count if they came in on or after the
+    Show rate is attended live ÷ registered. Book rate is calls booked ÷ attended live. Both only count leads
+    whose webinar has already happened, so next week's registrants don't drag the numbers down. "Average per
+    webinar" averages each session's own rate. Bookings and payments only count if they came in on or after the
     lead registered. A lead's ad and registration date come from their first registration.
   </p>
 </div>
@@ -200,6 +211,7 @@ const fmtDate = (iso, withTime) => iso ? new Intl.DateTimeFormat('en-US', Object
 const dayKey = (iso) => iso ? new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso)) : '';
 const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
 const pct = (n, d) => d ? Math.round((n / d) * 100) + '%' : '—';
+const pct1 = (n, d) => d ? (Math.round((n / d) * 1000) / 10) + '%' : '—';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // One filter shape shared by the on-page controls and the question tools.
@@ -262,12 +274,40 @@ function summarize(leads) {
   };
 }
 
-function renderKpis(s) {
+// Show rate = attended live ÷ registered; book rate = booked ÷ attended live.
+// Both only count leads whose webinar has happened.
+const showRate = (s) => pct1(s.attended, s.happened);
+const bookRate = (s) => pct1(s.bookedEligible, s.attended);
+
+// The plain average of each webinar session's rate, so a big session
+// doesn't outweigh the rest.
+function sessionAverages(leads) {
+  const sessions = new Map();
+  leads.filter((l) => l.webinarHappened && l.webinarDate).forEach((l) => {
+    if (!sessions.has(l.webinarDate)) sessions.set(l.webinarDate, []);
+    sessions.get(l.webinarDate).push(l);
+  });
+  const stats = [...sessions.values()].map(summarize);
+  const avg = (fn) => {
+    const vals = stats.map(fn).filter((v) => v !== null);
+    return vals.length ? (Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 1000) / 10) + '%' : '—';
+  };
+  return {
+    sessions: stats.length,
+    show: avg((s) => (s.happened ? s.attended / s.happened : null)),
+    book: avg((s) => (s.attended ? s.bookedEligible / s.attended : null)),
+  };
+}
+
+function renderKpis(s, avg) {
   const tile = (label, value, sub) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  const avgNote = (v) => avg.sessions > 1 ? `<br>Average per webinar: <strong>${v}</strong>` : '';
   $('kpis').innerHTML = [
     tile('Leads registered', s.leads.toLocaleString(), `${s.upcoming} still waiting on their webinar`),
-    tile('Attended live', s.attended.toLocaleString(), `${pct(s.attended, s.happened)} of ${s.happened} whose webinar happened`),
-    tile('Booked a call', s.booked.toLocaleString(), `${pct(s.bookedEligible, s.happened)} of leads whose webinar happened`),
+    tile('Attended live', s.attended.toLocaleString(), `of ${s.happened.toLocaleString()} whose webinar happened`),
+    tile('Show rate', showRate(s), `Attended live ÷ registered${avgNote(avg.show)}`),
+    tile('Booked a call', s.booked.toLocaleString(), s.upcoming ? `${s.booked - s.bookedEligible} from upcoming webinars` : 'calls booked after registering'),
+    tile('Book rate', bookRate(s), `Booked ÷ attended live${avgNote(avg.book)}`),
     tile('Paid', s.paid.toLocaleString(), `${money(s.revenue)} new cash · ${pct(s.paid, s.booked)} of booked`),
   ].join('');
 }
@@ -282,9 +322,11 @@ function groupTable(el, leads, keyFn, labelFn, labelHeader, sortFn) {
   }
   const rows = [...groups.entries()].map(([k, ls]) => ({ key: k, label: labelFn(ls[0]), s: summarize(ls) }));
   rows.sort(sortFn);
-  el.innerHTML = `<thead><tr><th>${labelHeader}</th><th class="num">Leads</th><th class="num">Live</th><th class="num">Booked</th><th class="num">Book %</th><th class="num">Paid</th><th class="num">Cash</th></tr></thead><tbody>` +
-    rows.map(({ label, s }) => `<tr><td>${label}</td><td class="num">${s.leads}</td><td class="num">${s.happened ? s.attended + ' <span class="muted small">' + pct(s.attended, s.happened) + '</span>' : '<span class="pill">upcoming</span>'}</td><td class="num">${s.booked}</td><td class="num">${pct(s.bookedEligible, s.happened)}</td><td class="num">${s.paid}</td><td class="num">${s.revenue ? money(s.revenue) : ''}</td></tr>`).join('') +
-    (rows.length ? '' : '<tr><td colspan="7" class="muted">No leads match these filters.</td></tr>') + '</tbody>';
+  el.innerHTML = `<thead><tr><th>${labelHeader}</th><th class="num">Leads</th><th class="num">Live</th><th class="num" title="Attended live ÷ registered">Show %</th><th class="num">Booked</th><th class="num" title="Booked ÷ attended live">Book %</th><th class="num">Paid</th><th class="num">Cash</th></tr></thead><tbody>` +
+    rows.map(({ label, s }) => `<tr><td>${label}</td><td class="num">${s.leads}</td>` +
+      (s.happened ? `<td class="num">${s.attended}</td><td class="num">${pct(s.attended, s.happened)}</td>` : '<td class="num" colspan="2"><span class="pill">upcoming</span></td>') +
+      `<td class="num">${s.booked}</td><td class="num">${s.attended ? pct(s.bookedEligible, s.attended) : '—'}</td><td class="num">${s.paid}</td><td class="num">${s.revenue ? money(s.revenue) : ''}</td></tr>`).join('') +
+    (rows.length ? '' : '<tr><td colspan="8" class="muted">No leads match these filters.</td></tr>') + '</tbody>';
 }
 
 const columns = [
@@ -320,7 +362,8 @@ function renderLeads(leads) {
 
 function render() {
   const leads = filtered();
-  renderKpis(summarize(leads));
+  renderKpis(summarize(leads), sessionAverages(leads));
+  renderUnmatched();
   const dim = $('groupBy').value;
   groupTable($('byAd'), leads, (l) => l.utm[dim] || '', (l) => esc(l.utm[dim] || '(no UTM)'), 'utm_' + dim,
     (a, b) => b.s.leads - a.s.leads);
@@ -328,6 +371,18 @@ function render() {
     (l) => l.webinarDate ? esc(fmtDate(l.webinarDate, true)) + (l.webinarHappened ? '' : ' <span class="pill accent">upcoming</span>') : 'Unknown',
     'Webinar session', (a, b) => b.key.localeCompare(a.key));
   renderLeads(leads);
+}
+
+function renderUnmatched() {
+  const from = $('from').value, to = $('to').value;
+  const rows = (DATA.unmatchedPayments || []).filter((p) => {
+    const d = dayKey(p.paidAt);
+    return (!from || d >= from) && (!to || d <= to);
+  });
+  $('unmatchedCard').hidden = !rows.length;
+  $('unmatchedCount').textContent = `${rows.length} · ${money(rows.reduce((s, p) => s + p.amount, 0))} in this date range`;
+  $('unmatched').innerHTML = '<thead><tr><th>Paid</th><th>Name</th><th>Email</th><th class="num">Amount</th><th>Product</th></tr></thead><tbody>' +
+    rows.map((p) => `<tr><td>${esc(fmtDate(p.paidAt, true))}</td><td>${esc(p.name || '—')}</td><td>${esc(p.email)}</td><td class="num">${money(p.amount)}</td><td>${esc(p.product)}</td></tr>`).join('') + '</tbody>';
 }
 
 // ---- CSV export: the claude.ai viewer saves files through the downloads capability ----
@@ -386,7 +441,7 @@ const groupers = {
   revenue_level: (l) => l.revenueLevel || '(unknown)',
 };
 const statsOut = (s) => ({ leads: s.leads, webinarHappened: s.happened, stillUpcoming: s.upcoming, attendedLive: s.attended,
-  attendRate: pct(s.attended, s.happened), bookedCall: s.booked, bookRate: pct(s.bookedEligible, s.happened), paid: s.paid, cash: money(s.revenue) });
+  showRate: showRate(s), bookedCall: s.booked, bookRate: bookRate(s), paid: s.paid, cash: money(s.revenue) });
 
 const askTools = [
   {
@@ -430,7 +485,7 @@ function askPrompt(question, withTools) {
     'If the data cannot answer the question, say what is missing.',
     '',
     `Today is ${dayKey(new Date().toISOString())} (${TZ}). Data last synced ${fmtDate(DATA.generatedAt, true)}.`,
-    'How the data works: each lead registered for a WebinarJam webinar. "Attended live" comes from WebinarJam. "Booked a call" means their email showed up in the Calendly calls-booked Slack channel on or after they registered. "Paid" means their email appeared in a new-payment message in the payments Slack channel on or after they registered. The ad is their first registration\'s UTM tags. Leads whose webinar has not happened yet have not had a chance to attend or book, so rates only count leads whose webinar has happened.',
+    'How the data works: each lead registered for a WebinarJam webinar. "Attended live" comes from WebinarJam. "Booked a call" means their email showed up in the Calendly calls-booked Slack channel on or after they registered. "Paid" means their email appeared in a new-payment message in the payments Slack channel on or after they registered. The ad is their first registration\'s UTM tags. Leads whose webinar has not happened yet have not had a chance to attend or book, so rates only count leads whose webinar has happened. Definitions: show rate = attended live ÷ registered; book rate = calls booked ÷ attended live. When asked for an "average" rate, give the overall rate and also the average of the individual webinar sessions (use count_leads with group_by webinar_date).',
     `There are ${DATA.leads.length} leads in total. utm_source values: ${sources.join(', ') || 'none'}. utm_campaign values: ${campaigns.join(', ') || 'none'}.`,
     `The person asking currently has these page filters set (only use them if the question refers to "these" or "this view"): ${JSON.stringify(pickFilters(currentFilters()))}.`,
   ];

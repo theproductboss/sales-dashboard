@@ -30,6 +30,9 @@ test('parses #payments new-payment formats and skips subscription renewals', () 
     assert.equal(p.amount, amount, text);
     assert.equal(p.email, email);
   }
+  assert.equal(parsePaymentMessage(msg('The Product Boss Collective - 1 Year [PIF] - $8000 - jacqoffer - 8000.00 New Payment from Emily Brown (<mailto:e@x.com|e@x.com>)')).name, 'Emily Brown');
+  assert.equal(parsePaymentMessage(msg('X - $77 New payment from   (<mailto:e@x.com|e@x.com>)')).name, '');
+  assert.equal(parsePaymentMessage(msg('X - 997 - New Payment from Jennifer Giese <mailto:j@x.com|j@x.com>')).name, 'Jennifer Giese');
   assert.equal(parsePaymentMessage(msg('The Product Boss Collective - 12 month payment plan - 997 - New Payment from Jennifer Giese <mailto:jenny@jennygiese.com|jenny@jennygiese.com>')).product,
     'The Product Boss Collective - 12 month payment plan');
   assert.equal(parsePaymentMessage(msg('Subscription Payment: 708.33')), null);
