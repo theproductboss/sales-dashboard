@@ -66,9 +66,9 @@
   .kpi .label { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .16em; text-transform: uppercase; }
   .kpi .value { font: 400 40px/1.1 var(--font-display); font-variant-numeric: lining-nums tabular-nums; margin: 6px 0 2px; }
   .kpi .sub { font-size: 12px; color: var(--muted); }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
   .grid2 > * { min-width: 0; }
-  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } .filters .wide { grid-column: span 1; } }
+  @media (max-width: 860px) { .filters .wide { grid-column: span 1; } }
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: top; }
@@ -83,6 +83,12 @@
   .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
   .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
   .footnote { max-width: 90ch; margin: 0; }
+  button.drill { font: inherit; color: var(--accent); background: none; border: 0; padding: 0 2px; border-bottom: 1px dashed currentColor; border-radius: 0; font-weight: 600; }
+  button.drill:hover, button.drill.on { border-bottom-style: solid; }
+  tr.detail > td { background: var(--peach); padding: 4px 8px 10px; white-space: normal; }
+  table.inner { background: var(--surface); border-radius: 6px; }
+  table.inner th { background: var(--surface); }
+  td.wrap-cell { white-space: normal; min-width: 180px; }
   details.card > summary { cursor: pointer; list-style-position: outside; margin-left: 14px; }
   details.card[open] > summary { margin-bottom: 10px; }
 </style>
@@ -203,7 +209,9 @@
 const DATA = __LEADS_DATA__;
 const TZ = DATA.timeZone || 'America/New_York';
 const $ = (id) => document.getElementById(id);
-const state = { sortKey: 'registeredAt', sortDir: -1, limit: 200 };
+const state = { sortKey: 'registeredAt', sortDir: -1, limit: 200,
+  // The one drill-down open in each breakdown table: { key, kind } where kind is 'paid' or 'booked'.
+  open: { byAd: null, byWebinar: null } };
 
 const fmtDate = (iso, withTime) => iso ? new Intl.DateTimeFormat('en-US', Object.assign(
   { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' },
@@ -313,6 +321,8 @@ function renderKpis(s, avg) {
 }
 
 // keyFn picks the group a lead belongs to; labelFn renders that group's first column.
+// keyFn picks the group a lead belongs to; labelFn renders that group's first column.
+// Booked, Paid and Cash are buttons that open the people behind the number under the row.
 function groupTable(el, leads, keyFn, labelFn, labelHeader, sortFn) {
   const groups = new Map();
   for (const l of leads) {
@@ -320,13 +330,34 @@ function groupTable(el, leads, keyFn, labelFn, labelHeader, sortFn) {
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(l);
   }
-  const rows = [...groups.entries()].map(([k, ls]) => ({ key: k, label: labelFn(ls[0]), s: summarize(ls) }));
+  const rows = [...groups.entries()].map(([k, ls]) => ({ key: k, leads: ls, label: labelFn(ls[0]), s: summarize(ls) }));
   rows.sort(sortFn);
+  const open = state.open[el.id];
+  const drill = (key, kind, text, title) =>
+    `<button type="button" class="drill${open && open.key === key && open.kind === kind ? ' on' : ''}" data-key="${esc(key)}" data-kind="${kind}" title="${title}">${text}</button>`;
   el.innerHTML = `<thead><tr><th>${labelHeader}</th><th class="num">Leads</th><th class="num">Live</th><th class="num" title="Attended live ÷ registered">Show %</th><th class="num">Booked</th><th class="num" title="Booked ÷ attended live">Book %</th><th class="num">Paid</th><th class="num">Cash</th></tr></thead><tbody>` +
-    rows.map(({ label, s }) => `<tr><td>${label}</td><td class="num">${s.leads}</td>` +
+    rows.map(({ key, leads: ls, label, s }) => `<tr><td>${label}</td><td class="num">${s.leads}</td>` +
       (s.happened ? `<td class="num">${s.attended}</td><td class="num">${pct(s.attended, s.happened)}</td>` : '<td class="num" colspan="2"><span class="pill">upcoming</span></td>') +
-      `<td class="num">${s.booked}</td><td class="num">${s.attended ? pct(s.bookedEligible, s.attended) : '—'}</td><td class="num">${s.paid}</td><td class="num">${s.revenue ? money(s.revenue) : ''}</td></tr>`).join('') +
+      `<td class="num">${s.booked ? drill(key, 'booked', s.booked, 'See who booked') : 0}</td>` +
+      `<td class="num">${s.attended ? pct(s.bookedEligible, s.attended) : '—'}</td>` +
+      `<td class="num">${s.paid ? drill(key, 'paid', s.paid, 'See who paid') : 0}</td>` +
+      `<td class="num">${s.revenue ? drill(key, 'paid', money(s.revenue), 'See who paid') : ''}</td></tr>` +
+      (open && open.key === key ? `<tr class="detail"><td colspan="8">${drillList(ls, open.kind)}</td></tr>` : '')).join('') +
     (rows.length ? '' : '<tr><td colspan="8" class="muted">No leads match these filters.</td></tr>') + '</tbody>';
+}
+
+function drillList(leads, kind) {
+  const ad = (l) => l.utm.source || l.utm.campaign ? `${esc(l.utm.source || '—')} / ${esc(l.utm.campaign || '—')}` : '<span class="muted">no UTM</span>';
+  const who = (l) => `<strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div>`;
+  const live = (l) => l.attendedLive ? '<span class="pill good">Attended</span>' : l.webinarHappened ? '<span class="pill warn">No-show</span>' : '<span class="pill">Not yet</span>';
+  if (kind === 'paid') {
+    const people = leads.filter((l) => l.paid).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+    return `<table class="inner"><thead><tr><th>Who paid</th><th>Paid on</th><th class="num">Amount</th><th>Product</th><th>Live?</th><th>Ad</th></tr></thead><tbody>` +
+      people.map((l) => `<tr><td>${who(l)}</td><td>${esc(fmtDate(l.paidAt))}</td><td class="num"><strong>${money(l.paidAmount)}</strong></td><td class="wrap-cell">${esc(l.products.join('; '))}</td><td>${live(l)}</td><td>${ad(l)}</td></tr>`).join('') + '</tbody></table>';
+  }
+  const people = leads.filter((l) => l.bookedCall).sort((a, b) => b.bookedAt.localeCompare(a.bookedAt));
+  return `<table class="inner"><thead><tr><th>Who booked</th><th>Booked on</th><th>Revenue</th><th>Live?</th><th>Paid</th><th>Ad</th></tr></thead><tbody>` +
+    people.map((l) => `<tr><td>${who(l)}</td><td>${esc(fmtDate(l.bookedAt))}</td><td>${esc(l.revenueLevel)}</td><td>${live(l)}</td><td>${l.paid ? `<strong>${money(l.paidAmount)}</strong>` : '<span class="muted">Not yet</span>'}</td><td>${ad(l)}</td></tr>`).join('') + '</tbody></table>';
 }
 
 const columns = [
@@ -556,6 +587,15 @@ applyRangePreset();
 $('range').addEventListener('change', () => { applyRangePreset(); state.limit = 200; render(); });
 ['from', 'to'].forEach((id) => $(id).addEventListener('change', () => { $('range').value = 'custom'; render(); }));
 ['q', 'webinar', 'source', 'campaign', 'status', 'groupBy'].forEach((id) => $(id).addEventListener('input', () => { state.limit = 200; render(); }));
+['byAd', 'byWebinar'].forEach((id) => $(id).addEventListener('click', (e) => {
+  const b = e.target.closest('button.drill');
+  if (!b) return;
+  const cur = state.open[id];
+  const next = { key: b.dataset.key, kind: b.dataset.kind };
+  state.open[id] = cur && cur.key === next.key && cur.kind === next.kind ? null : next;
+  render();
+}));
+$('groupBy').addEventListener('input', () => { state.open.byAd = null; });
 $('leads').addEventListener('click', (e) => {
   const th = e.target.closest('th[data-key]');
   if (!th) return;
