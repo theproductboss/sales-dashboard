@@ -36,9 +36,32 @@ test('parses #payments new-payment formats and skips subscription renewals', () 
   assert.equal(parsePaymentMessage(msg('WOWIE WOWIE LOOK AT YOU TWO')), null);
 });
 
+test('normalizes a registrant in the shape the WebinarJam API actually returns', () => {
+  const r = normalizeRegistrant(
+    { first_name: 'Sam', last_name: '', email: 'Sam@x.com', phone_country_code: '', phone_number: '',
+      'Phone Number (Optional)': '5551234567', schedule_id: 475, schedule: 'Wed, 28 Oct 2026, 01:00 PM',
+      signup_date: 'Wed, 28 Oct 2026, 01:42 PM', attended_live: 'No', attended_replay: 'Yes', revenue_live: 0,
+      'Projected Revenue - 2026': '$10,000 to $25,000', webinar: 'Collective Webinar - 28 October 2026',
+      utm_source: 'convertkit', utm_medium: 'email', utm_campaign: 'psst', utm_term: null, utm_content: null },
+    { name: 'Collective Webinar - 28 October 2026', timezone: 'America/New_York' },
+    { 475: '2026-10-28T17:00:00.000Z' }
+  );
+  assert.equal(r.registeredAt, '2026-10-28T17:42:00.000Z');
+  assert.equal(r.webinarDate, '2026-10-28T17:00:00.000Z');
+  assert.equal(r.attendedLive, false);
+  assert.equal(r.attendedReplay, true);
+  assert.equal(r.phone, '5551234567');
+  assert.equal(r.revenueLevel, '$10,000 to $25,000');
+  assert.equal(r.utm.campaign, 'psst');
+  assert.equal(r.utm.content, '');
+  // Without the schedule lookup, the registrant's own schedule text is used.
+  assert.equal(normalizeRegistrant({ email: 'a@b.c', schedule: 'Wed, 28 Oct 2026, 01:00 PM' }, { timezone: 'America/New_York' }, {}).webinarDate,
+    '2026-10-28T17:00:00.000Z');
+});
+
 test('normalizes a WebinarJam registrant using the schedule-id lookup', () => {
   const r = normalizeRegistrant(
-    { first_name: 'Jane', last_name: 'Doe', email: ' Jane@X.com ', signup_date: '2026-10-20 09:15', schedule: 77,
+    { first_name: 'Jane', last_name: 'Doe', email: ' Jane@X.com ', signup_date: '2026-10-20 09:15', schedule_id: 77,
       attended_live: 'Yes', utm_source: 'facebook', utm_campaign: 'cold', 'What is your annual revenue?': '$50k-$100k', revenue_live: 0 },
     { name: 'Masterclass', timezone: 'America/New_York' },
     { 77: '2026-10-27T17:00:00.000Z' }

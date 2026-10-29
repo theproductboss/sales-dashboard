@@ -22,7 +22,8 @@ async function loadInputs() {
   const paymentsChannel = process.env.PAYMENTS_CHANNEL_ID;
   const webinarIds = (process.env.WEBINARJAM_WEBINAR_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
-  const registrations = await fetchAllRegistrations(apiKey, { webinarIds });
+  const nameIncludes = process.env.WEBINARJAM_NAME_INCLUDES ?? 'Collective Webinar';
+  const registrations = await fetchAllRegistrations(apiKey, { webinarIds, nameIncludes });
   const earliest = registrations.reduce((min, r) => (r.registeredAt && r.registeredAt < min ? r.registeredAt : min), new Date().toISOString());
   const oldest = new Date(earliest);
 
@@ -56,7 +57,7 @@ async function main() {
 
   console.log(
     `${registrations.length} registrations → ${leads.length} leads; ` +
-      `${bookings.length} bookings and ${payments.length} payments matched by email.`
+      `${bookings.length} bookings and ${payments.length} payments found in Slack.`
   );
   warnings.forEach((w) => console.warn(`warning: ${w}`));
   console.log(`Wrote ${outFile} and ${path.join(OUT_DIR, 'artifact.html')}`);

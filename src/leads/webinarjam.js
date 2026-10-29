@@ -56,21 +56,23 @@ function isTruthyFlag(value) {
   return /^(1|yes|true)$/i.test(String(value ?? '').trim());
 }
 
-// WebinarJam returns dates as "YYYY-MM-DD HH:mm" strings in the webinar's
-// timezone; anything else we try as ISO before giving up.
+// WebinarJam returns dates in the webinar's timezone, as "2026-10-28 13:00"
+// in webinar schedules and "Wed, 28 Oct 2026, 01:42 PM" on registrants.
 function parseWebinarjamDate(value, timeZone) {
   if (!value) return null;
   const str = String(value).trim();
-  for (const format of ['yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd HH:mm', 'yyyy-MM-dd']) {
-    const dt = DateTime.fromFormat(str, format, { zone: timeZone });
+  const formats = ['EEE, d MMM yyyy, hh:mm a', 'yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd HH:mm', 'yyyy-MM-dd'];
+  for (const format of formats) {
+    const dt = DateTime.fromFormat(str, format, { zone: timeZone, locale: 'en-US' });
     if (dt.isValid) return dt.toUTC().toISO();
   }
   const iso = DateTime.fromISO(str, { zone: timeZone });
   return iso.isValid ? iso.toUTC().toISO() : null;
 }
 
-// Revenue level is a custom registration question, so its key depends on
-// how the question was set up. Matches any field whose name mentions revenue.
+// Revenue level is a custom registration question (currently "Projected
+// Revenue - 2026"), so match any field whose name mentions revenue rather
+// than the exact wording, which changes year to year.
 function findRevenueLevel(raw) {
   const key = Object.keys(raw).find((k) => /revenue/i.test(k) && !/^revenue_(live|replay)$/i.test(k));
   if (key && raw[key]) return String(raw[key]);
@@ -83,23 +85,23 @@ function findRevenueLevel(raw) {
 }
 
 // Turns one raw WebinarJam registrant into the shape the lead tracker uses.
-// `scheduleDates` maps API schedule IDs to session dates (from getWebinar),
-// used when the registrant's `schedule` field is an ID rather than a date.
+// `scheduleDates` maps API schedule IDs to session dates (from getWebinar);
+// the registrant's own `schedule` text is the fallback.
 function normalizeRegistrant(raw, webinar, scheduleDates) {
   const timeZone = webinar.timezone || 'America/New_York';
-  const scheduleValue = raw.schedule;
   const webinarDate =
-    scheduleDates[String(scheduleValue)] ||
-    parseWebinarjamDate(scheduleValue, timeZone) ||
+    scheduleDates[String(raw.schedule_id)] ||
+    parseWebinarjamDate(raw.schedule, timeZone) ||
     parseWebinarjamDate(raw.date_live, timeZone);
+  const optionalPhone = Object.keys(raw).find((k) => /^phone number/i.test(k));
 
   return {
     email: String(raw.email || '').trim().toLowerCase(),
     firstName: raw.first_name || '',
     lastName: raw.last_name || '',
-    phone: [raw.phone_country_code, raw.phone].filter(Boolean).join(' '),
+    phone: [raw.phone_country_code, raw.phone_number || raw.phone].filter(Boolean).join(' ') || (optionalPhone && raw[optionalPhone]) || '',
     registeredAt: parseWebinarjamDate(raw.signup_date, timeZone),
-    webinarName: webinar.name || webinar.title || '',
+    webinarName: raw.webinar || webinar.name || webinar.title || '',
     webinarDate,
     attendedLive: isTruthyFlag(raw.attended_live),
     timeLive: raw.time_live || null,
@@ -115,10 +117,19 @@ function normalizeRegistrant(raw, webinar, scheduleDates) {
   };
 }
 
-async function fetchAllRegistrations(apiKey, { webinarIds } = {}) {
+// Which webinars count: explicit IDs if given, otherwise every webinar whose
+// name contains `nameIncludes` (e.g. "Collective Webinar"), skipping any
+// named as a test.
+async function fetchAllRegistrations(apiKey, { webinarIds, nameIncludes } = {}) {
   let webinars = await listWebinars(apiKey);
   if (webinarIds && webinarIds.length) {
     webinars = webinars.filter((w) => webinarIds.includes(String(w.webinar_id)));
+  } else {
+    const needle = (nameIncludes || '').toLowerCase();
+    webinars = webinars.filter((w) => {
+      const name = String(w.name || '').toLowerCase();
+      return name.includes(needle) && !/\btest\b/.test(name);
+    });
   }
 
   const registrations = [];

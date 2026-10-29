@@ -216,8 +216,11 @@ cloud environment needs the secrets listed below.
    - `SLACK_BOT_TOKEN` (the same bot token the daily dashboard uses)
    - `CALLS_BOOKED_CHANNEL_ID`: `C09UEM5M1V5`
    - `PAYMENTS_CHANNEL_ID`: `G017H4V9ACS`
-   - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated IDs to limit which
-     webinars are included. Leave unset for all.
+   - `WEBINARJAM_NAME_INCLUDES` (optional): only webinars whose name contains
+     this are included. Defaults to `Collective Webinar`; webinars with "TEST"
+     in the name are always skipped.
+   - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated webinar IDs to use
+     instead of matching by name.
 
 ### Run it locally
 
