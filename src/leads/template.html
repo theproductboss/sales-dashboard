@@ -80,6 +80,7 @@
   .pill.good { background: var(--good-soft); color: var(--good); }
   .pill.warn { background: var(--warn-soft); color: var(--warn); }
   .pill.accent { background: var(--accent-soft); color: var(--accent); }
+  .toolbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
   .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
   .footnote { max-width: 90ch; margin: 0; }
@@ -183,7 +184,7 @@
   <section class="card">
     <div class="toolbar">
       <h2 id="leadsTitle">Leads</h2>
-      <button id="csv" type="button">Export CSV</button>
+      <span class="toolbar-actions"><span class="muted small" id="csvNote" role="status" hidden></span><button id="csv" type="button">Export CSV</button></span>
     </div>
     <div class="table-wrap"><table id="leads"></table></div>
     <div style="text-align:center;margin-top:12px"><button id="more" class="primary" type="button" hidden>Show more</button></div>
@@ -436,13 +437,39 @@ async function exportCsv() {
     try { await downloads.save({ filename, data: buildCsv() }); } catch { /* viewer declined or saving is unavailable */ }
     return;
   }
-  if (window.claude) { $('csv').hidden = true; return; }
+  if (window.claude) {
+    // Shared-link viewers can't download files, so hand them the rows to paste
+    // into a spreadsheet instead. Tab-separated pastes into separate columns.
+    const tsv = buildCsv().split('\n').map((row) => row.slice(1, -1).split('","').map((v) => v.replace(/""/g, '"').replace(/[\t\n]/g, ' ')).join('\t')).join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      flashCsv(`Copied ${filtered().length.toLocaleString()} rows. Paste into Google Sheets or Excel.`);
+    } catch {
+      flashCsv("Couldn't copy here. Try again, or ask the page owner for the file.");
+    }
+    return;
+  }
   // Opened as a plain local file: a normal download link works.
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([buildCsv()], { type: 'text/csv' }));
   a.download = filename;
   a.click();
 }
+
+function flashCsv(text) {
+  const note = $('csvNote');
+  note.textContent = text;
+  note.hidden = false;
+  clearTimeout(flashCsv.timer);
+  flashCsv.timer = setTimeout(() => { note.hidden = true; }, 6000);
+}
+
+// Shared-link viewers get no download: relabel the button for what it does there.
+(async () => {
+  if (!window.claude) return;
+  const downloads = await window.claude.use('downloads');
+  if (!downloads) $('csv').textContent = 'Copy rows for a spreadsheet';
+})();
 
 // ---- Ask about your leads ----
 const compactLead = (l) => ({
@@ -556,7 +583,7 @@ async function ask(question) {
   question = question.trim();
   if (!question) return;
   const sample = window.claude ? await window.claude.use('sample') : null;
-  if (!sample) { $('askNote').hidden = false; $('askNote').textContent = 'Asking questions needs a Claude account. Sign in (or sign up free) at claude.ai, then open this link again.'; return; }
+  if (!sample) { $('askNote').hidden = false; $('askNote').textContent = 'Asking Claude isn\'t available on this shared link. To use it, ask the page owner to share the page with you directly.'; return; }
   const limits = await sample.limits().catch(() => null);
   const withTools = Boolean(limits && limits.tools);
   askAbort = new AbortController();
