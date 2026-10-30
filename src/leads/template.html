@@ -556,7 +556,7 @@ async function ask(question) {
   question = question.trim();
   if (!question) return;
   const sample = window.claude ? await window.claude.use('sample') : null;
-  if (!sample) { $('askNote').hidden = false; $('askNote').textContent = 'Questions work when this page is opened on claude.ai.'; return; }
+  if (!sample) { $('askNote').hidden = false; $('askNote').textContent = 'Asking questions needs a Claude account. Sign in (or sign up free) at claude.ai, then open this link again.'; return; }
   const limits = await sample.limits().catch(() => null);
   const withTools = Boolean(limits && limits.tools);
   askAbort = new AbortController();
