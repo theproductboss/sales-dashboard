@@ -13,6 +13,7 @@ const { requireEnv } = require('./config');
 const OPT_INS = [
   { key: 'next10k', label: 'Your Next $10K', mainTag: 'Your Next $10K Freebie', channelPrefix: '10K Freebie | ' },
   { key: 'aiHoliday', label: 'AI Holiday Photographer', mainTag: 'AI Holiday Photographer Freebie', channelPrefix: 'AI Holiday Photographer | ' },
+  { key: 'blackFriday', label: 'Black Friday Plan 2026', mainTag: 'Black Friday Freebie 2026', channelPrefix: 'Black Friday Plan 2026 | ' },
 ];
 
 // Tags that are list admin, not a step anyone took.

@@ -10,6 +10,7 @@ afterwards** (webinars, offers, purchases).
 |---|---|---|
 | Your Next $10K | `Your Next $10K Freebie` | `10K Freebie \| ` (Instagram Comments, Instagram Stories + DMs, Facebook Comments, Facebook Messenger) |
 | AI Holiday Photographer | `AI Holiday Photographer Freebie` | `AI Holiday Photographer \| ` (same four channels) |
+| Black Friday Plan 2026 | `Black Friday Freebie 2026` | `Black Friday Plan 2026 \| ` (Instagram, Facebook) |
 
 "Came in" = show both the subscriber's first-ever Kit signup date and the
 date the freebie tag was applied (distinguishes new vs. existing subscribers).
