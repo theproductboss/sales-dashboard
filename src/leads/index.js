@@ -18,8 +18,8 @@ const WEBINAR_NOTES_FILE = process.env.WEBINAR_NOTES_FILE;
 const OUT_DIR = path.resolve(process.env.LEADS_OUT_DIR || 'dist');
 const DEMO = process.argv.includes('--demo');
 
-async function loadInputs() {
-  if (DEMO) return { ...sampleInputs(), warnings: ['Demo mode: these are made-up leads, not real WebinarJam data.'] };
+async function loadInputs({ demo = DEMO } = {}) {
+  if (demo) return { ...sampleInputs(), warnings: ['Demo mode: these are made-up leads, not real WebinarJam data.'] };
 
   const apiKey = requireEnv('WEBINARJAM_API_KEY');
   const slackToken = requireEnv('SLACK_BOT_TOKEN');
@@ -81,21 +81,30 @@ async function loadInputs() {
   return { registrations, bookings, payments, warnings, threadEmails, slackPosts, kit };
 }
 
-// What the team learned from each webinar (chat, transcript, what Jacqueline
-// did), keyed by webinar day: { "2026-11-09": { "summary": "...", "points": [...] } }.
-// It quotes attendees, so like the aliases it lives with the private page.
-function loadNotes(file) {
+// The two hand-kept data sets, from a file (the Claude-hosted page keeps them
+// next to the page) or straight from an environment variable as JSON (how
+// the Render app gets them). Both hold customer details, so neither is ever
+// committed to this repo.
+function loadJson(file, json) {
+  if (json) return JSON.parse(json);
   return file ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
 }
 
-function loadAliases(file) {
-  if (!file) return {};
-  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+// What the team learned from each webinar (chat, transcript, what Jacqueline
+// did), keyed by webinar day: { "2026-11-09": { "summary": "...", "points": [...] } }.
+function loadNotes() {
+  return loadJson(WEBINAR_NOTES_FILE, process.env.WEBINAR_NOTES_JSON);
+}
+
+function loadAliases() {
+  const raw = loadJson(ALIASES_FILE, process.env.LEAD_EMAIL_ALIASES_JSON);
   return Object.fromEntries(Object.entries(raw).map(([from, to]) => [from.trim().toLowerCase(), to ? String(to).trim().toLowerCase() : null]));
 }
 
-async function main() {
-  const { registrations, bookings, payments, warnings, threadEmails, slackPosts = {}, kit = null } = await loadInputs();
+// Pulls everything and returns the data the page is built from, plus a
+// one-line summary of what was found.
+async function buildPayload({ demo = DEMO } = {}) {
+  const { registrations, bookings, payments, warnings, threadEmails, slackPosts = {}, kit = null } = await loadInputs({ demo });
 
   // Bookings and payments made under a different email than the
   // registration are linked by hand-entered aliases, the payment's Slack
@@ -103,7 +112,7 @@ async function main() {
   // file holds customer emails, so it lives with the private tracker page,
   // never in this repo.
   const context = {
-    aliases: loadAliases(ALIASES_FILE),
+    aliases: loadAliases(),
     leadEmails: new Set(registrations.map((r) => r.email)),
     nameIndex: buildNameIndex(registrations),
   };
@@ -117,14 +126,13 @@ async function main() {
     .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
   const autoMatched = [...matchedBookings, ...matchedPayments].filter((i) => i.matchedBy === 'name' || i.matchedBy === 'thread');
 
-  fs.mkdirSync(OUT_DIR, { recursive: true });
   if (kit) {
     for (const lead of leads) lead.kit = kitProfile(kit, lead.email);
   }
 
   const webinars = buildWebinarStats(registrations, matchedBookings, {
     slackPosts,
-    notes: loadNotes(WEBINAR_NOTES_FILE),
+    notes: loadNotes(),
     timeZone: TIME_ZONE,
   });
   const payload = {
@@ -136,22 +144,32 @@ async function main() {
     webinars,
     kitPrograms: kit ? PROGRAMS.map(({ key, label }) => ({ key, label })) : null,
   };
+  const summary =
+    `${registrations.length} registrations → ${leads.length} leads; ` +
+    `${bookings.length} bookings and ${payments.length} payments found in Slack; ` +
+    `${autoMatched.length} linked to a lead by name or Slack thread.`;
+  return { payload, summary };
+}
+
+async function main() {
+  const { payload, summary } = await buildPayload();
+  fs.mkdirSync(OUT_DIR, { recursive: true });
   // lead-tracker.html opens straight from disk; artifact.html is what gets
   // published to the team's claude.ai page.
   const outFile = path.join(OUT_DIR, 'lead-tracker.html');
   fs.writeFileSync(outFile, renderTracker(payload, { standalone: true }));
   fs.writeFileSync(path.join(OUT_DIR, 'artifact.html'), renderTracker(payload));
 
-  console.log(
-    `${registrations.length} registrations → ${leads.length} leads; ` +
-      `${bookings.length} bookings and ${payments.length} payments found in Slack; ` +
-      `${autoMatched.length} linked to a lead by name or Slack thread.`
-  );
-  warnings.forEach((w) => console.warn(`warning: ${w}`));
+  console.log(summary);
+  payload.warnings.forEach((w) => console.warn(`warning: ${w}`));
   console.log(`Wrote ${outFile} and ${path.join(OUT_DIR, 'artifact.html')}`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { buildPayload };

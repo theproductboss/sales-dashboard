@@ -1,0 +1,40 @@
+# Render Blueprint for the Webinar Lead Tracker web app (src/server.js).
+# In Render: New > Blueprint > pick this repo. Values marked sync: false are
+# asked for during setup and stay private in Render; nothing secret is here.
+services:
+  - type: web
+    name: tpb-lead-tracker
+    runtime: node
+    plan: starter
+    branch: claude/epic-mccarthy-c6zlmg
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: REPORT_TIMEZONE
+        value: America/New_York
+      - key: CALLS_BOOKED_CHANNEL_ID
+        value: C09UEM5M1V5
+      - key: PAYMENTS_CHANNEL_ID
+        value: G017H4V9ACS
+      - key: WEBINAR_STATS_CHANNEL_ID
+        value: C09PUHBP6Q1
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: TEAM_PASSWORD
+        sync: false
+      - key: WEBINARJAM_API_KEY
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: KIT_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LEAD_EMAIL_ALIASES_JSON
+        sync: false
+      - key: WEBINAR_NOTES_JSON
+        sync: false

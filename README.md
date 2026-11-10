@@ -289,6 +289,30 @@ they registered with. Run locally with `LEAD_EMAIL_ALIASES_FILE=path/to/email-al
 The page's **Payments not matched to a lead** list shows the payments that
 might need one.
 
+### Hosting it on Render
+
+`src/server.js` runs the tracker as its own website, for people who aren't on
+the team's Claude account. It:
+
+- rebuilds the page at start-up and hourly from 7am to 7pm Eastern (at :07),
+  serving the last good build in between (a full pull takes about 6 minutes)
+- asks for a team password (`TEAM_PASSWORD`) before showing anything
+- answers the "Ask about your leads" box through the Claude API
+  (`ANTHROPIC_API_KEY`, model `claude-opus-5-5`, with server-side refusal
+  fallback on); the page still runs its own lookup tools on its own data
+- lets CSV exports download normally
+- shows build state at `/status` (after login) and answers `/healthz` for
+  Render's health check
+
+`render.yaml` is a Render Blueprint: in Render, **New > Blueprint**, pick this
+repository, and fill in the private values it asks for. The two hand-kept
+data sets go in as JSON text: `LEAD_EMAIL_ALIASES_JSON` (the email links) and
+`WEBINAR_NOTES_JSON` (the notes on each webinar).
+
+```bash
+TEAM_PASSWORD=pick-one npm run start:demo   # made-up data on http://localhost:3000
+```
+
 ### Run it locally
 
 ```bash

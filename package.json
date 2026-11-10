@@ -8,12 +8,15 @@
     "report": "node src/index.js",
     "leads": "node src/leads/index.js",
     "leads:demo": "node src/leads/index.js --demo",
-    "test": "node --test"
+    "test": "node --test",
+    "start": "node src/server.js",
+    "start:demo": "node src/server.js --demo"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "dotenv": "^16.4.5",
     "luxon": "^3.4.4"
   }
