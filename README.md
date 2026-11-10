@@ -296,7 +296,11 @@ the team's Claude account. It:
 
 - rebuilds the page at start-up and hourly from 7am to 7pm Eastern (at :07),
   serving the last good build in between (a full pull takes about 6 minutes)
-- asks for a team password (`TEAM_PASSWORD`) before showing anything
+- is open to anyone with the address (`PUBLIC_ACCESS=true`, the Blueprint's
+  setting), or asks for a team password first when `PUBLIC_ACCESS` is off and
+  `TEAM_PASSWORD` is set; either way it tells search engines not to list it
+- limits the question box to 60 Claude calls per visitor per hour (600 in
+  all), since every question is billed to the team's Anthropic account
 - answers the "Ask about your leads" box through the Claude API
   (`ANTHROPIC_API_KEY`, model `claude-opus-5-5`, with server-side refusal
   fallback on); the page still runs its own lookup tools on its own data

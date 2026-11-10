@@ -2,7 +2,8 @@
 //
 // - Rebuilds the page from WebinarJam, Slack and Kit at start-up and then
 //   hourly from 7am to 7pm Eastern, keeping the last good build in memory.
-// - Puts the page behind a team password (TEAM_PASSWORD).
+// - Puts the page behind a team password (TEAM_PASSWORD), or opens it to
+//   anyone with the address when PUBLIC_ACCESS is "true".
 // - Answers the page's "Ask about your leads" questions through the Claude
 //   API (ANTHROPIC_API_KEY). The page runs its own tools on its own data, so
 //   this server only relays each step of the conversation to Claude.
@@ -21,6 +22,8 @@ const TIME_ZONE = process.env.REPORT_TIMEZONE || 'America/New_York';
 const REFRESH_HOURS = { from: 7, to: 19 }; // inclusive, Eastern
 const REFRESH_MINUTE = 7;
 const TEAM_PASSWORD = process.env.TEAM_PASSWORD || '';
+// No login at all: anyone with the address can open the tracker.
+const PUBLIC_ACCESS = /^(1|true|yes)$/i.test(process.env.PUBLIC_ACCESS || '');
 // Signs login cookies. Without one set, logins last until the next restart.
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const SESSION_DAYS = 30;
@@ -76,6 +79,7 @@ function sessionCookie() {
 }
 
 function isLoggedIn(req) {
+  if (PUBLIC_ACCESS) return true;
   const match = String(req.headers.cookie || '').match(/(?:^|;\s*)tpb_session=([^;]+)/);
   if (!match) return false;
   const [expires, sig] = match[1].split('.');
@@ -159,6 +163,29 @@ async function askStep(body) {
   });
 }
 
+// The question box spends the team's Anthropic credit, so each visitor gets
+// a limited number of Claude calls an hour (a question is usually 2-4 calls),
+// with an overall cap on top.
+const ASK_LIMITS = { perVisitorPerHour: 60, totalPerHour: 600 };
+const askCalls = new Map(); // visitor -> [timestamps]
+const allAskCalls = [];
+
+function askAllowed(visitor) {
+  const hourAgo = Date.now() - 60 * 60 * 1000;
+  while (allAskCalls.length && allAskCalls[0] < hourAgo) allAskCalls.shift();
+  const mine = (askCalls.get(visitor) || []).filter((t) => t > hourAgo);
+  if (mine.length >= ASK_LIMITS.perVisitorPerHour || allAskCalls.length >= ASK_LIMITS.totalPerHour) {
+    askCalls.set(visitor, mine);
+    return false;
+  }
+  mine.push(Date.now());
+  allAskCalls.push(Date.now());
+  askCalls.set(visitor, mine);
+  return true;
+}
+
+const visitorOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+
 // ---------- HTTP ----------
 
 function readBody(req, limit = 2 * 1024 * 1024) {
@@ -178,7 +205,8 @@ function readBody(req, limit = 2 * 1024 * 1024) {
 }
 
 function send(res, status, body, headers = {}) {
-  res.writeHead(status, { 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'same-origin', ...headers });
+  // Keep it out of search engines, password or not: it lists customers.
+  res.writeHead(status, { 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'same-origin', 'X-Robots-Tag': 'noindex, nofollow', ...headers });
   res.end(body);
 }
 
@@ -188,9 +216,11 @@ async function handle(req, res) {
   const url = new URL(req.url, 'http://localhost');
 
   if (url.pathname === '/healthz') return send(res, 200, 'ok', { 'Content-Type': 'text/plain' });
+  if (url.pathname === '/robots.txt') return send(res, 200, 'User-agent: *\nDisallow: /\n', { 'Content-Type': 'text/plain' });
 
   if (url.pathname === '/login' && req.method === 'POST') {
-    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    if (PUBLIC_ACCESS) return send(res, 303, '', { Location: '/' });
+    const ip = visitorOf(req);
     const fails = failures.get(ip) || 0;
     if (fails) await new Promise((r) => setTimeout(r, Math.min(fails, 10) * 1000));
     const form = new URLSearchParams(await readBody(req, 10000));
@@ -231,6 +261,7 @@ async function handle(req, res) {
 
   if (url.pathname === '/api/ask' && req.method === 'POST') {
     if (!anthropic) return sendJson(res, 503, { error: 'ask_not_configured' });
+    if (!askAllowed(visitorOf(req))) return sendJson(res, 429, { error: 'rate_limited' });
     try {
       const reply = await askStep(JSON.parse(await readBody(req)));
       return sendJson(res, 200, { content: reply.content, stop_reason: reply.stop_reason, stop_details: reply.stop_details || null });
@@ -259,7 +290,8 @@ http.createServer((req, res) => {
     if (!res.headersSent) send(res, 500, 'Something went wrong', { 'Content-Type': 'text/plain' });
   });
 }).listen(PORT, () => {
-  console.log(`Webinar Lead Tracker listening on ${PORT}${TEAM_PASSWORD ? '' : ' (TEAM_PASSWORD is not set: nobody can log in)'}`);
+  const access = PUBLIC_ACCESS ? ' (open to anyone with the address: PUBLIC_ACCESS is on)' : TEAM_PASSWORD ? '' : ' (TEAM_PASSWORD is not set: nobody can log in)';
+  console.log(`Webinar Lead Tracker listening on ${PORT}${access}`);
   // The start-up build covers the current hour.
   state.lastHourBuilt = DateTime.now().setZone(TIME_ZONE).toFormat('yyyy-LL-dd HH');
   rebuild('start-up');

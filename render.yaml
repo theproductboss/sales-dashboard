@@ -22,10 +22,12 @@ services:
         value: G017H4V9ACS
       - key: WEBINAR_STATS_CHANNEL_ID
         value: C09PUHBP6Q1
+      # Open to anyone with the address, no password. To require one, set
+      # this to "false" and add a TEAM_PASSWORD under Environment.
+      - key: PUBLIC_ACCESS
+        value: "true"
       - key: SESSION_SECRET
         generateValue: true
-      - key: TEAM_PASSWORD
-        sync: false
       - key: WEBINARJAM_API_KEY
         sync: false
       - key: SLACK_BOT_TOKEN
