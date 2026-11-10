@@ -6,6 +6,7 @@ const { requireEnv } = require('../config');
 const { fetchAllRegistrations } = require('./webinarjam');
 const { fetchBookings, fetchPayments, fetchThreadEmails, fetchPostWebinarStats } = require('./slackActivity');
 const { buildWebinarStats } = require('./webinarStats');
+const { fetchKitHistory, kitProfile, PROGRAMS } = require('./kit');
 const { buildNameIndex, matchItems } = require('./matchPeople');
 const { buildLeads } = require('./buildLeads');
 const { renderTracker } = require('./render');
@@ -66,7 +67,18 @@ async function loadInputs() {
       warnings.push(`Couldn't read the post-webinar stats channel (${err.message}); the Slack column is blank this sync.`);
     }
   }
-  return { registrations, bookings, payments, warnings, threadEmails, slackPosts };
+
+  // Kit list history (join date, programs, past webinars). Optional: without
+  // a key the Registrants tab just leaves the Kit columns out.
+  let kit = null;
+  if (process.env.KIT_API_KEY) {
+    try {
+      kit = await fetchKitHistory(process.env.KIT_API_KEY);
+    } catch (err) {
+      warnings.push(`Couldn't read Kit (${err.message}); list history is missing this sync.`);
+    }
+  }
+  return { registrations, bookings, payments, warnings, threadEmails, slackPosts, kit };
 }
 
 // What the team learned from each webinar (chat, transcript, what Jacqueline
@@ -83,7 +95,7 @@ function loadAliases(file) {
 }
 
 async function main() {
-  const { registrations, bookings, payments, warnings, threadEmails, slackPosts = {} } = await loadInputs();
+  const { registrations, bookings, payments, warnings, threadEmails, slackPosts = {}, kit = null } = await loadInputs();
 
   // Bookings and payments made under a different email than the
   // registration are linked by hand-entered aliases, the payment's Slack
@@ -106,12 +118,24 @@ async function main() {
   const autoMatched = [...matchedBookings, ...matchedPayments].filter((i) => i.matchedBy === 'name' || i.matchedBy === 'thread');
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  if (kit) {
+    for (const lead of leads) lead.kit = kitProfile(kit, lead.email);
+  }
+
   const webinars = buildWebinarStats(registrations, matchedBookings, {
     slackPosts,
     notes: loadNotes(WEBINAR_NOTES_FILE),
     timeZone: TIME_ZONE,
   });
-  const payload = { generatedAt: new Date().toISOString(), timeZone: TIME_ZONE, warnings, leads, unmatchedPayments, webinars };
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    timeZone: TIME_ZONE,
+    warnings,
+    leads,
+    unmatchedPayments,
+    webinars,
+    kitPrograms: kit ? PROGRAMS.map(({ key, label }) => ({ key, label })) : null,
+  };
   // lead-tracker.html opens straight from disk; artifact.html is what gets
   // published to the team's claude.ai page.
   const outFile = path.join(OUT_DIR, 'lead-tracker.html');

@@ -111,6 +111,19 @@
   .note-box h4 { margin: 0 0 6px; font-size: 13px; }
   .note-box ul { margin: 6px 0 0; padding-left: 18px; }
   .goal-yes { color: var(--good); font-weight: 600; }
+  .reg-tree { display: grid; gap: 12px; }
+  .reg-tree summary { cursor: pointer; padding: 6px 0; }
+  .reg-month > summary h2 { display: inline; }
+  .reg-week { margin: 6px 0 6px 6px; padding-left: 12px; border-left: 2px solid var(--border); }
+  .reg-week > summary { font-weight: 600; }
+  .reg-webinar { margin: 6px 0 10px 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); min-width: 0; }
+  .reg-webinar[open] { padding-bottom: 10px; }
+  .reg-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .pill.prog { font-weight: 600; }
+  .prog-collective { background: var(--accent-soft); color: var(--accent); }
+  .prog-msm { background: var(--peach); color: var(--warn); }
+  .prog-sa { background: var(--good-soft); color: var(--good); }
+  .prog-academy { background: var(--pill); color: var(--rose); }
   .goal-no { color: var(--warn); font-weight: 600; }
   button.drill { font: inherit; color: var(--accent); background: none; border: 0; padding: 0 2px; border-bottom: 1px dashed currentColor; border-radius: 0; font-weight: 600; }
   button.drill:hover, button.drill.on { border-bottom-style: solid; }
@@ -152,6 +165,7 @@
   <nav class="tabs" role="tablist" aria-label="Views">
     <a href="#leads" role="tab" id="tabLeads" aria-controls="panelLeads">Leads</a>
     <a href="#webinars" role="tab" id="tabWebinars" aria-controls="panelWebinars">Webinar performance</a>
+    <a href="#registrants" role="tab" id="tabRegistrants" aria-controls="panelRegistrants">Registrants by webinar</a>
   </nav>
 
   <div class="panel" id="panelLeads" role="tabpanel" aria-labelledby="tabLeads">
@@ -281,6 +295,40 @@
       webinar to two days after. Joelle's Slack post divides bookings by the peak number in the room, so her percentage reads higher.
       The minute-by-minute curve is rebuilt from when each attendee joined and how long they stayed, so its peak can differ slightly
       from WebinarJam's "max at one time."
+    </p>
+  </div>
+
+  <div class="panel" id="panelRegistrants" role="tabpanel" aria-labelledby="tabRegistrants" hidden>
+    <section class="card">
+      <div class="toolbar">
+        <h2>Who registered for each webinar</h2>
+        <span class="muted small" id="regKitNote"></span>
+      </div>
+      <div class="filters">
+        <label class="wide">Find a person in any webinar
+          <input id="regQ" type="search" placeholder="Name or email">
+        </label>
+        <label>Show
+          <select id="regShow">
+            <option value="all">Everyone</option>
+            <option value="customers">Past customers (any program)</option>
+            <option value="collective">Been in the Collective</option>
+            <option value="msm">Been in MSM</option>
+            <option value="sa">Been in Sales Accelerator</option>
+            <option value="academy">Been in the Academy</option>
+            <option value="returning">Attended a webinar before</option>
+            <option value="new">New to the list</option>
+            <option value="booked">Booked a call</option>
+          </select>
+        </label>
+      </div>
+    </section>
+    <div id="regTree" class="reg-tree"></div>
+    <p class="muted small footnote">
+      List history comes from Kit. "On the list" is how long before this registration they joined the list; anyone who joined within a
+      day of registering counts as new. Program badges come from Kit purchase and member tags (webinar, waitlist, abandoned-cart,
+      link-click and opt-out tags don't count); hover a badge to see the tags behind it. "Past webinars" counts Collective webinars
+      Kit tagged them as attending before this registration. The ad shown is the one that brought them to this webinar.
     </p>
   </div>
 </div>
@@ -559,6 +607,12 @@ const compactLead = (l) => ({
   bookedCall: l.bookedCall ? dayKey(l.bookedAt) : false,
   paid: l.paid ? `${money(l.paidAmount)} on ${dayKey(l.paidAt)} (${l.products.join('; ')})` : false,
   timesRegistered: l.registrationCount > 1 ? l.registrationCount : undefined,
+  kit: l.kit ? {
+    onListSince: l.kit.joinedAt ? dayKey(l.kit.joinedAt) : 'not in Kit',
+    emailStatus: l.kit.state || undefined,
+    beenIn: Object.entries(l.kit.programs).map(([k, p]) => `${(PROGRAM_LIST.find((x) => x.key === k) || {}).label || k} since ${p.since ? dayKey(p.since) : 'unknown'}`),
+    collectiveWebinarsAttended: l.kit.webinarsAttendedAt.length || undefined,
+  } : undefined,
 });
 
 const filterSchema = {
@@ -928,14 +982,168 @@ $('webinarTable').addEventListener('click', (e) => {
 $('compareWith').addEventListener('input', () => { wstate.compare = $('compareWith').value; renderSession(); });
 window.addEventListener('resize', () => { if (!$('panelWebinars').hidden) renderSession(); });
 
-// Tabs: #leads (default) and #webinars.
+
+// ---- Registrants by webinar tab ----
+const PROGRAM_LIST = DATA.kitPrograms || [];
+const leadByEmail = new Map(DATA.leads.map((l) => [l.email, l]));
+const DAY_MS = 86400000;
+
+// How long before this registration they'd been on the list, in plain words.
+function tenure(joinedAt, registeredAt) {
+  if (!joinedAt || !registeredAt) return null;
+  const days = Math.floor((new Date(registeredAt) - new Date(joinedAt)) / DAY_MS);
+  if (days < 1) return { isNew: true, text: 'New to the list' };
+  if (days < 31) return { isNew: false, text: `${days} day${days === 1 ? '' : 's'}` };
+  const months = Math.floor(days / 30.44);
+  if (months < 12) return { isNew: false, text: `${months} month${months === 1 ? '' : 's'}` };
+  const years = Math.floor(months / 12), rest = months % 12;
+  return { isNew: false, text: `${years} yr${years === 1 ? '' : 's'}${rest ? ` ${rest} mo` : ''}` };
+}
+
+// One registrant's row data, judged as of this registration.
+function regView(r) {
+  const lead = leadByEmail.get(r.email) || { email: r.email, name: '', utm: {}, products: [] };
+  const k = lead.kit;
+  const asOf = r.registeredAt;
+  const before = (iso) => !iso || !asOf || iso < asOf;
+  const programs = k ? PROGRAM_LIST.filter((p) => k.programs[p.key] && before(k.programs[p.key].since))
+    .map((p) => ({ ...p, ...k.programs[p.key] })) : [];
+  const pastWebinars = k ? k.webinarsAttendedAt.filter((t) => t < new Date(new Date(asOf).getTime() - 3600000).toISOString()).length : 0;
+  return {
+    r, lead, k,
+    tenure: k ? (k.joinedAt ? tenure(k.joinedAt, asOf) : { isNew: true, text: 'Not in Kit' }) : null,
+    programs, pastWebinars,
+    notEmailable: Boolean(k && k.state && k.state !== 'active'),
+  };
+}
+
+function regMatches(v, show, q) {
+  if (q) {
+    const hay = [v.lead.name, v.r.email, ...(v.lead.otherEmails || [])].join(' ').toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  switch (show) {
+    case 'customers': return v.programs.length > 0;
+    case 'collective': case 'msm': case 'sa': case 'academy': return v.programs.some((p) => p.key === show);
+    case 'returning': return v.pastWebinars > 0;
+    case 'new': return Boolean(v.tenure && v.tenure.isNew);
+    case 'booked': return v.r.bookedForThis;
+    default: return true;
+  }
+}
+
+const programBadge = (p) => `<span class="pill prog prog-${p.key}" title="${esc(`${p.label}${p.since ? ` since ${fmtDate(p.since)}` : ''}: ${p.tags.join(', ')}`)}">${esc(p.label)}</span>`;
+
+function regRowHtml(v, w) {
+  const { r, lead } = v;
+  const utm = r.utm || {};
+  const live = r.attendedLive ? `<span class="pill good">Live</span> <span class="small muted">${r.minutesWatched} min</span>` : w.happened ? '<span class="pill warn">No-show</span>' : '<span class="pill">Not yet</span>';
+  return `<tr>
+    <td><strong>${esc(lead.name || '—')}</strong><div class="muted small">${esc(r.email)}${lead.phone ? ' · ' + esc(lead.phone) : ''}</div>${otherEmailsHtml(lead)}</td>
+    <td>${esc(fmtDate(r.registeredAt, true))}</td>
+    <td>${utm.source || utm.campaign ? `${esc(utm.source || '—')} / ${esc(utm.campaign || '—')}<div class="muted small">${esc(utm.content || '')}${utm.medium ? ' · ' + esc(utm.medium) : ''}</div>` : '<span class="muted">no UTM</span>'}</td>
+    <td>${esc(lead.revenueLevel || '')}</td>
+    ${PROGRAM_LIST.length ? `<td>${v.tenure ? (v.tenure.isNew ? `<span class="pill accent">${esc(v.tenure.text)}</span>` : `${esc(v.tenure.text)}<div class="muted small">since ${esc(fmtDate(v.k.joinedAt))}</div>`) : ''}${v.notEmailable ? ' <span class="pill warn" title="Kit status: ' + esc(v.k.state) + '">Not getting emails</span>' : ''}</td>
+    <td>${v.programs.map(programBadge).join(' ') || '<span class="muted small">None</span>'}</td>
+    <td class="num">${v.pastWebinars || ''}</td>` : ''}
+    <td>${live}</td>
+    <td>${r.bookedForThis ? '<span class="pill good">Booked</span>' : lead.bookedCall ? `<span class="muted small">Booked ${esc(fmtDate(lead.bookedAt))}</span>` : ''}</td>
+    <td class="num">${lead.paid ? `<strong>${money(lead.paidAmount)}</strong>` : ''}</td>
+  </tr>`;
+}
+
+function webinarSummary(views, w) {
+  const n = (f) => views.filter(f).length;
+  const parts = [`${views.length} registered`];
+  if (w.happened) parts.push(`${n((v) => v.r.attendedLive)} live`);
+  parts.push(`${n((v) => v.r.bookedForThis)} booked`);
+  if (PROGRAM_LIST.length) {
+    parts.push(`${n((v) => v.tenure && v.tenure.isNew)} new to the list`);
+    parts.push(`${n((v) => v.programs.length)} past customers`);
+  }
+  return parts.join(' · ');
+}
+
+const regState = { open: new Set() };
+
+function renderRegistrants() {
+  $('regKitNote').textContent = PROGRAM_LIST.length ? '' : 'Kit isn\'t connected yet, so list history and program badges are missing.';
+  const q = $('regQ').value.trim().toLowerCase(), show = $('regShow').value;
+  const filtering = Boolean(q) || show !== 'all';
+  // Month → week (Monday start) → webinar.
+  const months = new Map();
+  for (const w of WEBINARS) {
+    const d = new Date(w.webinarDate);
+    const monthKey = dayKey(w.webinarDate).slice(0, 7);
+    const local = new Date(dayKey(w.webinarDate) + 'T12:00:00Z');
+    const monday = new Date(local.getTime() - ((local.getUTCDay() + 6) % 7) * DAY_MS);
+    const weekKey = monday.toISOString().slice(0, 10);
+    if (!months.has(monthKey)) months.set(monthKey, { label: new Intl.DateTimeFormat('en-US', { timeZone: TZ, month: 'long', year: 'numeric' }).format(d), weeks: new Map() });
+    const weeks = months.get(monthKey).weeks;
+    if (!weeks.has(weekKey)) weeks.set(weekKey, { label: `Week of ${new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }).format(monday)}`, webinars: [] });
+    weeks.get(weekKey).webinars.push(w);
+  }
+  const latest = WEBINARS.find((w) => w.happened) || WEBINARS[0];
+  const isOpen = (key, dflt) => (regState.open.has(key) ? true : regState.open.has('!' + key) ? false : dflt);
+  const headCols = `<th>Lead</th><th>Registered</th><th>Ad (source / campaign / content)</th><th>Revenue</th>` +
+    (PROGRAM_LIST.length ? `<th>On the list</th><th>Been in</th><th class="num" title="Collective webinars attended before this one">Past webinars</th>` : '') +
+    `<th>Live?</th><th>Booked</th><th class="num">Paid</th>`;
+  let html = '';
+  for (const [monthKey, m] of months) {
+    let monthBody = '', monthCount = 0;
+    for (const [weekKey, wk] of m.weeks) {
+      let weekBody = '', weekCount = 0;
+      for (const w of wk.webinars) {
+        const views = (w.registrants || []).map(regView);
+        const shown = views.filter((v) => regMatches(v, show, q));
+        if (filtering && !shown.length) continue;
+        weekCount += shown.length;
+        const key = 'w:' + w.date;
+        const open = isOpen(key, filtering || w === latest);
+        const counts = {};
+        for (const p of PROGRAM_LIST) counts[p.key] = views.filter((v) => v.programs.some((x) => x.key === p.key)).length;
+        const progLine = PROGRAM_LIST.length ? `<div class="reg-flags">${PROGRAM_LIST.map((p) => `<span class="pill prog prog-${p.key}">${esc(p.label)}: ${counts[p.key]}</span>`).join(' ')} <span class="pill">Attended a webinar before: ${views.filter((v) => v.pastWebinars > 0).length}</span></div>` : '';
+        const rows = open ? shown.slice().sort((a, b) => (b.programs.length - a.programs.length) || String(b.r.registeredAt).localeCompare(String(a.r.registeredAt))).map((v) => regRowHtml(v, w)).join('') : '';
+        weekBody += `<details class="reg-webinar" data-key="${key}"${open ? ' open' : ''}>
+          <summary><strong>${esc(wDay(w))}</strong>${w.happened ? '' : ' <span class="pill accent">upcoming</span>'} <span class="muted small">${esc(webinarSummary(views, w))}${filtering ? ` · ${shown.length} match` : ''}</span></summary>
+          ${open ? `${progLine}<div class="table-wrap"><table class="reg-table"><thead><tr>${headCols}</tr></thead><tbody>${rows || `<tr><td colspan="10" class="muted">No one matches.</td></tr>`}</tbody></table></div>` : ''}
+        </details>`;
+      }
+      if (!weekBody) continue;
+      monthCount += weekCount;
+      const wkKey = 'k:' + weekKey;
+      weekBody = `<details class="reg-week" data-key="${wkKey}"${isOpen(wkKey, filtering || wk.webinars.includes(latest)) ? ' open' : ''}><summary>${esc(wk.label)} <span class="muted small">${wk.webinars.length} webinar${wk.webinars.length === 1 ? '' : 's'}</span></summary>${weekBody}</details>`;
+      monthBody += weekBody;
+    }
+    if (!monthBody) continue;
+    const mKey = 'm:' + monthKey;
+    html += `<details class="card reg-month" data-key="${mKey}"${isOpen(mKey, filtering || (latest && dayKey(latest.webinarDate).startsWith(monthKey))) ? ' open' : ''}><summary><h2>${esc(m.label)}</h2></summary>${monthBody}</details>`;
+  }
+  $('regTree').innerHTML = html || '<p class="muted">No one matches.</p>';
+}
+
+// Remember what's opened or closed, and build a webinar's table when it opens.
+$('regTree').addEventListener('toggle', (e) => {
+  const d = e.target;
+  if (!d.dataset || !d.dataset.key) return;
+  const key = d.dataset.key;
+  regState.open.delete(key); regState.open.delete('!' + key);
+  regState.open.add(d.open ? key : '!' + key);
+  if (d.classList.contains('reg-webinar') && d.open && !d.querySelector('table')) renderRegistrants();
+}, true);
+['regQ', 'regShow'].forEach((id) => $(id).addEventListener('input', () => { regState.open.clear(); renderRegistrants(); }));
+
+// Tabs: #leads (default), #webinars and #registrants.
 function showTab() {
-  const onWebinars = location.hash === '#webinars';
-  $('panelLeads').hidden = onWebinars;
-  $('panelWebinars').hidden = !onWebinars;
-  $('tabLeads').setAttribute('aria-selected', String(!onWebinars));
-  $('tabWebinars').setAttribute('aria-selected', String(onWebinars));
-  if (onWebinars) renderWebinars();
+  const tab = ['#webinars', '#registrants'].includes(location.hash) ? location.hash : '#leads';
+  $('panelLeads').hidden = tab !== '#leads';
+  $('panelWebinars').hidden = tab !== '#webinars';
+  $('panelRegistrants').hidden = tab !== '#registrants';
+  $('tabLeads').setAttribute('aria-selected', String(tab === '#leads'));
+  $('tabWebinars').setAttribute('aria-selected', String(tab === '#webinars'));
+  $('tabRegistrants').setAttribute('aria-selected', String(tab === '#registrants'));
+  if (tab === '#webinars') renderWebinars();
+  if (tab === '#registrants') renderRegistrants();
 }
 window.addEventListener('hashchange', showTab);
 showTab();

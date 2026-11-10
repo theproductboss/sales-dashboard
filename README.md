@@ -244,6 +244,24 @@ attendees in every $25K+ range booking a call**. Click a webinar for:
 WebinarJam's API has no chat or transcript, so those come from WebinarJam's
 own export and the replay, and get summarized into the notes file.
 
+### Registrants by webinar tab
+
+A third tab lists everyone who registered for each webinar, grouped by month,
+then week, then webinar. For each person: the ad that brought them to that
+webinar, revenue level, live attendance and minutes watched, booked and paid,
+and, from Kit (set `KIT_API_KEY`):
+
+- how long they'd been on the list when they registered, and the date they
+  joined (or "New to the list")
+- badges for **Collective, MSM, Sales Accelerator and Academy (PBA)**, from
+  Kit purchase and member tags; hover a badge for the tags behind it. The
+  tag rules live in `src/leads/kit.js` (`PROGRAMS`)
+- how many Collective webinars Kit tagged them as attending before
+- "Not getting emails" when they've unsubscribed or bounced in Kit
+
+Filters show only past customers, one program, returning attendees, people
+new to the list, or bookers, and a search finds a person across webinars.
+
 ### Someone paid or booked with a different email
 
 The tracker matches bookings and payments to leads by email. When the email

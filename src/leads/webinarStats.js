@@ -156,6 +156,16 @@ function buildWebinarStats(registrations, bookings, { slackPosts = {}, notes = {
       bookingMinutes,
       moments: curveMoments(curve),
       ranges: rows,
+      // Everyone who registered for this session, with the ad that brought
+      // them to it (the page joins these to the lead list by email).
+      registrants: people.map((p) => ({
+        email: p.email,
+        registeredAt: p.registeredAt,
+        attendedLive: p.attendedLive,
+        minutesWatched: p.attendedLive ? Math.round(p.watchedLiveSec / 60) : 0,
+        bookedForThis: bookedInWindow(p.email),
+        utm: Object.fromEntries(Object.entries(p.utm || {}).filter(([, v]) => v)),
+      })),
       slack: slackPosts[day] || null,
       notes: notes[day] || null,
     });
