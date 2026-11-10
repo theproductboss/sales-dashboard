@@ -120,6 +120,7 @@
   .reg-webinar[open] { padding-bottom: 10px; }
   .reg-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
   .pill.prog { font-weight: 600; }
+  td.ad-cell { white-space: normal; min-width: 220px; max-width: 320px; }
   .prog-collective { background: var(--accent-soft); color: var(--accent); }
   .prog-msm { background: var(--peach); color: var(--warn); }
   .prog-sa { background: var(--good-soft); color: var(--good); }
@@ -1038,17 +1039,19 @@ function regRowHtml(v, w) {
   const { r, lead } = v;
   const utm = r.utm || {};
   const live = r.attendedLive ? `<span class="pill good">Live</span> <span class="small muted">${r.minutesWatched} min</span>` : w.happened ? '<span class="pill warn">No-show</span>' : '<span class="pill">Not yet</span>';
+  const kitCells = PROGRAM_LIST.length ? `
+    <td>${v.programs.map(programBadge).join(' ') || '<span class="muted small">None</span>'}</td>
+    <td>${v.tenure ? (v.tenure.isNew ? `<span class="pill accent">${esc(v.tenure.text)}</span>` : `${esc(v.tenure.text)}<div class="muted small">since ${esc(fmtDate(v.k.joinedAt))}</div>`) : ''}${v.notEmailable ? ' <span class="pill warn" title="Kit status: ' + esc(v.k.state) + '">Not getting emails</span>' : ''}</td>
+    <td class="num">${v.pastWebinars || ''}</td>` : '';
   return `<tr>
     <td><strong>${esc(lead.name || '—')}</strong><div class="muted small">${esc(r.email)}${lead.phone ? ' · ' + esc(lead.phone) : ''}</div>${otherEmailsHtml(lead)}</td>
-    <td>${esc(fmtDate(r.registeredAt, true))}</td>
-    <td>${utm.source || utm.campaign ? `${esc(utm.source || '—')} / ${esc(utm.campaign || '—')}<div class="muted small">${esc(utm.content || '')}${utm.medium ? ' · ' + esc(utm.medium) : ''}</div>` : '<span class="muted">no UTM</span>'}</td>
-    <td>${esc(lead.revenueLevel || '')}</td>
-    ${PROGRAM_LIST.length ? `<td>${v.tenure ? (v.tenure.isNew ? `<span class="pill accent">${esc(v.tenure.text)}</span>` : `${esc(v.tenure.text)}<div class="muted small">since ${esc(fmtDate(v.k.joinedAt))}</div>`) : ''}${v.notEmailable ? ' <span class="pill warn" title="Kit status: ' + esc(v.k.state) + '">Not getting emails</span>' : ''}</td>
-    <td>${v.programs.map(programBadge).join(' ') || '<span class="muted small">None</span>'}</td>
-    <td class="num">${v.pastWebinars || ''}</td>` : ''}
+    ${kitCells}
     <td>${live}</td>
     <td>${r.bookedForThis ? '<span class="pill good">Booked</span>' : lead.bookedCall ? `<span class="muted small">Booked ${esc(fmtDate(lead.bookedAt))}</span>` : ''}</td>
     <td class="num">${lead.paid ? `<strong>${money(lead.paidAmount)}</strong>` : ''}</td>
+    <td>${esc(lead.revenueLevel || '')}</td>
+    <td class="ad-cell">${utm.source || utm.campaign ? `${esc(utm.source || '—')} / ${esc(utm.campaign || '—')}<div class="muted small">${esc(utm.content || '')}${utm.medium ? ' · ' + esc(utm.medium) : ''}</div>` : '<span class="muted">no UTM</span>'}</td>
+    <td>${esc(fmtDate(r.registeredAt, true))}</td>
   </tr>`;
 }
 
@@ -1085,9 +1088,9 @@ function renderRegistrants() {
   }
   const latest = WEBINARS.find((w) => w.happened) || WEBINARS[0];
   const isOpen = (key, dflt) => (regState.open.has(key) ? true : regState.open.has('!' + key) ? false : dflt);
-  const headCols = `<th>Lead</th><th>Registered</th><th>Ad (source / campaign / content)</th><th>Revenue</th>` +
-    (PROGRAM_LIST.length ? `<th>On the list</th><th>Been in</th><th class="num" title="Collective webinars attended before this one">Past webinars</th>` : '') +
-    `<th>Live?</th><th>Booked</th><th class="num">Paid</th>`;
+  const headCols = `<th>Lead</th>` +
+    (PROGRAM_LIST.length ? `<th>Been in</th><th>On the list</th><th class="num" title="Collective webinars attended before this one">Past webinars</th>` : '') +
+    `<th>Live?</th><th>Booked</th><th class="num">Paid</th><th>Revenue</th><th>Ad (source / campaign / content)</th><th>Registered</th>`;
   let html = '';
   for (const [monthKey, m] of months) {
     let monthBody = '', monthCount = 0;
