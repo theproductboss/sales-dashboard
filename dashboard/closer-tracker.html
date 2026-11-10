@@ -116,7 +116,7 @@ td.dim { color: var(--muted); }
 .wk:first-child { margin-top: 4px; }
 .wk h3 { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; }
 .wk h3 span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 6px; }
-table.grid { min-width: 1080px; }
+table.grid { min-width: 1200px; }
 table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 4px 6px; white-space: normal; line-height: 1.2; vertical-align: bottom; border-bottom: 1px solid var(--line-strong); position: static; background: transparent; }
 table.grid th.c, table.grid td.c { text-align: center; }
 table.grid th.r { text-align: right; }
@@ -139,8 +139,27 @@ table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600
 .col-lead { width: 15%; } .col-date { width: 11%; } .col-chk { width: 56px; } .col-status { width: 11%; } .col-num { width: 9%; } .col-type { width: 10%; }
 .saving { color: var(--muted); }
 #pipeline table th, #pipeline table td { text-align: left; }
-#pipeline td.age { color: var(--muted); font-variant-numeric: tabular-nums; }
-#pipeline td.age.old { color: var(--bad); }
+#pipeline td.age { color: var(--muted); font-variant-numeric: tabular-nums; white-space: normal; min-width: 16ch; }
+#pipeline td.age.old { color: var(--bad); font-weight: 600; }
+#pipeline td.age.due { color: #8a5a00; font-weight: 600; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #pipeline td.age.due { color: var(--warn); } }
+:root[data-theme="dark"] #pipeline td.age.due { color: var(--warn); }
+#pipeline input[type="date"] { color: var(--ink); }
+#pipeline input[type="date"]:placeholder-shown, #pipeline input[type="date"]:invalid { color: var(--muted); }
+.callout { border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: grid; gap: 8px; }
+.callout h3 { color: var(--bad); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+.callout p { font-size: 13px; }
+.callout .who { display: grid; gap: 4px; }
+.callout .who b { font-weight: 600; }
+.callout .names { color: var(--ink-2); }
+.callout.ok { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); background: color-mix(in srgb, var(--good) 7%, var(--panel)); }
+.callout.ok h3 { color: var(--good-text); }
+.pgroup { margin-top: 12px; }
+.pgroup h3 { font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.pgroup h3 .cnt { font-family: var(--font-body); font-weight: 500; color: var(--muted); font-size: 12px; }
+.pgroup h3 i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.pgroup.overdue h3 i { background: var(--bad); } .pgroup.due h3 i { background: var(--warn); } .pgroup.later h3 i { background: var(--muted); }
+.pgroup .hint { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 #pipeline select, #pipeline input { font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; }
 #pipeline select:hover, #pipeline input:hover { border-color: var(--line-strong); }
 #pipeline input.notes { width: 100%; min-width: 24ch; }
@@ -182,7 +201,8 @@ footer.defs b { color: var(--ink); }
 
   <section class="panel" id="pipeline">
     <div class="panel-head"><div><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
-    <div class="tablewrap" id="pipeline-table"></div>
+    <div id="pipeline-callout"></div>
+    <div id="pipeline-table"></div>
   </section>
 
   <section class="charts">
@@ -209,7 +229,7 @@ footer.defs b { color: var(--ink); }
 
   <footer class="defs">
     <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”.</p>
-    <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. A row in the Closer Tracker becomes a call as soon as it has a lead name; leave the date blank and it takes today (or the first day of that week). Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
+    <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. A row in the Closer Tracker becomes a call as soon as it has a lead name; leave the date blank and it takes today (or the first day of that week). A nurturing lead counts as <b>overdue</b> when its follow-up date has passed, or when it has no follow-up date and nothing has been changed on it for more than 7 days. Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
   </footer>
 </div>
 
@@ -369,26 +389,63 @@ function renderKpis(rows, P) {
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
 }
 
-// Pipeline: every lead still marked NURTURING (or rescheduled / open), whatever the period selected
+// Pipeline: every lead still marked NURTURING (or rescheduled / open), whatever the period selected.
+// Each lead is overdue (follow-up date passed, or no follow-up date and more than a week since the call),
+// due this week, or scheduled for later.
+const STALE_DAYS = 7;
+function pipelineState(r, today) {
+  const since = Math.round((parse(today) - parse(r.date)) / 86400000);
+  const touched = (r.updatedAt || "").slice(0, 10);
+  const quiet = touched && touched > r.date ? Math.round((parse(today) - parse(touched)) / 86400000) : since;
+  if (r.followUp) {
+    const late = Math.round((parse(today) - parse(r.followUp)) / 86400000);
+    if (late > 0) return { group: "overdue", why: `Follow-up was ${shortDate(r.followUp)} · ${late} day${late === 1 ? "" : "s"} overdue` };
+    if (late >= -7) return { group: "due", why: late === 0 ? "Follow up today" : `Follow up ${shortDate(r.followUp)} · in ${-late} day${late === -1 ? "" : "s"}` };
+    return { group: "later", why: `Revisit ${shortDate(r.followUp)}` };
+  }
+  if (since < 0) return { group: "later", why: `Call is ${shortDate(r.date)}` };
+  if (quiet > STALE_DAYS) return { group: "overdue", why: `No follow-up date · nothing updated for ${quiet} days` };
+  return { group: "due", why: `Called ${since === 0 ? "today" : since + " day" + (since === 1 ? "" : "s") + " ago"} · set a follow-up date` };
+}
 function renderPipeline(names) {
   const today = todayStr();
   const open = calls.filter(r => names.includes(r.closer) && (r.status === "NURTURING" || r.status === "RESCHEDULED" || (r.status === "OPEN" && !r.noShow && !r.cxl)))
-    .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.lead.localeCompare(b.lead));
-  const nurturing = open.filter(r => r.status === "NURTURING").length;
-  $("#pipeline-sub").textContent = open.length ? `${nurturing} nurturing${open.length - nurturing ? ` · ${open.length - nurturing} rescheduled or not yet called` : ""} · all time, ${state.closer === "all" ? "all closers" : state.closer}. Change a status here when a lead closes or drops.` : "Nobody waiting on a decision right now.";
+    .map(r => ({ r, ...pipelineState(r, today) }));
+  const groups = { overdue: [], due: [], later: [] };
+  for (const o of open) groups[o.group].push(o);
+  groups.overdue.sort((a, b) => a.r.date < b.r.date ? -1 : 1);                       // oldest first: longest-waiting at the top
+  groups.due.sort((a, b) => (a.r.followUp || a.r.date) < (b.r.followUp || b.r.date) ? -1 : 1);
+  groups.later.sort((a, b) => (a.r.followUp || a.r.date) < (b.r.followUp || b.r.date) ? -1 : 1);
+  const who = state.closer === "all" ? "all closers" : state.closer;
+  $("#pipeline-sub").textContent = open.length ? `${open.length} leads waiting on a decision · all time, ${who}. Set a follow-up date on each one; change the status here the moment a lead closes or drops.` : `Nobody waiting on a decision right now (${who}).`;
+  // The sales-manager callout: who owes an update, by closer
+  const byCloser = {};
+  for (const o of groups.overdue) (byCloser[o.r.closer] = byCloser[o.r.closer] || []).push(o.r);
+  const noPlan = groups.overdue.filter(o => !o.r.followUp).length;
+  $("#pipeline-callout").innerHTML = groups.overdue.length
+    ? `<div class="callout"><h3>Status not yet updated · ${groups.overdue.length} lead${groups.overdue.length === 1 ? "" : "s"}</h3>
+       <p>${noPlan ? `${noPlan} ${noPlan === 1 ? "has" : "have"} no follow-up date and nothing logged in over a week` : ""}${noPlan && groups.overdue.length - noPlan ? "; " : ""}${groups.overdue.length - noPlan ? `${groups.overdue.length - noPlan} ${groups.overdue.length - noPlan === 1 ? "is" : "are"} past ${groups.overdue.length - noPlan === 1 ? "its" : "their"} follow-up date` : ""}. For each one: is it lost, is it a 2027 conversation, or is there a next step? Mark it, or set a date.</p>
+       <div class="who">${Object.entries(byCloser).map(([c, rs]) => `<div><span class="closer-dot" style="background:${closerColor(c)}"></span><b>${esc(c)}</b> · ${rs.length}: <span class="names">${rs.map(r => esc(r.lead)).join(", ")}</span></div>`).join("")}</div></div>`
+    : open.length ? `<div class="callout ok"><h3>Everyone in the pipeline has a plan</h3><p>Every open lead has a follow-up date that hasn't passed, or was updated within the last week.</p></div>` : "";
   if (!open.length) { $("#pipeline-table").innerHTML = ""; return; }
   const dis = canWrite === false ? " disabled" : "";
-  const days = d => Math.round((parse(today) - parse(d)) / 86400000);
-  $("#pipeline-table").innerHTML = `<table><thead><tr><th>Lead</th><th>Closer</th><th>Call date</th><th>Days since</th><th>Offer made</th><th>Status</th><th>Next steps</th></tr></thead><tbody>` +
-    open.map(r => { const n = days(r.date); return `<tr data-id="${esc(r.id)}"><td><b>${esc(r.lead)}</b></td><td><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td>${shortDate(r.date)}</td><td class="age${n > 14 ? " old" : ""}">${n < 0 ? "upcoming" : n + "d"}</td><td>${r.offer ? "Yes" : "—"}</td>
+  const table = list => `<div class="tablewrap"><table><thead><tr><th>Lead</th><th>Closer</th><th>Call date</th><th>Where it stands</th><th>Follow-up date</th><th>Offer</th><th>Status</th><th>Next steps</th></tr></thead><tbody>` +
+    list.map(({ r, group, why }) => `<tr data-id="${esc(r.id)}"><td><b>${esc(r.lead)}</b></td><td><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td>${shortDate(r.date)}</td><td class="age ${group === "overdue" ? "old" : group === "due" ? "due" : ""}">${why}</td>
+      <td><input data-pf="followUp" type="date" value="${r.followUp || ""}" aria-label="Follow-up date for ${esc(r.lead)}"${dis}></td><td>${r.offer ? "Yes" : "—"}</td>
       <td><select data-pf="status" class="${esc(r.status)}" aria-label="Status for ${esc(r.lead)}"${dis}>${STATUSES.map(([v, l]) => `<option value="${esc(v)}"${v === r.status ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></td>
-      <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td></tr>`; }).join("") + "</tbody></table>";
+      <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td></tr>`).join("") + "</tbody></table></div>";
+  const section = (key, title, hint) => groups[key].length ? `<div class="pgroup ${key}"><h3><i></i>${title}<span class="cnt">${groups[key].length}</span></h3><p class="hint">${hint}</p>${table(groups[key])}</div>` : "";
+  $("#pipeline-table").innerHTML =
+    section("overdue", "Overdue or no plan", "Longest-waiting first. Decide: reactivate, push to a later date, or mark lost.") +
+    section("due", "Due this week", "Follow-ups coming up in the next 7 days, plus fresh calls that still need a date.") +
+    section("later", "Scheduled for later", "Parked on purpose: end of month, January, end of year. They'll surface in “Due this week” when the date comes.");
 }
 $("#pipeline-table").addEventListener("change", e => {
   const inp = e.target.closest("[data-pf]"); if (!inp || canWrite === false) return;
   const id = inp.closest("tr").dataset.id, i = calls.findIndex(c => c.id === id); if (i < 0) return;
   const rec = { ...calls[i], updatedAt: new Date().toISOString() };
   if (inp.dataset.pf === "status") { rec.status = inp.value; if (rec.status === "NO-SHOW") rec.noShow = true; if (rec.status === "CXL'D") rec.cxl = true; }
+  else if (inp.dataset.pf === "followUp") rec.followUp = inp.value || "";
   else rec.notes = inp.value.trim();
   calls[i] = rec; writeDoc(rec); render();
 });
@@ -501,7 +558,7 @@ function renderTracker(force) {
   $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Type into a row; it saves when you leave the cell. Use ‹ › above to change month."}`;
   const weeks = monthWeeks(ym);
   const rows = calls.filter(r => r.closer === state.tab && r.date.slice(0, 7) === ym);
-  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="x"></th></tr></thead>`;
+  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="x"></th></tr></thead>`;
   trackerHost.innerHTML = weeks.map((w, i) => {
     const wr = rows.filter(r => inRange(r, w)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "").localeCompare(b.createdAt || ""));
     const m = metrics(wr);
@@ -524,13 +581,14 @@ function rowHtml(r, w) {
     <td><input data-f="cash" type="number" class="num" min="0" step="1" inputmode="decimal" value="${r?.cash || ""}" aria-label="Cash collected today"${dis}></td>
     <td><select data-f="callType" aria-label="Call type"${dis}><option value=""${!r?.callType ? " selected" : ""}>—</option><option${r?.callType === "New Consult" ? " selected" : ""}>New Consult</option><option${r?.callType === "Follow-up" ? " selected" : ""}>Follow-up</option></select></td>
     <td><input data-f="notes" type="text" autocomplete="off" value="${esc(r?.notes || "")}" aria-label="Next steps"${dis}></td>
+    <td><input data-f="followUp" type="date" value="${r?.followUp || ""}" aria-label="Follow-up date"${dis}></td>
     <td class="x">${r && canWrite !== false ? `<button type="button" class="x" data-del title="Delete this row" aria-label="Delete row">×</button>` : ""}</td></tr>`;
 }
 function readRow(tr) {
   const g = f => tr.querySelector(`[data-f="${f}"]`);
   const prev = calls.find(c => c.id === tr.dataset.id) || {};
   const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
-    status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(),
+    status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(), followUp: g("followUp").value || "",
     confirmed: prev.confirmed ?? false, source: prev.source || "dashboard", createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (rec.date !== prev.date) rec.dateEstimated = false;
   return rec;
