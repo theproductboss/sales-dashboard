@@ -121,6 +121,25 @@
   .reg-flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
   .pill.prog { font-weight: 600; }
   td.ad-cell { white-space: normal; min-width: 220px; max-width: 320px; }
+  .reg-dash { display: grid; gap: 12px; margin-top: 8px; }
+  .kpis.mini { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .kpis.mini .value { font-size: 30px; }
+  .dash-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .dash-grid > section { min-width: 0; overflow-x: auto; }
+  .dash-grid h3 { margin-top: 4px; }
+  table.breakdown td, table.breakdown th { padding: 6px 8px; }
+  table.breakdown .bar-col { width: 34%; min-width: 120px; }
+  .bar { height: 14px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; min-width: 2px; }
+  .bar-book { height: 100%; background: var(--accent); }
+  .key { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+  .key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+  .key i.k-reg { background: var(--accent-soft); border: 1px solid var(--accent); }
+  .key i.k-book { background: var(--accent); margin-left: 6px; }
+  .lead-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--pill); border-color: transparent; }
+  .chip.on { background: var(--accent); color: var(--on-accent); }
+  .chip.on .muted { color: var(--on-accent); opacity: .8; }
   .prog-collective { background: var(--accent-soft); color: var(--accent); }
   .prog-msm { background: var(--peach); color: var(--warn); }
   .prog-sa { background: var(--good-soft); color: var(--good); }
@@ -318,16 +337,22 @@
             <option value="sa">Been in Sales Accelerator</option>
             <option value="academy">Been in the Academy</option>
             <option value="returning">Attended a webinar before</option>
-            <option value="new">New to the list</option>
+            <option value="new">Just joined the list (under 2 weeks)</option>
+            <option value="live">Attended live</option>
             <option value="booked">Booked a call</option>
+            <option value="paid">Paid</option>
+            <option value="ad">From ads</option>
+            <option value="organic">Organic</option>
+            <option value="noutm">No UTM</option>
           </select>
         </label>
       </div>
     </section>
     <div id="regTree" class="reg-tree"></div>
     <p class="muted small footnote">
-      List history comes from Kit. "On the list" is how long before this registration they joined the list; anyone who joined within a
-      day of registering counts as new. Program badges come from Kit purchase and member tags (webinar, waitlist, abandoned-cart,
+      List history comes from Kit. "On the list" is how long before this registration they joined the list; "just joined" is under two
+      weeks. Paid fills in from #payments whenever a payment comes through after they registered. "From ads" is Meta (or any UTM
+      marked paid); everything else is organic, and registrations with no UTM are counted as Instagram until that link gets a UTM. Program badges come from Kit purchase and member tags (webinar, waitlist, abandoned-cart,
       link-click and opt-out tags don't count); hover a badge to see the tags behind it. "Past webinars" counts Collective webinars
       Kit tagged them as attending before this registration. The ad shown is the one that brought them to this webinar.
     </p>
@@ -1001,6 +1026,34 @@ function tenure(joinedAt, registeredAt) {
   return { isNew: false, text: `${years} yr${years === 1 ? '' : 's'}${rest ? ` ${rest} mo` : ''}` };
 }
 
+// Where a registration came from, from its UTM tags. Registrations with no
+// UTM are counted as Instagram (the team's link-in-bio traffic) but flagged,
+// because that link needs a UTM to be tracked for real.
+function sourceGroup(utm) {
+  const src = String(utm.source || '').toLowerCase(), med = String(utm.medium || '').toLowerCase();
+  if (!src && !utm.campaign) return { key: 'none', label: 'No UTM (assumed Instagram)', ad: false };
+  if (/^(meta|facebook|fb)$/.test(src) || /\b(paid|cpc|ppc)\b/.test(med)) return { key: 'ad', label: 'Paid ads (Meta)', ad: true };
+  if (/email|convertkit|^kit$|newsletter|invite/.test(src) || /email/.test(med)) return { key: 'email', label: 'Email', ad: false };
+  if (/instagram|^ig$|manychat/.test(src) || /manychat/.test(med)) return { key: 'instagram', label: 'Instagram', ad: false };
+  if (/website|site|blog/.test(src)) return { key: 'website', label: 'Website', ad: false };
+  if (/podcast/.test(src)) return { key: 'podcast', label: 'Podcast', ad: false };
+  return { key: 'other', label: `Other (${utm.source})`, ad: false };
+}
+const SOURCE_ORDER = ['ad', 'email', 'instagram', 'none', 'website', 'podcast', 'other'];
+
+// How long they'd been on the list when they registered.
+const TENURE_BUCKETS = [
+  { key: 'new', label: 'Just joined (under 2 weeks)', max: 14 },
+  { key: 'month', label: 'About a month (2 weeks to 3 months)', max: 91 },
+  { key: 'half', label: 'About 6 months (3 to 12 months)', max: 365 },
+  { key: 'year', label: 'A year or more', max: Infinity },
+];
+function tenureBucket(joinedAt, registeredAt) {
+  if (!joinedAt || !registeredAt) return { key: 'none', label: 'Not in Kit' };
+  const days = (new Date(registeredAt) - new Date(joinedAt)) / DAY_MS;
+  return TENURE_BUCKETS.find((b) => days < b.max);
+}
+
 // One registrant's row data, judged as of this registration.
 function regView(r) {
   const lead = leadByEmail.get(r.email) || { email: r.email, name: '', utm: {}, products: [] };
@@ -1012,8 +1065,13 @@ function regView(r) {
   const pastWebinars = k ? k.webinarsAttendedAt.filter((t) => t < new Date(new Date(asOf).getTime() - 3600000).toISOString()).length : 0;
   return {
     r, lead, k,
+    source: sourceGroup(r.utm || {}),
+    bucket: k ? tenureBucket(k.joinedAt, asOf) : null,
     tenure: k ? (k.joinedAt ? tenure(k.joinedAt, asOf) : { isNew: true, text: 'Not in Kit' }) : null,
     programs, pastWebinars,
+    // Paid any time after registering, from #payments (so it fills in
+    // retroactively as payments come through).
+    paid: Boolean(lead.paid && (!asOf || !lead.paidAt || lead.paidAt >= asOf)),
     notEmailable: Boolean(k && k.state && k.state !== 'active'),
   };
 }
@@ -1027,8 +1085,13 @@ function regMatches(v, show, q) {
     case 'customers': return v.programs.length > 0;
     case 'collective': case 'msm': case 'sa': case 'academy': return v.programs.some((p) => p.key === show);
     case 'returning': return v.pastWebinars > 0;
-    case 'new': return Boolean(v.tenure && v.tenure.isNew);
+    case 'new': return Boolean(v.bucket && v.bucket.key === 'new');
+    case 'live': return v.r.attendedLive;
     case 'booked': return v.r.bookedForThis;
+    case 'paid': return v.paid;
+    case 'ad': return v.source.ad;
+    case 'organic': return !v.source.ad;
+    case 'noutm': return v.source.key === 'none';
     default: return true;
   }
 }
@@ -1041,16 +1104,19 @@ function regRowHtml(v, w) {
   const live = r.attendedLive ? `<span class="pill good">Live</span> <span class="small muted">${r.minutesWatched} min</span>` : w.happened ? '<span class="pill warn">No-show</span>' : '<span class="pill">Not yet</span>';
   const kitCells = PROGRAM_LIST.length ? `
     <td>${v.programs.map(programBadge).join(' ') || '<span class="muted small">None</span>'}</td>
-    <td>${v.tenure ? (v.tenure.isNew ? `<span class="pill accent">${esc(v.tenure.text)}</span>` : `${esc(v.tenure.text)}<div class="muted small">since ${esc(fmtDate(v.k.joinedAt))}</div>`) : ''}${v.notEmailable ? ' <span class="pill warn" title="Kit status: ' + esc(v.k.state) + '">Not getting emails</span>' : ''}</td>
+    <td>${v.tenure ? (v.bucket && v.bucket.key === 'new' ? `<span class="pill accent">${esc(v.tenure.isNew ? 'Just joined' : 'Joined ' + v.tenure.text + ' before')}</span>` : esc(v.tenure.text)) : ''}${v.k && v.k.joinedAt ? `<div class="muted small">since ${esc(fmtDate(v.k.joinedAt))}</div>` : ''}${v.notEmailable ? ' <span class="pill warn" title="Kit status: ' + esc(v.k.state) + '">Not getting emails</span>' : ''}</td>
     <td class="num">${v.pastWebinars || ''}</td>` : '';
+  const source = v.source.key === 'none'
+    ? '<span class="pill warn" title="No UTM on this registration. Counted as Instagram.">No UTM · assumed Instagram</span>'
+    : `${esc(utm.source || '—')} / ${esc(utm.campaign || '—')}<div class="muted small">${esc(utm.content || '')}${utm.medium ? ' · ' + esc(utm.medium) : ''}</div>`;
   return `<tr>
     <td><strong>${esc(lead.name || '—')}</strong><div class="muted small">${esc(r.email)}${lead.phone ? ' · ' + esc(lead.phone) : ''}</div>${otherEmailsHtml(lead)}</td>
     ${kitCells}
     <td>${live}</td>
     <td>${r.bookedForThis ? '<span class="pill good">Booked</span>' : lead.bookedCall ? `<span class="muted small">Booked ${esc(fmtDate(lead.bookedAt))}</span>` : ''}</td>
-    <td class="num">${lead.paid ? `<strong>${money(lead.paidAmount)}</strong>` : ''}</td>
+    <td class="num">${v.paid ? `<strong>${money(lead.paidAmount)}</strong><div class="muted small">${esc(fmtDate(lead.paidAt))}</div>` : ''}</td>
     <td>${esc(lead.revenueLevel || '')}</td>
-    <td class="ad-cell">${utm.source || utm.campaign ? `${esc(utm.source || '—')} / ${esc(utm.campaign || '—')}<div class="muted small">${esc(utm.content || '')}${utm.medium ? ' · ' + esc(utm.medium) : ''}</div>` : '<span class="muted">no UTM</span>'}</td>
+    <td class="ad-cell">${source}</td>
     <td>${esc(fmtDate(r.registeredAt, true))}</td>
   </tr>`;
 }
@@ -1060,14 +1126,91 @@ function webinarSummary(views, w) {
   const parts = [`${views.length} registered`];
   if (w.happened) parts.push(`${n((v) => v.r.attendedLive)} live`);
   parts.push(`${n((v) => v.r.bookedForThis)} booked`);
-  if (PROGRAM_LIST.length) {
-    parts.push(`${n((v) => v.tenure && v.tenure.isNew)} new to the list`);
-    parts.push(`${n((v) => v.programs.length)} past customers`);
-  }
+  const paid = n((v) => v.paid);
+  if (paid) parts.push(`${paid} paid`);
+  parts.push(`${n((v) => v.source.ad)} from ads`);
+  if (PROGRAM_LIST.length) parts.push(`${n((v) => v.bucket && v.bucket.key === 'new')} just joined the list`);
   return parts.join(' · ');
 }
 
-const regState = { open: new Set() };
+// A breakdown table with a bar per row: the whole bar is registrations and
+// the dark part is how many of them booked.
+function breakdownHtml(groups, w) {
+  const max = Math.max(1, ...groups.map((g) => g.views.length));
+  return `<table class="breakdown"><thead><tr><th></th><th class="bar-col"><span class="key"><i class="k-reg"></i>Registered <i class="k-book"></i>Booked</span></th><th class="num">Registered</th>${w.happened ? '<th class="num">Live</th>' : ''}<th class="num">Booked</th>${w.happened ? '<th class="num" title="Booked ÷ live">Book %</th>' : ''}<th class="num">Paid</th></tr></thead><tbody>` +
+    groups.map((g) => {
+      const reg = g.views.length, live = g.views.filter((v) => v.r.attendedLive).length;
+      const booked = g.views.filter((v) => v.r.bookedForThis).length, paid = g.views.filter((v) => v.paid);
+      const cash = paid.reduce((sum, v) => sum + (v.lead.paidAmount || 0), 0);
+      return `<tr><td>${g.label}</td>
+        <td class="bar-col"><div class="bar" style="width:${(reg / max) * 100}%" title="${reg} registered, ${booked} booked"><div class="bar-book" style="width:${reg ? (booked / reg) * 100 : 0}%"></div></div></td>
+        <td class="num">${reg} <span class="muted small">${pct(reg, g.total)}</span></td>
+        ${w.happened ? `<td class="num">${live}</td>` : ''}
+        <td class="num">${booked}</td>
+        ${w.happened ? `<td class="num">${live ? pct(booked, live) : '—'}</td>` : ''}
+        <td class="num">${paid.length ? `${paid.length} <span class="muted small">${money(cash)}</span>` : ''}</td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+function dashHtml(w, views, key) {
+  const n = (f) => views.filter(f).length;
+  const total = views.length;
+  const live = n((v) => v.r.attendedLive), booked = n((v) => v.r.bookedForThis);
+  const paidViews = views.filter((v) => v.paid);
+  const cash = paidViews.reduce((sum, v) => sum + (v.lead.paidAmount || 0), 0);
+  const ads = n((v) => v.source.ad), noUtm = n((v) => v.source.key === 'none');
+  const tile = (label, value, sub) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  const tiles = [
+    tile('Registered', total, `${ads} from ads · ${total - ads} organic`),
+    w.happened ? tile('Live', live, `${pct(live, total)} show rate`) : tile('Live', '—', 'Not happened yet'),
+    tile('Booked a call', booked, w.happened ? `${pct(booked, live)} of live attendees` : 'so far'),
+    tile('Paid', paidViews.length, paidViews.length ? `${money(cash)} from #payments` : 'none yet'),
+  ];
+  if (PROGRAM_LIST.length) {
+    tiles.push(tile('Just joined the list', n((v) => v.bucket && v.bucket.key === 'new'), 'under 2 weeks on the list'));
+    tiles.push(tile('Past customers', n((v) => v.programs.length), `${n((v) => v.pastWebinars > 0)} attended a webinar before`));
+  }
+
+  const bySource = SOURCE_ORDER.map((k) => ({ k, views: views.filter((v) => v.source.key === k) })).filter((g) => g.views.length)
+    .map((g) => ({ label: esc(g.views[0].source.label) + (g.k === 'none' ? ' <span class="pill warn">fix</span>' : ''), views: g.views, total }));
+  const byTenure = PROGRAM_LIST.length ? [...TENURE_BUCKETS, { key: 'none', label: 'Not in Kit' }]
+    .map((b) => ({ label: esc(b.label), views: views.filter((v) => v.bucket && v.bucket.key === b.key), total }))
+    .filter((g) => g.views.length || g.label !== 'Not in Kit') : [];
+
+  const counts = {};
+  for (const p of PROGRAM_LIST) counts[p.key] = n((v) => v.programs.some((x) => x.key === p.key));
+  const progLine = PROGRAM_LIST.length ? `<div class="reg-flags"><span class="muted small">Been in:</span> ${PROGRAM_LIST.map((p) => `<span class="pill prog prog-${p.key}">${esc(p.label)} ${counts[p.key]}</span>`).join(' ')} <span class="pill">Attended a webinar before ${n((v) => v.pastWebinars > 0)}</span> <span class="pill warn">Not getting emails ${n((v) => v.notEmailable)}</span></div>` : '';
+
+  const warn = noUtm ? `<div class="banner small"><strong>${noUtm} registration${noUtm === 1 ? '' : 's'} had no UTM.</strong> They're counted as Instagram here, but that's a guess. Add a UTM to the Instagram link (for example <code>?utm_source=instagram&amp;utm_medium=bio</code>) so these are tracked for real.</div>` : '';
+
+  const leadsOpen = regState.leadsOpen.has(key);
+  const chip = regState.chip.get(key) || 'all';
+  const chips = [['all', 'Everyone'], ['live', 'Live'], ['booked', 'Booked'], ['paid', 'Paid'], ['ad', 'From ads'], ['organic', 'Organic'], ['noutm', 'No UTM']]
+    .concat(PROGRAM_LIST.length ? [['customers', 'Past customers'], ['new', 'Just joined'], ['returning', 'Attended before']] : []);
+  const q = $('regQ').value.trim().toLowerCase(), show = $('regShow').value;
+  const shown = views.filter((v) => regMatches(v, show, q) && regMatches(v, chip, ''));
+  const headCols = `<th>Lead</th>` +
+    (PROGRAM_LIST.length ? `<th>Been in</th><th>On the list</th><th class="num" title="Collective webinars attended before this one">Past webinars</th>` : '') +
+    `<th>Live?</th><th>Booked</th><th class="num">Paid</th><th>Revenue</th><th>Where they came from</th><th>Registered</th>`;
+  const rows = leadsOpen ? shown.slice().sort((a, b) => (Number(b.paid) - Number(a.paid)) || (Number(b.r.bookedForThis) - Number(a.r.bookedForThis)) || (b.programs.length - a.programs.length) || String(b.r.registeredAt).localeCompare(String(a.r.registeredAt))).map((v) => regRowHtml(v, w)).join('') : '';
+
+  return `<div class="reg-dash">
+    <div class="kpis mini">${tiles.join('')}</div>
+    ${warn}
+    <div class="dash-grid">
+      <section><h3>Where they came from · ${ads} ads (${pct(ads, total)}) · ${total - ads} organic (${pct(total - ads, total)})</h3>${breakdownHtml(bySource, w)}</section>
+      ${byTenure.length ? `<section><h3>How long they'd been on the list</h3>${breakdownHtml(byTenure, w)}</section>` : ''}
+    </div>
+    ${progLine}
+    <div class="lead-bar">
+      <button type="button" class="primary" data-act="leads" data-key="${key}">${leadsOpen ? 'Hide leads' : `Show leads (${total})`}</button>
+      ${leadsOpen ? `<div class="chips">${chips.map(([c, label]) => `<button type="button" class="chip${chip === c ? ' on' : ''}" data-act="chip" data-key="${key}" data-chip="${c}">${label} <span class="muted">${views.filter((v) => regMatches(v, c, '')).length}</span></button>`).join('')}</div>` : ''}
+    </div>
+    ${leadsOpen ? `<div class="table-wrap"><table class="reg-table"><thead><tr>${headCols}</tr></thead><tbody>${rows || '<tr><td colspan="10" class="muted">No one matches.</td></tr>'}</tbody></table></div>` : ''}
+  </div>`;
+}
+
+const regState = { open: new Set(), leadsOpen: new Set(), chip: new Map() };
 
 function renderRegistrants() {
   $('regKitNote').textContent = PROGRAM_LIST.length ? '' : 'Kit isn\'t connected yet, so list history and program badges are missing.';
@@ -1088,35 +1231,26 @@ function renderRegistrants() {
   }
   const latest = WEBINARS.find((w) => w.happened) || WEBINARS[0];
   const isOpen = (key, dflt) => (regState.open.has(key) ? true : regState.open.has('!' + key) ? false : dflt);
-  const headCols = `<th>Lead</th>` +
-    (PROGRAM_LIST.length ? `<th>Been in</th><th>On the list</th><th class="num" title="Collective webinars attended before this one">Past webinars</th>` : '') +
-    `<th>Live?</th><th>Booked</th><th class="num">Paid</th><th>Revenue</th><th>Ad (source / campaign / content)</th><th>Registered</th>`;
   let html = '';
   for (const [monthKey, m] of months) {
-    let monthBody = '', monthCount = 0;
+    let monthBody = '';
     for (const [weekKey, wk] of m.weeks) {
-      let weekBody = '', weekCount = 0;
+      let weekBody = '';
       for (const w of wk.webinars) {
         const views = (w.registrants || []).map(regView);
-        const shown = views.filter((v) => regMatches(v, show, q));
-        if (filtering && !shown.length) continue;
-        weekCount += shown.length;
+        const matches = views.filter((v) => regMatches(v, show, q)).length;
+        if (filtering && !matches) continue;
         const key = 'w:' + w.date;
-        const open = isOpen(key, filtering || w === latest);
-        const counts = {};
-        for (const p of PROGRAM_LIST) counts[p.key] = views.filter((v) => v.programs.some((x) => x.key === p.key)).length;
-        const progLine = PROGRAM_LIST.length ? `<div class="reg-flags">${PROGRAM_LIST.map((p) => `<span class="pill prog prog-${p.key}">${esc(p.label)}: ${counts[p.key]}</span>`).join(' ')} <span class="pill">Attended a webinar before: ${views.filter((v) => v.pastWebinars > 0).length}</span></div>` : '';
-        const rows = open ? shown.slice().sort((a, b) => (b.programs.length - a.programs.length) || String(b.r.registeredAt).localeCompare(String(a.r.registeredAt))).map((v) => regRowHtml(v, w)).join('') : '';
-        weekBody += `<details class="reg-webinar" data-key="${key}"${open ? ' open' : ''}>
-          <summary><strong>${esc(wDay(w))}</strong>${w.happened ? '' : ' <span class="pill accent">upcoming</span>'} <span class="muted small">${esc(webinarSummary(views, w))}${filtering ? ` · ${shown.length} match` : ''}</span></summary>
-          ${open ? `${progLine}<div class="table-wrap"><table class="reg-table"><thead><tr>${headCols}</tr></thead><tbody>${rows || `<tr><td colspan="10" class="muted">No one matches.</td></tr>`}</tbody></table></div>` : ''}
+        const open = isOpen(key, w === latest);
+        if (filtering && !regState.leadsOpen.has(key) && !regState.open.has('!' + key)) regState.leadsOpen.add(key);
+        weekBody += `<details class="reg-webinar" data-key="${key}"${open || filtering ? ' open' : ''}>
+          <summary><strong>${esc(wDay(w))}</strong>${w.happened ? '' : ' <span class="pill accent">upcoming</span>'} <span class="muted small">${esc(webinarSummary(views, w))}${filtering ? ` · ${matches} match` : ''}</span></summary>
+          ${open || filtering ? dashHtml(w, views, key) : ''}
         </details>`;
       }
       if (!weekBody) continue;
-      monthCount += weekCount;
       const wkKey = 'k:' + weekKey;
-      weekBody = `<details class="reg-week" data-key="${wkKey}"${isOpen(wkKey, filtering || wk.webinars.includes(latest)) ? ' open' : ''}><summary>${esc(wk.label)} <span class="muted small">${wk.webinars.length} webinar${wk.webinars.length === 1 ? '' : 's'}</span></summary>${weekBody}</details>`;
-      monthBody += weekBody;
+      monthBody += `<details class="reg-week" data-key="${wkKey}"${isOpen(wkKey, filtering || wk.webinars.includes(latest)) ? ' open' : ''}><summary>${esc(wk.label)} <span class="muted small">${wk.webinars.length} webinar${wk.webinars.length === 1 ? '' : 's'}</span></summary>${weekBody}</details>`;
     }
     if (!monthBody) continue;
     const mKey = 'm:' + monthKey;
@@ -1125,16 +1259,29 @@ function renderRegistrants() {
   $('regTree').innerHTML = html || '<p class="muted">No one matches.</p>';
 }
 
-// Remember what's opened or closed, and build a webinar's table when it opens.
+// Remember what's opened or closed, and build a webinar's dashboard when it opens.
 $('regTree').addEventListener('toggle', (e) => {
   const d = e.target;
   if (!d.dataset || !d.dataset.key) return;
   const key = d.dataset.key;
+  const was = regState.open.has(key) ? true : regState.open.has('!' + key) ? false : null;
   regState.open.delete(key); regState.open.delete('!' + key);
   regState.open.add(d.open ? key : '!' + key);
-  if (d.classList.contains('reg-webinar') && d.open && !d.querySelector('table')) renderRegistrants();
+  if (d.classList.contains('reg-webinar') && d.open && !d.querySelector('.reg-dash') && was !== true) renderRegistrants();
 }, true);
-['regQ', 'regShow'].forEach((id) => $(id).addEventListener('input', () => { regState.open.clear(); renderRegistrants(); }));
+$('regTree').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const key = b.dataset.key;
+  if (b.dataset.act === 'leads') {
+    if (regState.leadsOpen.has(key)) regState.leadsOpen.delete(key); else regState.leadsOpen.add(key);
+  } else if (b.dataset.act === 'chip') {
+    regState.chip.set(key, b.dataset.chip);
+  }
+  regState.open.add(key); regState.open.delete('!' + key);
+  renderRegistrants();
+});
+['regQ', 'regShow'].forEach((id) => $(id).addEventListener('input', () => { regState.open.clear(); regState.leadsOpen.clear(); renderRegistrants(); }));
 
 // Tabs: #leads (default), #webinars and #registrants.
 function showTab() {
