@@ -124,7 +124,16 @@
   .reg-dash { display: grid; gap: 12px; margin-top: 8px; }
   .kpis.mini { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .kpis.mini .value { font-size: 30px; }
-  .dash-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .who-booked { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+  .reg-dash > * { min-width: 0; }
+  .reg-webinar > summary { overflow-wrap: anywhere; }
+  .who-booked h3 { margin-top: 0; }
+  .who-headline { font-size: 15px; margin: 0 0 10px; max-width: 80ch; }
+  .who-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 10px; }
+  .who-box { background: var(--bg); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .who-box h4 { margin: 0 0 4px; font-size: 14px; }
+  .who-box p { margin: 6px 0 2px; }
+  .who-box ul { margin: 0; padding-left: 18px; }
   .dash-grid > section { min-width: 0; overflow-x: auto; }
   .dash-grid h3 { margin-top: 4px; }
   table.breakdown td, table.breakdown th { padding: 6px 8px; }
@@ -1133,23 +1142,42 @@ function webinarSummary(views, w) {
   return parts.join(' · ');
 }
 
-// A breakdown table with a bar per row: the whole bar is registrations and
-// the dark part is how many of them booked.
-function breakdownHtml(groups, w) {
-  const max = Math.max(1, ...groups.map((g) => g.views.length));
-  return `<table class="breakdown"><thead><tr><th></th><th class="bar-col"><span class="key"><i class="k-reg"></i>Registered <i class="k-book"></i>Booked</span></th><th class="num">Registered</th>${w.happened ? '<th class="num">Live</th>' : ''}<th class="num">Booked</th>${w.happened ? '<th class="num" title="Booked ÷ live">Book %</th>' : ''}<th class="num">Paid</th></tr></thead><tbody>` +
-    groups.map((g) => {
-      const reg = g.views.length, live = g.views.filter((v) => v.r.attendedLive).length;
-      const booked = g.views.filter((v) => v.r.bookedForThis).length, paid = g.views.filter((v) => v.paid);
-      const cash = paid.reduce((sum, v) => sum + (v.lead.paidAmount || 0), 0);
-      return `<tr><td>${g.label}</td>
-        <td class="bar-col"><div class="bar" style="width:${(reg / max) * 100}%" title="${reg} registered, ${booked} booked"><div class="bar-book" style="width:${reg ? (booked / reg) * 100 : 0}%"></div></div></td>
-        <td class="num">${reg} <span class="muted small">${pct(reg, g.total)}</span></td>
-        ${w.happened ? `<td class="num">${live}</td>` : ''}
-        <td class="num">${booked}</td>
-        ${w.happened ? `<td class="num">${live ? pct(booked, live) : '—'}</td>` : ''}
-        <td class="num">${paid.length ? `${paid.length} <span class="muted small">${money(cash)}</span>` : ''}</td></tr>`;
-    }).join('') + '</tbody></table>';
+// Who booked a call from this webinar: how many were brand new to the list
+// (and whether an ad or something organic brought them), and how many had
+// been on the list before (how long, and where they came from this time).
+function whoBookedHtml(w, views) {
+  const bookers = views.filter((v) => v.r.bookedForThis);
+  if (!bookers.length) return `<section class="who-booked"><h3>Who booked</h3><p class="muted">${w.happened ? 'No one has booked a call from this webinar yet.' : 'Bookings show here once the webinar happens.'}</p></section>`;
+  const isNew = (v) => !v.bucket || v.bucket.key === 'new' || v.bucket.key === 'none';
+  const fresh = bookers.filter(isNew), known = bookers.filter((v) => !isNew(v));
+  const freshAds = fresh.filter((v) => v.source.ad).length;
+  const sourceCounts = (list) => {
+    const c = new Map();
+    for (const v of list) c.set(v.source.label, (c.get(v.source.label) || 0) + 1);
+    return [...c.entries()].sort((a, b) => b[1] - a[1]).map(([label, n]) => `<li><strong>${n}</strong> ${esc(label)}</li>`).join('');
+  };
+  const tenureCounts = (list) => TENURE_BUCKETS.filter((b) => b.key !== 'new')
+    .map((b) => [b, list.filter((v) => v.bucket && v.bucket.key === b.key).length]).filter(([, n]) => n)
+    .map(([b, n]) => `<li><strong>${n}</strong> ${esc(b.label.replace(/ \(.*\)/, ''))}</li>`).join('');
+  const line = (v) => `<tr>
+      <td><strong>${esc(v.lead.name || '—')}</strong><div class="muted small">${esc(v.r.email)}</div></td>
+      <td>${isNew(v) ? '<span class="pill accent">New to the list</span>' : `On the list ${esc(v.tenure ? v.tenure.text : '')}`}</td>
+      <td>${v.source.key === 'none' ? '<span class="pill warn">No UTM · assumed Instagram</span>' : esc(v.source.label)}</td>
+      <td>${v.programs.map(programBadge).join(' ')}</td>
+      <td>${esc(v.lead.revenueLevel || '')}</td>
+      <td class="num">${v.paid ? `<strong>${money(v.lead.paidAmount)}</strong>` : ''}</td>
+    </tr>`;
+  return `<section class="who-booked">
+    <h3>Who booked</h3>
+    <p class="who-headline"><strong>${bookers.length}</strong> booked a call. <strong>${fresh.length}</strong> ${fresh.length === 1 ? 'was' : 'were'} brand new to the list
+      (${freshAds} from ads, ${fresh.length - freshAds} organic) and <strong>${known.length}</strong> had been on the list before.</p>
+    <div class="who-grid">
+      <div class="who-box"><h4>New to the list · ${fresh.length}</h4><p class="muted small">Joined the list within 2 weeks of registering.</p><ul>${sourceCounts(fresh) || '<li class="muted">None</li>'}</ul></div>
+      <div class="who-box"><h4>Already on the list · ${known.length}</h4>${known.length ? `<p class="muted small">How long they'd been on it:</p><ul>${tenureCounts(known)}</ul><p class="muted small">Where they came from this time:</p><ul>${sourceCounts(known)}</ul>` : '<p class="muted small">None</p>'}</div>
+    </div>
+    <div class="table-wrap"><table class="who-table"><thead><tr><th>Who booked</th><th>New or on the list</th><th>Came from</th><th>Been in</th><th>Revenue</th><th class="num">Paid</th></tr></thead>
+      <tbody>${bookers.slice().sort((a, b) => Number(isNew(a)) - Number(isNew(b))).map(line).join('')}</tbody></table></div>
+  </section>`;
 }
 
 function dashHtml(w, views, key) {
@@ -1171,17 +1199,8 @@ function dashHtml(w, views, key) {
     tiles.push(tile('Past customers', n((v) => v.programs.length), `${n((v) => v.pastWebinars > 0)} attended a webinar before`));
   }
 
-  const bySource = SOURCE_ORDER.map((k) => ({ k, views: views.filter((v) => v.source.key === k) })).filter((g) => g.views.length)
-    .map((g) => ({ label: esc(g.views[0].source.label) + (g.k === 'none' ? ' <span class="pill warn">fix</span>' : ''), views: g.views, total }));
-  const byTenure = PROGRAM_LIST.length ? [...TENURE_BUCKETS, { key: 'none', label: 'Not in Kit' }]
-    .map((b) => ({ label: esc(b.label), views: views.filter((v) => v.bucket && v.bucket.key === b.key), total }))
-    .filter((g) => g.views.length || g.label !== 'Not in Kit') : [];
-
-  const counts = {};
-  for (const p of PROGRAM_LIST) counts[p.key] = n((v) => v.programs.some((x) => x.key === p.key));
-  const progLine = PROGRAM_LIST.length ? `<div class="reg-flags"><span class="muted small">Been in:</span> ${PROGRAM_LIST.map((p) => `<span class="pill prog prog-${p.key}">${esc(p.label)} ${counts[p.key]}</span>`).join(' ')} <span class="pill">Attended a webinar before ${n((v) => v.pastWebinars > 0)}</span> <span class="pill warn">Not getting emails ${n((v) => v.notEmailable)}</span></div>` : '';
-
-  const warn = noUtm ? `<div class="banner small"><strong>${noUtm} registration${noUtm === 1 ? '' : 's'} had no UTM.</strong> They're counted as Instagram here, but that's a guess. Add a UTM to the Instagram link (for example <code>?utm_source=instagram&amp;utm_medium=bio</code>) so these are tracked for real.</div>` : '';
+  const warn = noUtm ? `<div class="banner small"><strong>${noUtm} registration${noUtm === 1 ? '' : 's'} had no UTM</strong> and ${noUtm === 1 ? 'is' : 'are'} counted as Instagram. Add a UTM to the Instagram link (for example <code>?utm_source=instagram&amp;utm_medium=bio</code>) so these are tracked for real.</div>` : '';
+  const bookedHtml = whoBookedHtml(w, views);
 
   const leadsOpen = regState.leadsOpen.has(key);
   const chip = regState.chip.get(key) || 'all';
@@ -1196,12 +1215,8 @@ function dashHtml(w, views, key) {
 
   return `<div class="reg-dash">
     <div class="kpis mini">${tiles.join('')}</div>
+    ${bookedHtml}
     ${warn}
-    <div class="dash-grid">
-      <section><h3>Where they came from · ${ads} ads (${pct(ads, total)}) · ${total - ads} organic (${pct(total - ads, total)})</h3>${breakdownHtml(bySource, w)}</section>
-      ${byTenure.length ? `<section><h3>How long they'd been on the list</h3>${breakdownHtml(byTenure, w)}</section>` : ''}
-    </div>
-    ${progLine}
     <div class="lead-bar">
       <button type="button" class="primary" data-act="leads" data-key="${key}">${leadsOpen ? 'Hide leads' : `Show leads (${total})`}</button>
       ${leadsOpen ? `<div class="chips">${chips.map(([c, label]) => `<button type="button" class="chip${chip === c ? ' on' : ''}" data-act="chip" data-key="${key}" data-chip="${c}">${label} <span class="muted">${views.filter((v) => regMatches(v, c, '')).length}</span></button>`).join('')}</div>` : ''}
