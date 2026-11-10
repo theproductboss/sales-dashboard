@@ -146,7 +146,7 @@ table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600
 :root[data-theme="dark"] #pipeline td.age.due { color: var(--warn); }
 #pipeline input[type="date"] { color: var(--ink); }
 #pipeline input[type="date"]:placeholder-shown, #pipeline input[type="date"]:invalid { color: var(--muted); }
-.callout { border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: grid; gap: 8px; }
+.callout { border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); border-radius: 10px; padding: 12px 14px; margin-top: 14px; display: grid; gap: 8px; }
 .callout h3 { color: var(--bad); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
 .callout p { font-size: 13px; }
 .callout .who { display: grid; gap: 4px; }
@@ -199,12 +199,6 @@ footer.defs b { color: var(--ink); }
 
   <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
-  <section class="panel" id="pipeline">
-    <div class="panel-head"><div><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
-    <div id="pipeline-callout"></div>
-    <div id="pipeline-table"></div>
-  </section>
-
   <section class="charts">
     <div class="panel chart" id="chart-booked">
       <div class="panel-head"><h2>Calls booked per week</h2><span class="status-line" id="chart-booked-sub"></span></div>
@@ -225,6 +219,12 @@ footer.defs b { color: var(--ink); }
       <div class="tabs" id="tabs" role="tablist" aria-label="Closer tab"></div>
     </div>
     <div id="tracker-body"></div>
+  </section>
+
+  <section class="panel" id="pipeline">
+    <div class="panel-head"><div><p class="eyebrow">Follow-ups</p><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
+    <div id="pipeline-table"></div>
+    <div id="pipeline-callout"></div>
   </section>
 
   <footer class="defs">
@@ -436,9 +436,9 @@ function renderPipeline(names) {
       <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td></tr>`).join("") + "</tbody></table></div>";
   const section = (key, title, hint) => groups[key].length ? `<div class="pgroup ${key}"><h3><i></i>${title}<span class="cnt">${groups[key].length}</span></h3><p class="hint">${hint}</p>${table(groups[key])}</div>` : "";
   $("#pipeline-table").innerHTML =
-    section("overdue", "Overdue or no plan", "Longest-waiting first. Decide: reactivate, push to a later date, or mark lost.") +
     section("due", "Due this week", "Follow-ups coming up in the next 7 days, plus fresh calls that still need a date.") +
-    section("later", "Scheduled for later", "Parked on purpose: end of month, January, end of year. They'll surface in “Due this week” when the date comes.");
+    section("later", "Scheduled for later", "Parked on purpose: end of month, January, end of year. They'll surface in “Due this week” when the date comes.") +
+    section("overdue", "Overdue or no plan", "Longest-waiting first. Set a follow-up date or change the status and the lead leaves this list.");
 }
 $("#pipeline-table").addEventListener("change", e => {
   const inp = e.target.closest("[data-pf]"); if (!inp || canWrite === false) return;
