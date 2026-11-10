@@ -1,0 +1,547 @@
+<title>Closer Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one column of stacked panels — controls, KPI row, charts, per-closer scorecards (the spreadsheet), call log. */
+:root {
+  --bg: #f6f5f1; --panel: #fdfdfb; --ink: #15170f; --ink-2: #555a4b; --muted: #8b8f80;
+  --line: #e2e1d9; --line-strong: #c6c7bb; --accent: #1f3b2d; --accent-ink: #ffffff;
+  --jill: #2a78d6; --jacqueline: #eb6834; --jessica: #1baf7a;
+  --good: #0ca30c; --good-text: #006300; --warn: #fab219; --bad: #d03b3b;
+  --grid: #e1e0d9; --axis: #c3c2b7;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141511; --panel: #1d1e19; --ink: #f0efe9; --ink-2: #c3c2b7; --muted: #8e9184;
+  --line: #2c2d27; --line-strong: #42443b; --accent: #9fd3b8; --accent-ink: #10201a;
+  --jill: #3987e5; --jacqueline: #d95926; --jessica: #199e70;
+  --good: #0ca30c; --good-text: #3fcf3f; --warn: #fab219; --bad: #e66767;
+  --grid: #2c2c2a; --axis: #383835; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #141511; --panel: #1d1e19; --ink: #f0efe9; --ink-2: #c3c2b7; --muted: #8e9184;
+  --line: #2c2d27; --line-strong: #42443b; --accent: #9fd3b8; --accent-ink: #10201a;
+  --jill: #3987e5; --jacqueline: #d95926; --jessica: #199e70;
+  --good: #0ca30c; --good-text: #3fcf3f; --warn: #fab219; --bad: #e66767;
+  --grid: #2c2c2a; --axis: #383835; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-head); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 26px; font-weight: 700; }
+h2 { font-size: 16px; font-weight: 600; }
+h3 { font-size: 14px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+header.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+header.top .sub { color: var(--ink-2); max-width: 60ch; }
+.status-line { font-size: 12px; color: var(--muted); }
+.status-line.warn { color: var(--bad); }
+
+/* Controls */
+.controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; border: 0; color: var(--ink-2); padding: 7px 12px; font: inherit; font-weight: 500; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.nav { display: inline-flex; align-items: center; gap: 6px; }
+.nav button { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.nav .label { font-family: var(--font-head); font-weight: 600; font-size: 15px; min-width: 12ch; text-align: center; }
+.chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); border-radius: 999px; padding: 5px 12px 5px 9px; font: inherit; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--muted)); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--jill); outline-offset: 2px; }
+.btn { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--bad); border-color: var(--bad); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.kpi .v { font-family: var(--font-head); font-size: 28px; font-weight: 700; line-height: 1.1; margin-top: 4px; }
+.kpi .d { font-size: 12px; color: var(--ink-2); margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.good { color: var(--good-text); } .pill.warn { color: #8a5a00; } .pill.bad { color: var(--bad); }
+:root[data-theme="dark"] .pill.warn { color: var(--warn); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.warn { color: var(--warn); } }
+
+/* Charts */
+.charts { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 900px) { .charts { grid-template-columns: 3fr 2fr; } }
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; font-family: var(--font-body); }
+.chart .grid line { stroke: var(--grid); stroke-width: 1; }
+.chart .axis line { stroke: var(--axis); stroke-width: 1; }
+.chart text { fill: var(--ink-2); font-size: 11px; }
+.chart text.tick { fill: var(--muted); }
+.chart .hit { fill: transparent; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 6px; font-size: 12px; white-space: nowrap; transform: translate(-50%, calc(-100% - 8px)); z-index: 5; }
+.rates { display: grid; gap: 12px; }
+
+/* Scorecards (the spreadsheet) */
+.cards { display: grid; gap: 16px; }
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.card-head .dot { width: 12px; height: 12px; border-radius: 50%; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font-weight: 600; color: var(--ink-2); font-size: 12px; }
+th .sub { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--panel); }
+td.total, th.total { font-weight: 600; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+tr.section td { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 10px; border-bottom: 0; }
+tr.kpi-row td:first-child { font-weight: 500; }
+td.under { color: var(--bad); } td.over { color: var(--good-text); }
+td.dim { color: var(--muted); }
+
+/* Call log */
+.log th, .log td { white-space: nowrap; }
+.log td.notes { white-space: normal; text-align: left; min-width: 22ch; max-width: 40ch; color: var(--ink-2); }
+.log tr.row { cursor: pointer; }
+.log tr.row:hover td { background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+.tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-strong); color: var(--ink-2); }
+.tag.WIN { color: var(--good-text); border-color: var(--good-text); }
+.tag.LOST { color: var(--bad); border-color: var(--bad); }
+.tag.NO-SHOW, .tag.CXL\'D { color: var(--muted); }
+.closer-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+
+/* Editor */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 20; }
+.editor { position: fixed; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: min(480px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 21; overflow-y: auto;
+  padding-block: 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; align-content: start; }
+.editor h2 { font-size: 18px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.field input, .field select, .field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
+.field textarea { min-height: 70px; resize: vertical; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.checks label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.checks input { width: 16px; height: 16px; margin: 0; }
+.editor .actions { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 6px; }
+.editor .actions .right { display: flex; gap: 8px; }
+.confirm { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--bad); }
+.err { color: var(--bad); font-size: 12px; }
+footer.defs { color: var(--ink-2); font-size: 12px; display: grid; gap: 4px; max-width: 80ch; }
+footer.defs b { color: var(--ink); }
+@media (prefers-reduced-motion: no-preference) { .editor { animation: slide .18s ease-out; } @keyframes slide { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Sales team</p>
+      <h1>Closer Tracker</h1>
+      <p class="sub">Every call booked, by closer. Log calls here instead of the monthly spreadsheet; the scorecards and rates update as you type.</p>
+    </div>
+    <div style="display:grid;gap:8px;justify-items:end">
+      <button class="btn primary" id="btn-add" type="button">+ Log a call</button>
+      <p class="status-line" id="status">Connecting to the shared call log…</p>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="View controls">
+    <div class="seg" role="group" aria-label="Period" id="seg-period">
+      <button type="button" data-p="week">Week</button>
+      <button type="button" data-p="month" aria-pressed="true">Month</button>
+      <button type="button" data-p="quarter">Quarter</button>
+      <button type="button" data-p="ytd">YTD</button>
+      <button type="button" data-p="all">All time</button>
+    </div>
+    <div class="nav">
+      <button type="button" id="nav-prev" aria-label="Previous period">‹</button>
+      <span class="label" id="nav-label">November 2026</span>
+      <button type="button" id="nav-next" aria-label="Next period">›</button>
+      <button type="button" id="nav-today" class="btn" style="padding:5px 10px;font-weight:500">Today</button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Closer"></div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+
+  <section class="charts">
+    <div class="panel chart" id="chart-booked">
+      <div class="panel-head"><h2>Calls booked per week</h2><span class="status-line" id="chart-booked-sub"></span></div>
+      <div id="chart-booked-svg"></div>
+      <div class="legend" id="chart-booked-legend"></div>
+    </div>
+    <div class="panel rates">
+      <div class="chart" id="chart-show"><div class="panel-head"><h2>Show rate</h2><span class="status-line">KPI 70%</span></div><div id="chart-show-svg"></div></div>
+      <div class="chart" id="chart-close"><div class="panel-head"><h2>Close rate</h2><span class="status-line">wins ÷ completed calls</span></div><div id="chart-close-svg"></div></div>
+    </div>
+  </section>
+
+  <section class="cards" id="cards" aria-label="Scorecards"></section>
+
+  <section class="panel log" id="log">
+    <div class="panel-head"><h2>Call log</h2><span class="status-line" id="log-sub"></span></div>
+    <div class="tablewrap" id="log-table"></div>
+  </section>
+
+  <footer class="defs">
+    <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”.</p>
+    <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="editor" id="editor" hidden aria-label="Call details">
+  <h2 id="editor-title">Log a call</h2>
+  <div class="two">
+    <div class="field"><label for="f-closer">Closer</label><select id="f-closer"></select></div>
+    <div class="field"><label for="f-date">Date of call</label><input id="f-date" type="date"></div>
+  </div>
+  <div class="field"><label for="f-lead">Lead name</label><input id="f-lead" type="text" autocomplete="off" placeholder="First name"></div>
+  <div class="two">
+    <div class="field"><label for="f-type">Call type</label><select id="f-type"><option value="">— not set —</option><option>New Consult</option><option>Follow-up</option></select></div>
+    <div class="field"><label for="f-status">Sales status</label><select id="f-status">
+      <option value="OPEN">Open / not yet called</option><option value="WIN">Win</option><option value="LOST">Lost</option><option value="NURTURING">Nurturing</option>
+      <option value="NO-SHOW">No-show</option><option value="CXL'D">Lead cancelled</option><option value="RESCHEDULED">Rescheduled</option><option value="SET TO JILL">Set to Jill</option><option value="UNQUALIFIED">Unqualified</option>
+    </select></div>
+  </div>
+  <div class="checks">
+    <label><input type="checkbox" id="f-confirmed"> Appointment confirmed</label>
+    <label><input type="checkbox" id="f-offer"> Offer made</label>
+    <label><input type="checkbox" id="f-noshow"> No-show</label>
+    <label><input type="checkbox" id="f-cxl"> Lead cancelled</label>
+    <label><input type="checkbox" id="f-deposit"> Deposit received</label>
+  </div>
+  <div class="two">
+    <div class="field"><label for="f-revenue">Total revenue generated ($)</label><input id="f-revenue" type="number" min="0" step="1" inputmode="decimal"></div>
+    <div class="field"><label for="f-cash">Cash collected today ($)</label><input id="f-cash" type="number" min="0" step="1" inputmode="decimal"></div>
+  </div>
+  <div class="field"><label for="f-notes">Next steps / notes</label><textarea id="f-notes"></textarea></div>
+  <p class="err" id="f-err" hidden></p>
+  <div class="actions">
+    <div id="del-area"></div>
+    <div class="right"><button class="btn" type="button" id="btn-cancel">Cancel</button><button class="btn primary" type="button" id="btn-save">Save call</button></div>
+  </div>
+</aside>
+
+<script>
+(() => {
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtMoney = n => "$" + Math.round(n).toLocaleString("en-US");
+const fmtPct = (n, d = 0) => n == null ? "—" : Math.round(n * 100 * Math.pow(10, d)) / Math.pow(10, d) + "%";
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MON3 = MONTHS.map(m => m.slice(0, 3));
+
+// ---------- state ----------
+const DEFAULT_SETTINGS = { closers: [{ name: "Jill", color: "jill" }, { name: "Jacqueline", color: "jacqueline" }, { name: "Jessica", color: "jessica" }],
+  kpis: { show: 0.7, offer: 0.9 }, cashGoals: {} };
+let settings = DEFAULT_SETTINGS;
+let calls = [];               // all call records
+let canWrite = null;          // null = unknown, true/false
+let db = null, userApi = null;
+const state = { period: "month", anchor: todayStr(), closer: "all" };
+try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; } catch (e) {}
+
+// ---------- dates (all as YYYY-MM-DD strings) ----------
+function todayStr() { const d = new Date(); return iso(d); }
+function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function parse(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+function minS(a, b) { return a < b ? a : b; }
+function monday(s) { const d = parse(s); const off = (d.getDay() + 6) % 7; d.setDate(d.getDate() - off); return iso(d); }
+function monthStart(s) { return s.slice(0, 7) + "-01"; }
+function monthEnd(s) { const d = parse(s); return iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
+function shortDate(s) { const d = parse(s); return MON3[d.getMonth()] + " " + d.getDate(); }
+function monthWeeks(ym) { // [{from,to}] following the spreadsheet rule
+  const first = ym + "-01", last = monthEnd(first);
+  const dow = (parse(first).getDay() + 6) % 7;
+  let firstSun = addDays(first, (6 - dow) % 7); if (dow === 6) firstSun = addDays(firstSun, 7);
+  const weeks = [{ from: first, to: minS(firstSun, last) }];
+  let s = addDays(firstSun, 1);
+  while (s <= last) { weeks.push({ from: s, to: minS(addDays(s, 6), last) }); s = addDays(s, 7); }
+  return weeks;
+}
+function monthsBetween(from, to) { const out = []; let s = monthStart(from); while (s <= to) { out.push({ from: s, to: monthEnd(s) }); s = addDays(monthEnd(s), 1); } return out; }
+
+// Period → {from, to, label, buckets:[{label, sub, from, to}], chartBuckets}
+function periodRange() {
+  const a = state.anchor, d = parse(a), y = d.getFullYear(), m = d.getMonth();
+  if (state.period === "week") {
+    const from = monday(a), to = addDays(from, 6);
+    const buckets = []; for (let i = 0; i < 7; i++) { const s = addDays(from, i); buckets.push({ label: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i], sub: shortDate(s), from: s, to: s }); }
+    const chartBuckets = []; for (let i = 7; i >= 0; i--) { const s = addDays(from, -7 * i); chartBuckets.push({ label: shortDate(s), sub: "wk", from: s, to: addDays(s, 6), current: i === 0 }); }
+    return { from, to, label: "Week of " + shortDate(from), buckets, chartBuckets, kind: "week" };
+  }
+  if (state.period === "month") {
+    const from = monthStart(a), to = monthEnd(a);
+    const buckets = monthWeeks(a.slice(0, 7)).map((w, i) => ({ label: "Week " + (i + 1), sub: shortDate(w.from) + "–" + shortDate(w.to).replace(/^\w+ /, parse(w.to).getMonth() === parse(w.from).getMonth() ? "" : "$&"), from: w.from, to: w.to }));
+    return { from, to, label: MONTHS[m] + " " + y, buckets, chartBuckets: buckets, kind: "month" };
+  }
+  if (state.period === "quarter") {
+    const q = Math.floor(m / 3), from = iso(new Date(y, q * 3, 1)), to = iso(new Date(y, q * 3 + 3, 0));
+    const buckets = monthsBetween(from, to).map(b => ({ label: MON3[parse(b.from).getMonth()], sub: "", from: b.from, to: b.to }));
+    return { from, to, label: "Q" + (q + 1) + " " + y, buckets, chartBuckets: weekBuckets(from, to), kind: "quarter" };
+  }
+  if (state.period === "ytd") {
+    const from = y + "-01-01", to = minS(iso(new Date(y, 11, 31)), todayStr() > y + "-12-31" ? y + "-12-31" : todayStr());
+    const buckets = monthsBetween(from, to).map(b => ({ label: MON3[parse(b.from).getMonth()], sub: "", from: b.from, to: b.to }));
+    return { from, to, label: y + " year to date", buckets, chartBuckets: buckets, kind: "ytd" };
+  }
+  const dates = calls.map(c => c.date).filter(Boolean).sort();
+  const from = dates.length ? monthStart(dates[0]) : monthStart(todayStr()), to = monthEnd(dates.length ? (dates[dates.length - 1] > todayStr() ? dates[dates.length - 1] : todayStr()) : todayStr());
+  const buckets = monthsBetween(from, to).map(b => ({ label: MON3[parse(b.from).getMonth()] + " " + String(parse(b.from).getFullYear()).slice(2), sub: "", from: b.from, to: b.to }));
+  return { from, to, label: "All time", buckets, chartBuckets: buckets, kind: "all" };
+}
+function weekBuckets(from, to) { const out = []; let s = monday(from); while (s <= to) { out.push({ label: shortDate(s), sub: "", from: s, to: addDays(s, 6) }); s = addDays(s, 7); } return out; }
+function shift(n) {
+  const d = parse(state.anchor);
+  if (state.period === "week") d.setDate(d.getDate() + 7 * n);
+  else if (state.period === "month") d.setMonth(d.getMonth() + n, 1);
+  else if (state.period === "quarter") d.setMonth(d.getMonth() + 3 * n, 1);
+  else if (state.period === "ytd") d.setFullYear(d.getFullYear() + n);
+  else return;
+  state.anchor = iso(d); render();
+}
+
+// ---------- metrics ----------
+function metrics(rows) {
+  const m = { booked: rows.length, noShow: 0, cxl: 0, resch: 0, offers: 0, wins: 0, revenue: 0, cash: 0, newConsults: 0, followUps: 0, setToJill: 0, nurturing: 0, lost: 0 };
+  for (const r of rows) {
+    if (r.noShow) m.noShow++; if (r.cxl) m.cxl++; if (r.status === "RESCHEDULED") m.resch++;
+    if (r.offer) m.offers++; if (r.status === "WIN") m.wins++; if (r.status === "NURTURING") m.nurturing++; if (r.status === "LOST") m.lost++;
+    if (r.status === "SET TO JILL") m.setToJill++;
+    m.revenue += +r.revenue || 0; m.cash += +r.cash || 0;
+    if (r.callType === "New Consult") m.newConsults++; if (r.callType === "Follow-up") m.followUps++;
+  }
+  m.held = Math.max(0, m.booked - m.noShow - m.cxl - m.resch);
+  const showDen = m.booked - m.resch;
+  m.showRate = showDen > 0 ? m.held / showDen : null;
+  m.offerRate = m.held > 0 ? m.offers / m.held : null;
+  m.closeRate = m.held > 0 ? m.wins / m.held : null;
+  m.closeOfBooked = m.booked > 0 ? m.wins / m.booked : null;
+  return m;
+}
+const inRange = (r, b) => r.date >= b.from && r.date <= b.to;
+const closerColor = name => { const c = settings.closers.find(c => c.name === name); return c ? `var(--${c.color})` : "var(--muted)"; };
+const visibleClosers = () => state.closer === "all" ? settings.closers.map(c => c.name) : [state.closer];
+
+// ---------- render ----------
+function render() {
+  try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer })); } catch (e) {}
+  const P = periodRange();
+  $("#nav-label").textContent = P.label;
+  $("#nav-prev").disabled = $("#nav-next").disabled = state.period === "all";
+  for (const b of $("#seg-period").children) b.setAttribute("aria-pressed", b.dataset.p === state.period);
+  renderChips();
+  const names = visibleClosers();
+  const rows = calls.filter(r => inRange(r, P) && names.includes(r.closer)).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.lead.localeCompare(b.lead));
+  renderKpis(rows, P);
+  renderBookedChart(P, names);
+  renderRateCharts(P, names);
+  renderCards(P, names);
+  renderLog(rows, P);
+}
+function renderChips() {
+  const el = $("#chips"); el.innerHTML = "";
+  const mk = (name, label, color) => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", state.closer === name);
+    b.innerHTML = `<span class="dot" style="--c:${color}"></span>${esc(label)}`; b.onclick = () => { state.closer = name; render(); }; el.appendChild(b); };
+  mk("all", "All closers", "var(--ink-2)");
+  for (const c of settings.closers) mk(c.name, c.name, `var(--${c.color})`);
+}
+function kpiPill(val, target, higherIsBetter = true) {
+  if (val == null) return "";
+  const ok = higherIsBetter ? val >= target : val <= target;
+  const near = Math.abs(val - target) < 0.1;
+  const cls = ok ? "good" : near ? "warn" : "bad";
+  const icon = ok ? "✓" : near ? "~" : "!";
+  return `<span class="pill ${cls}">${icon} KPI ${fmtPct(target)}</span>`;
+}
+function renderKpis(rows, P) {
+  const m = metrics(rows);
+  const goalKey = P.kind === "month" ? P.from.slice(0, 7) : null;
+  const goal = goalKey && settings.cashGoals ? settings.cashGoals[goalKey] : null;
+  const tiles = [
+    ["Calls booked", m.booked, `${m.held} completed · ${m.noShow} no-show · ${m.cxl} cxl`],
+    ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, settings.kpis.show) || "no completed calls yet"],
+    ["Close rate", fmtPct(m.closeRate), `${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
+    ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, settings.kpis.offer) || "") + ` ${m.offers} offers`],
+    ["Cash collected", fmtMoney(m.cash), goal ? `${fmtPct(m.cash / goal)} of ${fmtMoney(goal)} goal` : `${fmtMoney(m.revenue)} revenue generated`],
+    ["Still nurturing", m.nurturing, `${m.lost} lost · ${m.setToJill} set to Jill`],
+  ];
+  $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
+}
+
+// SVG helpers
+function svgOpen(w, h) { return `<svg viewBox="0 0 ${w} ${h}" role="img">`; }
+function renderBookedChart(P, names) {
+  const B = P.chartBuckets, W = 640, H = 240, pad = { l: 30, r: 8, t: 10, b: 34 };
+  const series = names.map(n => ({ name: n, color: closerColor(n), vals: B.map(b => calls.filter(r => r.closer === n && inRange(r, b)).length) }));
+  const max = Math.max(4, ...series.flatMap(s => s.vals));
+  const step = max <= 10 ? 2 : max <= 25 ? 5 : 10, top = Math.ceil(max / step) * step;
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, gw = iw / B.length, bw = Math.min(18, (gw * 0.7) / series.length);
+  const y = v => pad.t + ih - (v / top) * ih;
+  let s = svgOpen(W, H) + `<g class="grid">`;
+  for (let v = 0; v <= top; v += step) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `</g><g class="axis"><line x1="${pad.l}" x2="${W - pad.r}" y1="${y(0)}" y2="${y(0)}"/></g>`;
+  const labelEvery = Math.ceil(B.length / 9);
+  B.forEach((b, i) => {
+    const gx = pad.l + i * gw + (gw - bw * series.length) / 2;
+    series.forEach((sr, j) => { const v = sr.vals[i]; if (v > 0) { const h = y(0) - y(v); s += `<rect x="${gx + j * bw + 1}" y="${y(v)}" width="${bw - 2}" height="${h}" rx="3" fill="${sr.color}" opacity="${b.current === false ? 0.7 : 1}"/>`; }
+      if (v > 0 && B.length <= 8) s += `<text x="${gx + j * bw + bw / 2}" y="${y(v) - 4}" text-anchor="middle" font-size="10">${v}</text>`; });
+    if (i % labelEvery === 0 || B.length <= 9) s += `<text x="${pad.l + i * gw + gw / 2}" y="${H - 18}" text-anchor="middle">${esc(b.label)}</text>` + (b.sub && B.length <= 6 ? `<text class="tick" x="${pad.l + i * gw + gw / 2}" y="${H - 6}" text-anchor="middle" font-size="10">${esc(b.sub)}</text>` : "");
+    const tip = `${esc(b.label)}${b.sub ? " · " + esc(b.sub) : ""}: ` + series.map(sr => `${sr.name} ${sr.vals[i]}`).join(" · ");
+    s += `<rect class="hit" x="${pad.l + i * gw}" y="${pad.t}" width="${gw}" height="${ih}" data-tip="${tip}" data-cx="${pad.l + i * gw + gw / 2}" data-cy="${y(Math.max(...series.map(sr => sr.vals[i])))}"/>`;
+  });
+  s += "</svg>";
+  $("#chart-booked-svg").innerHTML = s;
+  $("#chart-booked-sub").textContent = P.kind === "week" ? "last 8 weeks, current week last" : P.label;
+  $("#chart-booked-legend").innerHTML = names.map(n => `<span><i style="background:${closerColor(n)}"></i>${esc(n)}</span>`).join("");
+  wireTips($("#chart-booked"));
+}
+function renderRateCharts(P, names) {
+  const B = P.chartBuckets;
+  const draw = (id, key) => {
+    const W = 420, H = 130, pad = { l: 34, r: 26, t: 10, b: 22 }, iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    const x = i => pad.l + (B.length === 1 ? iw / 2 : (i / (B.length - 1)) * iw), y = v => pad.t + ih - v * ih;
+    let s = svgOpen(W, H) + `<g class="grid">`;
+    for (const v of [0, 0.5, 1]) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
+    s += `</g>`;
+    if (key === "showRate") s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(settings.kpis.show)}" y2="${y(settings.kpis.show)}" stroke="var(--good)" stroke-dasharray="3 3"/>`;
+    for (const n of names) {
+      const pts = B.map((b, i) => { const m = metrics(calls.filter(r => r.closer === n && inRange(r, b))); return m[key] == null ? null : { x: x(i), y: y(m[key]), v: m[key], m }; });
+      const segs = []; let cur = [];
+      pts.forEach(p => { if (p) cur.push(p); else { if (cur.length) segs.push(cur); cur = []; } }); if (cur.length) segs.push(cur);
+      for (const seg of segs) { if (seg.length > 1) s += `<polyline fill="none" stroke="${closerColor(n)}" stroke-width="2" stroke-linejoin="round" points="${seg.map(p => p.x + "," + p.y).join(" ")}"/>`; }
+      pts.forEach((p, i) => { if (p) s += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${closerColor(n)}" stroke="var(--panel)" stroke-width="2"/><circle class="hit" cx="${p.x}" cy="${p.y}" r="10" data-tip="${esc(n)} · ${esc(B[i].label)}: ${fmtPct(p.v)} (${key === "showRate" ? p.m.held + " of " + (p.m.booked - p.m.resch) + " showed" : p.m.wins + " of " + p.m.held + " closed"})" data-cx="${p.x}" data-cy="${p.y}"/>`; });
+    }
+    const every = Math.ceil(B.length / 6);
+    B.forEach((b, i) => { if (i % every === 0 || B.length <= 7) s += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10">${esc(b.label)}</text>`; });
+    $(id + "-svg").innerHTML = s + "</svg>"; wireTips($(id));
+  };
+  draw("#chart-show", "showRate"); draw("#chart-close", "closeRate");
+}
+function wireTips(host) {
+  const svg = host.querySelector("svg"); let tip = host.querySelector(".tip");
+  const show = e => { const t = e.target.closest("[data-tip]"); if (!t) { if (tip) tip.hidden = true; return; }
+    if (!tip) { tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip); }
+    const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = r.width / vb.width, sy = r.height / vb.height;
+    tip.textContent = t.dataset.tip; tip.hidden = false;
+    tip.style.left = (svg.offsetLeft + t.dataset.cx * sx) + "px"; tip.style.top = (svg.offsetTop + t.dataset.cy * sy) + "px"; };
+  svg.addEventListener("mousemove", show); svg.addEventListener("mouseleave", () => { if (tip) tip.hidden = true; });
+}
+
+// Scorecards — the spreadsheet tab, one per closer
+function renderCards(P, names) {
+  const B = P.buckets;
+  const rowsDef = [
+    ["section", "Calls"],
+    ["Total scheduled", m => m.booked], ["New consults", m => m.newConsults, "dim"], ["Follow-ups", m => m.followUps, "dim"],
+    ["No-shows", m => m.noShow], ["Lead cancels", m => m.cxl], ["Rescheduled", m => m.resch, "dim"], ["Completed calls", m => m.held],
+    ["Show % (KPI 70%)", m => m.showRate, "pct", settings.kpis.show],
+    ["section", "Pitch"],
+    ["Offers made", m => m.offers], ["Offer % (KPI 90%)", m => m.offerRate, "pct", settings.kpis.offer],
+    ["section", "Outcome"],
+    ["Wins", m => m.wins], ["Nurturing", m => m.nurturing, "dim"], ["Lost", m => m.lost, "dim"], ["Set to Jill", m => m.setToJill, "dim"],
+    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"],
+    ["Close % (of completed)", m => m.closeRate, "pct"], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
+  ];
+  $("#cards").innerHTML = names.map(n => {
+    const all = calls.filter(r => r.closer === n && inRange(r, P));
+    if (!all.length && state.closer === "all") return "";
+    const cols = [{ label: P.kind === "month" ? P.label.split(" ")[0].toUpperCase() + " OVERALL" : "OVERALL", sub: "", m: metrics(all), total: true }, ...B.map(b => ({ label: b.label, sub: b.sub, m: metrics(all.filter(r => inRange(r, b))) }))];
+    const cell = (def, c) => {
+      const [, fn, kind, kpi] = def; const v = fn(c.m);
+      let txt = kind === "pct" ? fmtPct(v) : kind === "money" ? (v ? fmtMoney(v) : "—") : (v === 0 && !c.total ? "·" : v);
+      let cls = kind === "dim" ? "dim" : "";
+      if (kind === "pct" && kpi != null && v != null) cls = v >= kpi ? "over" : "under";
+      return `<td class="${cls}${c.total ? " total" : ""}">${txt}</td>`;
+    };
+    return `<div class="panel"><div class="card-head"><span class="dot" style="background:${closerColor(n)}"></span><h2>${esc(n)}</h2><span class="status-line">${all.length} call${all.length === 1 ? "" : "s"} in ${esc(P.label)}</span></div>
+      <div class="tablewrap"><table><thead><tr><th></th>${cols.map(c => `<th class="${c.total ? "total" : ""}">${esc(c.label)}${c.sub ? `<span class="sub">${esc(c.sub)}</span>` : ""}</th>`).join("")}</tr></thead><tbody>` +
+      rowsDef.map(def => def[0] === "section" ? `<tr class="section"><td colspan="${cols.length + 1}">${def[1]}</td></tr>` : `<tr class="${def[2] === "pct" ? "kpi-row" : ""}"><td>${def[0]}</td>${cols.map(c => cell(def, c)).join("")}</tr>`).join("") +
+      `</tbody></table></div></div>`;
+  }).join("") || `<div class="panel empty">No calls logged for ${esc(P.label)} yet.</div>`;
+}
+function renderLog(rows, P) {
+  $("#log-sub").textContent = `${rows.length} call${rows.length === 1 ? "" : "s"} · ${P.label}${canWrite ? " · click a row to edit" : ""}`;
+  if (!rows.length) { $("#log-table").innerHTML = `<p class="empty">${calls.length ? "Nothing in this period." : "Waiting for the shared call log…"}</p>`; return; }
+  const yn = v => v ? "Yes" : "";
+  $("#log-table").innerHTML = `<table><thead><tr><th>Date</th><th style="text-align:left">Closer</th><th style="text-align:left">Lead</th><th style="text-align:left">Type</th><th>Conf.</th><th>Offer</th><th>No-show</th><th>Cxl</th><th style="text-align:left">Status</th><th>Revenue</th><th>Cash</th><th style="text-align:left">Next steps</th></tr></thead><tbody>` +
+    rows.map(r => `<tr class="row" data-id="${esc(r.id)}"><td style="text-align:left">${shortDate(r.date)}${r.dateEstimated ? '<span class="dim" title="date estimated from sheet week">*</span>' : ""}</td><td style="text-align:left"><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td style="text-align:left">${esc(r.lead)}</td><td style="text-align:left" class="dim">${esc(r.callType || "")}</td><td>${yn(r.confirmed)}</td><td>${yn(r.offer)}</td><td>${yn(r.noShow)}</td><td>${yn(r.cxl)}</td><td style="text-align:left"><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td><td>${r.revenue ? fmtMoney(r.revenue) : ""}</td><td>${r.cash ? fmtMoney(r.cash) : ""}</td><td class="notes">${esc(r.notes)}</td></tr>`).join("") + "</tbody></table>";
+  if (canWrite) for (const tr of $("#log-table").querySelectorAll("tr.row")) tr.onclick = () => openEditor(calls.find(c => c.id === tr.dataset.id));
+}
+
+// ---------- editor ----------
+let editing = null;
+function openEditor(rec) {
+  if (!canWrite) return;
+  editing = rec || null;
+  $("#editor-title").textContent = rec ? `Edit call · ${rec.lead}` : "Log a call";
+  const sel = $("#f-closer"); sel.innerHTML = settings.closers.map(c => `<option>${esc(c.name)}</option>`).join("");
+  let last = ""; try { last = localStorage.getItem("ct.lastCloser") || ""; } catch (e) {}
+  sel.value = rec ? rec.closer : (last || settings.closers[0].name);
+  $("#f-date").value = rec ? rec.date : todayStr(); $("#f-lead").value = rec ? rec.lead : ""; $("#f-type").value = rec ? rec.callType || "" : "New Consult";
+  $("#f-status").value = rec ? rec.status : "OPEN";
+  $("#f-confirmed").checked = !!rec?.confirmed; $("#f-offer").checked = !!rec?.offer; $("#f-noshow").checked = !!rec?.noShow; $("#f-cxl").checked = !!rec?.cxl; $("#f-deposit").checked = !!rec?.deposit;
+  $("#f-revenue").value = rec?.revenue || ""; $("#f-cash").value = rec?.cash || ""; $("#f-notes").value = rec?.notes || "";
+  $("#f-err").hidden = true;
+  $("#del-area").innerHTML = rec ? `<button class="btn danger" type="button" id="btn-del">Delete</button>` : "";
+  if (rec) $("#btn-del").onclick = () => { $("#del-area").innerHTML = `<span class="confirm">Delete this call? <button class="btn danger" type="button" id="btn-del-yes">Yes, delete</button></span>`; $("#btn-del-yes").onclick = deleteCall; };
+  $("#scrim").hidden = false; $("#editor").hidden = false; $("#f-lead").focus();
+}
+function closeEditor() { $("#scrim").hidden = true; $("#editor").hidden = true; editing = null; }
+// keep status and the no-show / cancel checkboxes in step
+$("#f-status").addEventListener("change", e => { const v = e.target.value; if (v === "NO-SHOW") { $("#f-noshow").checked = true; $("#f-cxl").checked = false; } if (v === "CXL'D") { $("#f-cxl").checked = true; $("#f-noshow").checked = false; } });
+$("#f-noshow").addEventListener("change", e => { if (e.target.checked && $("#f-status").value === "OPEN") $("#f-status").value = "NO-SHOW"; });
+$("#f-cxl").addEventListener("change", e => { if (e.target.checked && $("#f-status").value === "OPEN") $("#f-status").value = "CXL'D"; });
+async function saveCall() {
+  const lead = $("#f-lead").value.trim(), date = $("#f-date").value;
+  if (!lead || !date) { $("#f-err").textContent = "A lead name and a call date are needed."; $("#f-err").hidden = false; return; }
+  const rec = { id: editing ? editing.id : "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    closer: $("#f-closer").value, lead, date, callType: $("#f-type").value, status: $("#f-status").value,
+    confirmed: $("#f-confirmed").checked, offer: $("#f-offer").checked, noShow: $("#f-noshow").checked, cxl: $("#f-cxl").checked, deposit: $("#f-deposit").checked,
+    revenue: +$("#f-revenue").value || 0, cash: +$("#f-cash").value || 0, notes: $("#f-notes").value.trim(),
+    dateEstimated: false, source: editing ? editing.source || "dashboard" : "dashboard", createdAt: editing ? editing.createdAt || new Date().toISOString() : new Date().toISOString(), updatedAt: new Date().toISOString() };
+  if (rec.status === "NO-SHOW") rec.noShow = true; if (rec.status === "CXL'D") rec.cxl = true;
+  $("#btn-save").disabled = true;
+  try { await db.collection("calls").doc(rec.id).set(rec); try { localStorage.setItem("ct.lastCloser", rec.closer); } catch (e) {} closeEditor(); }
+  catch (e) { $("#f-err").textContent = e?.code === "invalid_argument" ? "This page is read-only for your account. Ask the owner to make you a Contributor." : "Couldn't save (" + (e?.code || "error") + "). Try again."; $("#f-err").hidden = false; }
+  $("#btn-save").disabled = false;
+}
+async function deleteCall() {
+  if (!editing) return;
+  try { await db.collection("calls").doc(editing.id).delete(); closeEditor(); }
+  catch (e) { $("#f-err").textContent = "Couldn't delete (" + (e?.code || "error") + ")."; $("#f-err").hidden = false; }
+}
+$("#btn-add").onclick = () => openEditor(null);
+$("#btn-cancel").onclick = closeEditor; $("#scrim").onclick = closeEditor; $("#btn-save").onclick = saveCall;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#editor").hidden) closeEditor(); });
+for (const b of $("#seg-period").children) b.onclick = () => { state.period = b.dataset.p; render(); };
+$("#nav-prev").onclick = () => shift(-1); $("#nav-next").onclick = () => shift(1); $("#nav-today").onclick = () => { state.anchor = todayStr(); render(); };
+
+// ---------- data ----------
+function setStatus(t, warn) { const el = $("#status"); el.textContent = t; el.classList.toggle("warn", !!warn); }
+render();
+(async () => {
+  db = await claude.use("db");
+  if (!db) { setStatus("Sign in to claude.ai to see and log calls.", true); $("#btn-add").disabled = true; return; }
+  userApi = await claude.use("user");
+  canWrite = userApi ? await userApi.can("data.write") : null;
+  if (canWrite === false) { $("#btn-add").disabled = true; setStatus("Read-only: ask the owner to make you a Contributor to log calls."); }
+  else if (canWrite === null) canWrite = true; // not told: keep inputs, a refused write will say so
+  let timer = setTimeout(() => setStatus("Still reaching the call log… numbers may be out of date.", true), 10000);
+  db.doc("settings/main").onSnapshot(s => { if (s.exists) { const d = s.data(); settings = { ...DEFAULT_SETTINGS, ...d, kpis: { ...DEFAULT_SETTINGS.kpis, ...(d.kpis || {}) } }; render(); } }, () => {});
+  db.collection("calls").onSnapshot(snap => {
+    calls = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer);
+    if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(`${calls.length} calls on record${canWrite ? "" : " · read-only"}`); }
+    render();
+  }, e => { clearTimeout(timer); setStatus("The call log can't be read right now (" + e.code + ").", true); });
+})();
+})();
+</script>

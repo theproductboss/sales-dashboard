@@ -144,3 +144,29 @@ regexes in that file to match the new wording.
 Edit the `cron` line in `.github/workflows/daily-report.yml`. Remember
 GitHub Actions cron is UTC and doesn't auto-adjust for daylight saving —
 there's a note in that file with both UTC times for ET.
+
+---
+
+## Closer Tracker dashboard (`dashboard/`)
+
+A single shared page that replaces the monthly "Closer Tracker" spreadsheet:
+closers (or their EA) log each call there, and it shows calls booked per week
+per closer, show rate, offer rate, close rate, wins and cash — by week, month,
+quarter, year-to-date and all time — plus a per-closer scorecard laid out like
+the spreadsheet tab.
+
+- `dashboard/closer-tracker.html` — the page, published as a Claude artifact
+  (shared call log stored in the artifact's database; no server to host).
+- `dashboard/data/historical-calls.json` — the 162 calls imported from the
+  September, October and November 2026 trackers (Jill, Jacqueline, Jessica
+  tabs), normalized to the record shape the page stores.
+- `dashboard/scripts/extract_tracker.py` + `normalize_calls.py` — how that
+  import was produced from the `.xlsx` exports of the trackers, so a future
+  month can be back-filled the same way.
+
+**Metric definitions** (shown in the page footer): completed = booked −
+no-shows − lead cancels − rescheduled; show rate = completed ÷ (booked −
+rescheduled); offer rate = offers ÷ completed; close rate = wins ÷ completed
+(also shown as wins ÷ booked, the spreadsheet's "close rate % of booked").
+Weeks inside a month follow the spreadsheet: week 1 is the 1st through the
+first Sunday, then Monday–Sunday.
