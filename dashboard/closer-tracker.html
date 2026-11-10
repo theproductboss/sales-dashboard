@@ -138,6 +138,15 @@ table.grid button.x:hover { color: var(--bad); background: color-mix(in srgb, va
 table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600; white-space: nowrap; }
 .col-lead { width: 15%; } .col-date { width: 11%; } .col-chk { width: 56px; } .col-status { width: 11%; } .col-num { width: 9%; } .col-type { width: 10%; }
 .saving { color: var(--muted); }
+#pipeline table th, #pipeline table td { text-align: left; }
+#pipeline td.age { color: var(--muted); font-variant-numeric: tabular-nums; }
+#pipeline td.age.old { color: var(--bad); }
+#pipeline select, #pipeline input { font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; }
+#pipeline select:hover, #pipeline input:hover { border-color: var(--line-strong); }
+#pipeline input.notes { width: 100%; min-width: 24ch; }
+#pipeline select.WIN { color: var(--good-text); font-weight: 600; }
+#pipeline .money { font-variant-numeric: tabular-nums; }
+.closer-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 footer.defs { color: var(--ink-2); font-size: 12px; display: grid; gap: 4px; max-width: 80ch; }
 footer.defs b { color: var(--ink); }
 </style>
@@ -170,6 +179,11 @@ footer.defs b { color: var(--ink); }
   </section>
 
   <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+
+  <section class="panel" id="pipeline">
+    <div class="panel-head"><div><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
+    <div class="tablewrap" id="pipeline-table"></div>
+  </section>
 
   <section class="charts">
     <div class="panel chart" id="chart-booked">
@@ -320,6 +334,7 @@ function renderTop() {
   const names = visibleClosers();
   const rows = calls.filter(r => inRange(r, P) && names.includes(r.closer));
   renderKpis(rows, P);
+  renderPipeline(names);
   renderBookedChart(P, names);
   renderRateCharts(P, names);
   renderCards(P, names);
@@ -348,11 +363,35 @@ function renderKpis(rows, P) {
     ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, settings.kpis.show) || "no completed calls yet"],
     ["Close rate", fmtPct(m.closeRate), (kpiPill(m.closeRate, settings.kpis.close) || "") + ` ${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
     ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, settings.kpis.offer) || "") + ` ${m.offers} offers`],
-    ["Cash collected", fmtMoney(m.cash), goal ? goalPill + (goal > m.cash ? ` ${fmtMoney(goal - m.cash)} to go` : " goal met") : `${fmtMoney(m.revenue)} revenue generated`],
-    ["Still nurturing", m.nurturing, `${m.lost} lost · ${m.setToJill} set to Jill`],
+    ["Revenue generated", fmtMoney(m.revenue), m.revenue ? `${fmtPct(m.cash / m.revenue)} collected as cash · ${m.wins ? fmtMoney(m.revenue / m.wins) + " avg per win" : ""}` : "no wins with revenue yet"],
+    ["Cash collected", fmtMoney(m.cash), goal ? goalPill + (goal > m.cash ? ` ${fmtMoney(goal - m.cash)} to go` : " goal met") : `${m.nurturing} still nurturing · ${m.lost} lost`],
   ];
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
 }
+
+// Pipeline: every lead still marked NURTURING (or rescheduled / open), whatever the period selected
+function renderPipeline(names) {
+  const today = todayStr();
+  const open = calls.filter(r => names.includes(r.closer) && (r.status === "NURTURING" || r.status === "RESCHEDULED" || (r.status === "OPEN" && !r.noShow && !r.cxl)))
+    .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.lead.localeCompare(b.lead));
+  const nurturing = open.filter(r => r.status === "NURTURING").length;
+  $("#pipeline-sub").textContent = open.length ? `${nurturing} nurturing${open.length - nurturing ? ` · ${open.length - nurturing} rescheduled or not yet called` : ""} · all time, ${state.closer === "all" ? "all closers" : state.closer}. Change a status here when a lead closes or drops.` : "Nobody waiting on a decision right now.";
+  if (!open.length) { $("#pipeline-table").innerHTML = ""; return; }
+  const dis = canWrite === false ? " disabled" : "";
+  const days = d => Math.round((parse(today) - parse(d)) / 86400000);
+  $("#pipeline-table").innerHTML = `<table><thead><tr><th>Lead</th><th>Closer</th><th>Call date</th><th>Days since</th><th>Offer made</th><th>Status</th><th>Next steps</th></tr></thead><tbody>` +
+    open.map(r => { const n = days(r.date); return `<tr data-id="${esc(r.id)}"><td><b>${esc(r.lead)}</b></td><td><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td>${shortDate(r.date)}</td><td class="age${n > 14 ? " old" : ""}">${n < 0 ? "upcoming" : n + "d"}</td><td>${r.offer ? "Yes" : "—"}</td>
+      <td><select data-pf="status" class="${esc(r.status)}" aria-label="Status for ${esc(r.lead)}"${dis}>${STATUSES.map(([v, l]) => `<option value="${esc(v)}"${v === r.status ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></td>
+      <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td></tr>`; }).join("") + "</tbody></table>";
+}
+$("#pipeline-table").addEventListener("change", e => {
+  const inp = e.target.closest("[data-pf]"); if (!inp || canWrite === false) return;
+  const id = inp.closest("tr").dataset.id, i = calls.findIndex(c => c.id === id); if (i < 0) return;
+  const rec = { ...calls[i], updatedAt: new Date().toISOString() };
+  if (inp.dataset.pf === "status") { rec.status = inp.value; if (rec.status === "NO-SHOW") rec.noShow = true; if (rec.status === "CXL'D") rec.cxl = true; }
+  else rec.notes = inp.value.trim();
+  calls[i] = rec; writeDoc(rec); render();
+});
 
 // SVG helpers
 function svgOpen(w, h) { return `<svg viewBox="0 0 ${w} ${h}" role="img">`; }
@@ -426,7 +465,7 @@ function renderCards(P, names) {
     ["Offers made", m => m.offers], ["Offer % (KPI 90%)", m => m.offerRate, "pct", settings.kpis.offer],
     ["section", "Outcome"],
     ["Wins", m => m.wins], ["Nurturing", m => m.nurturing, "dim"], ["Lost", m => m.lost, "dim"], ["Set to Jill", m => m.setToJill, "dim"],
-    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"],
+    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"], ["Cash vs revenue (KPI 50%)", m => m.revenue ? m.cash / m.revenue : null, "pct", 0.5],
     ["Close % (KPI 25%)", m => m.closeRate, "pct", settings.kpis.close], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
   ];
   $("#cards").innerHTML = names.map(n => {
