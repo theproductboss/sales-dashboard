@@ -167,6 +167,7 @@ the spreadsheet tab.
 **Metric definitions** (shown in the page footer): completed = booked −
 no-shows − lead cancels − rescheduled; show rate = completed ÷ (booked −
 rescheduled); offer rate = offers ÷ completed; close rate = wins ÷ completed
-(also shown as wins ÷ booked, the spreadsheet's "close rate % of booked").
+(KPI 25%; also shown as wins ÷ booked, the spreadsheet's "close rate % of booked").
+Cash goals: $30,000 per week, $150,000 per month (quarter = 3 × month).
 Weeks inside a month follow the spreadsheet: week 1 is the 1st through the
 first Sunday, then Monday–Sunday.

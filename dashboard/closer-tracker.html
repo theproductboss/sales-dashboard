@@ -104,38 +104,42 @@ tr.kpi-row td:first-child { font-weight: 500; }
 td.under { color: var(--bad); } td.over { color: var(--good-text); }
 td.dim { color: var(--muted); }
 
-/* Call log */
-.log th, .log td { white-space: nowrap; }
-.log td.notes { white-space: normal; text-align: left; min-width: 22ch; max-width: 40ch; color: var(--ink-2); }
-.log tr.row { cursor: pointer; }
-.log tr.row:hover td { background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
-.tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-strong); color: var(--ink-2); }
-.tag.WIN { color: var(--good-text); border-color: var(--good-text); }
-.tag.LOST { color: var(--bad); border-color: var(--bad); }
-.tag.NO-SHOW, .tag.CXL\'D { color: var(--muted); }
-.closer-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 .empty { color: var(--muted); padding: 24px; text-align: center; }
 
-/* Editor */
-.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 20; }
-.editor { position: fixed; top: env(safe-area-inset-top, 0px); right: 0; bottom: 0; width: min(480px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 21; overflow-y: auto;
-  padding-block: 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; align-content: start; }
-.editor h2 { font-size: 18px; }
-.field { display: grid; gap: 4px; }
-.field label { font-size: 12px; font-weight: 600; color: var(--ink-2); }
-.field input, .field select, .field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
-.field textarea { min-height: 70px; resize: vertical; }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.checks label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-.checks input { width: 16px; height: 16px; margin: 0; }
-.editor .actions { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 6px; }
-.editor .actions .right { display: flex; gap: 8px; }
-.confirm { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--bad); }
-.err { color: var(--bad); font-size: 12px; }
+/* Closer Tracker grid — the spreadsheet tab, editable in place */
+.tabs { display: inline-flex; gap: 4px; border-bottom: 2px solid var(--line); }
+.tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 8px 14px; font: inherit; font-family: var(--font-head); font-weight: 600; font-size: 15px; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.tabs button .dot { width: 10px; height: 10px; border-radius: 50%; }
+.tabs button .n { font-family: var(--font-body); font-size: 11px; font-weight: 500; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.wk { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
+.wk:first-child { margin-top: 4px; }
+.wk h3 { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; }
+.wk h3 span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+table.grid { min-width: 1080px; }
+table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 4px 6px; white-space: normal; line-height: 1.2; vertical-align: bottom; border-bottom: 1px solid var(--line-strong); position: static; background: transparent; }
+table.grid th.c, table.grid td.c { text-align: center; }
+table.grid th.r { text-align: right; }
+table.grid td { padding: 0; text-align: left; position: static; background: transparent; }
+table.grid td.c { text-align: center; }
+table.grid input, table.grid select { font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 0; border-radius: 0; padding: 7px 6px; width: 100%; min-width: 0; }
+table.grid input:focus, table.grid select:focus { outline: 2px solid var(--jill); outline-offset: -2px; background: color-mix(in srgb, var(--jill) 6%, var(--panel)); }
+table.grid input[type="checkbox"] { width: 16px; height: 16px; margin: 0; padding: 0; vertical-align: middle; accent-color: var(--accent); }
+table.grid input.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.grid input:disabled, table.grid select:disabled { color: var(--ink); opacity: 1; }
+table.grid tr.new input, table.grid tr.new select { color: var(--ink-2); }
+table.grid tr.new td { background: color-mix(in srgb, var(--accent) 4%, var(--panel)); }
+table.grid select.WIN { color: var(--good-text); font-weight: 600; }
+table.grid select.LOST { color: var(--bad); }
+table.grid select.NO-SHOW, table.grid select.CXL\'D, table.grid select.RESCHEDULED { color: var(--muted); }
+table.grid td.x { width: 28px; }
+table.grid button.x { background: transparent; border: 0; color: var(--muted); font: inherit; font-size: 16px; line-height: 1; padding: 6px; cursor: pointer; border-radius: 6px; }
+table.grid button.x:hover { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.col-lead { width: 15%; } .col-date { width: 11%; } .col-chk { width: 56px; } .col-status { width: 11%; } .col-num { width: 9%; } .col-type { width: 10%; }
+.saving { color: var(--muted); }
 footer.defs { color: var(--ink-2); font-size: 12px; display: grid; gap: 4px; max-width: 80ch; }
 footer.defs b { color: var(--ink); }
-@media (prefers-reduced-motion: no-preference) { .editor { animation: slide .18s ease-out; } @keyframes slide { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } } }
 </style>
 
 <div class="wrap">
@@ -143,12 +147,9 @@ footer.defs b { color: var(--ink); }
     <div>
       <p class="eyebrow">Sales team</p>
       <h1>Closer Tracker</h1>
-      <p class="sub">Every call booked, by closer. Log calls here instead of the monthly spreadsheet; the scorecards and rates update as you type.</p>
+      <p class="sub">Every call booked, by closer. Track calls in the Closer Tracker grid at the bottom instead of the monthly spreadsheet; the scorecards and rates update as you type.</p>
     </div>
-    <div style="display:grid;gap:8px;justify-items:end">
-      <button class="btn primary" id="btn-add" type="button">+ Log a call</button>
-      <p class="status-line" id="status">Connecting to the shared call log…</p>
-    </div>
+    <p class="status-line" id="status">Connecting to the shared call log…</p>
   </header>
 
   <section class="controls" aria-label="View controls">
@@ -178,56 +179,25 @@ footer.defs b { color: var(--ink); }
     </div>
     <div class="panel rates">
       <div class="chart" id="chart-show"><div class="panel-head"><h2>Show rate</h2><span class="status-line">KPI 70%</span></div><div id="chart-show-svg"></div></div>
-      <div class="chart" id="chart-close"><div class="panel-head"><h2>Close rate</h2><span class="status-line">wins ÷ completed calls</span></div><div id="chart-close-svg"></div></div>
+      <div class="chart" id="chart-close"><div class="panel-head"><h2>Close rate</h2><span class="status-line">KPI 25% · wins ÷ completed</span></div><div id="chart-close-svg"></div></div>
     </div>
   </section>
 
   <section class="cards" id="cards" aria-label="Scorecards"></section>
 
-  <section class="panel log" id="log">
-    <div class="panel-head"><h2>Call log</h2><span class="status-line" id="log-sub"></span></div>
-    <div class="tablewrap" id="log-table"></div>
+  <section class="panel tracker" id="tracker">
+    <div class="panel-head">
+      <div><p class="eyebrow">Fill this in</p><h2>Closer Tracker</h2><p class="status-line" id="tracker-sub"></p></div>
+      <div class="tabs" id="tabs" role="tablist" aria-label="Closer tab"></div>
+    </div>
+    <div id="tracker-body"></div>
   </section>
 
   <footer class="defs">
     <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”.</p>
-    <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
+    <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. A row in the Closer Tracker becomes a call as soon as it has a lead name; leave the date blank and it takes today (or the first day of that week). Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
   </footer>
 </div>
-
-<div class="scrim" id="scrim" hidden></div>
-<aside class="editor" id="editor" hidden aria-label="Call details">
-  <h2 id="editor-title">Log a call</h2>
-  <div class="two">
-    <div class="field"><label for="f-closer">Closer</label><select id="f-closer"></select></div>
-    <div class="field"><label for="f-date">Date of call</label><input id="f-date" type="date"></div>
-  </div>
-  <div class="field"><label for="f-lead">Lead name</label><input id="f-lead" type="text" autocomplete="off" placeholder="First name"></div>
-  <div class="two">
-    <div class="field"><label for="f-type">Call type</label><select id="f-type"><option value="">— not set —</option><option>New Consult</option><option>Follow-up</option></select></div>
-    <div class="field"><label for="f-status">Sales status</label><select id="f-status">
-      <option value="OPEN">Open / not yet called</option><option value="WIN">Win</option><option value="LOST">Lost</option><option value="NURTURING">Nurturing</option>
-      <option value="NO-SHOW">No-show</option><option value="CXL'D">Lead cancelled</option><option value="RESCHEDULED">Rescheduled</option><option value="SET TO JILL">Set to Jill</option><option value="UNQUALIFIED">Unqualified</option>
-    </select></div>
-  </div>
-  <div class="checks">
-    <label><input type="checkbox" id="f-confirmed"> Appointment confirmed</label>
-    <label><input type="checkbox" id="f-offer"> Offer made</label>
-    <label><input type="checkbox" id="f-noshow"> No-show</label>
-    <label><input type="checkbox" id="f-cxl"> Lead cancelled</label>
-    <label><input type="checkbox" id="f-deposit"> Deposit received</label>
-  </div>
-  <div class="two">
-    <div class="field"><label for="f-revenue">Total revenue generated ($)</label><input id="f-revenue" type="number" min="0" step="1" inputmode="decimal"></div>
-    <div class="field"><label for="f-cash">Cash collected today ($)</label><input id="f-cash" type="number" min="0" step="1" inputmode="decimal"></div>
-  </div>
-  <div class="field"><label for="f-notes">Next steps / notes</label><textarea id="f-notes"></textarea></div>
-  <p class="err" id="f-err" hidden></p>
-  <div class="actions">
-    <div id="del-area"></div>
-    <div class="right"><button class="btn" type="button" id="btn-cancel">Cancel</button><button class="btn primary" type="button" id="btn-save">Save call</button></div>
-  </div>
-</aside>
 
 <script>
 (() => {
@@ -240,13 +210,20 @@ const MON3 = MONTHS.map(m => m.slice(0, 3));
 
 // ---------- state ----------
 const DEFAULT_SETTINGS = { closers: [{ name: "Jill", color: "jill" }, { name: "Jacqueline", color: "jacqueline" }, { name: "Jessica", color: "jessica" }],
-  kpis: { show: 0.7, offer: 0.9 }, cashGoals: {} };
+  kpis: { show: 0.7, offer: 0.9, close: 0.25 }, cashGoals: { week: 30000, month: 150000 } };
+function cashGoal(P) { // weekly and monthly targets; a quarter is three months; YTD / all time have no single goal
+  const g = settings.cashGoals || {};
+  if (P.kind === "week") return g.week || null;
+  if (P.kind === "month") return g[P.from.slice(0, 7)] || g.month || null;
+  if (P.kind === "quarter") return g.month ? g.month * 3 : null;
+  return null;
+}
 let settings = DEFAULT_SETTINGS;
 let calls = [];               // all call records
 let canWrite = null;          // null = unknown, true/false
 let db = null, userApi = null;
-const state = { period: "month", anchor: todayStr(), closer: "all" };
-try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; } catch (e) {}
+const state = { period: "month", anchor: todayStr(), closer: "all", tab: "Jill" };
+try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; if (s.tab) state.tab = s.tab; } catch (e) {}
 
 // ---------- dates (all as YYYY-MM-DD strings) ----------
 function todayStr() { const d = new Date(); return iso(d); }
@@ -332,20 +309,20 @@ const closerColor = name => { const c = settings.closers.find(c => c.name === na
 const visibleClosers = () => state.closer === "all" ? settings.closers.map(c => c.name) : [state.closer];
 
 // ---------- render ----------
-function render() {
-  try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer })); } catch (e) {}
+function render() { renderTop(); renderTracker(false); }
+function renderTop() {
+  try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer, tab: state.tab })); } catch (e) {}
   const P = periodRange();
   $("#nav-label").textContent = P.label;
   $("#nav-prev").disabled = $("#nav-next").disabled = state.period === "all";
   for (const b of $("#seg-period").children) b.setAttribute("aria-pressed", b.dataset.p === state.period);
   renderChips();
   const names = visibleClosers();
-  const rows = calls.filter(r => inRange(r, P) && names.includes(r.closer)).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.lead.localeCompare(b.lead));
+  const rows = calls.filter(r => inRange(r, P) && names.includes(r.closer));
   renderKpis(rows, P);
   renderBookedChart(P, names);
   renderRateCharts(P, names);
   renderCards(P, names);
-  renderLog(rows, P);
 }
 function renderChips() {
   const el = $("#chips"); el.innerHTML = "";
@@ -364,14 +341,14 @@ function kpiPill(val, target, higherIsBetter = true) {
 }
 function renderKpis(rows, P) {
   const m = metrics(rows);
-  const goalKey = P.kind === "month" ? P.from.slice(0, 7) : null;
-  const goal = goalKey && settings.cashGoals ? settings.cashGoals[goalKey] : null;
+  const goal = cashGoal(P);
+  const goalPill = goal ? `<span class="pill ${m.cash >= goal ? "good" : m.cash >= goal * 0.8 ? "warn" : "bad"}">${m.cash >= goal ? "✓" : "!"} ${fmtPct(m.cash / goal)} of ${fmtMoney(goal)}</span>` : "";
   const tiles = [
     ["Calls booked", m.booked, `${m.held} completed · ${m.noShow} no-show · ${m.cxl} cxl`],
     ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, settings.kpis.show) || "no completed calls yet"],
-    ["Close rate", fmtPct(m.closeRate), `${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
+    ["Close rate", fmtPct(m.closeRate), (kpiPill(m.closeRate, settings.kpis.close) || "") + ` ${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
     ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, settings.kpis.offer) || "") + ` ${m.offers} offers`],
-    ["Cash collected", fmtMoney(m.cash), goal ? `${fmtPct(m.cash / goal)} of ${fmtMoney(goal)} goal` : `${fmtMoney(m.revenue)} revenue generated`],
+    ["Cash collected", fmtMoney(m.cash), goal ? goalPill + (goal > m.cash ? ` ${fmtMoney(goal - m.cash)} to go` : " goal met") : `${fmtMoney(m.revenue)} revenue generated`],
     ["Still nurturing", m.nurturing, `${m.lost} lost · ${m.setToJill} set to Jill`],
   ];
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
@@ -412,7 +389,8 @@ function renderRateCharts(P, names) {
     let s = svgOpen(W, H) + `<g class="grid">`;
     for (const v of [0, 0.5, 1]) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
     s += `</g>`;
-    if (key === "showRate") s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(settings.kpis.show)}" y2="${y(settings.kpis.show)}" stroke="var(--good)" stroke-dasharray="3 3"/>`;
+    const kpi = key === "showRate" ? settings.kpis.show : settings.kpis.close;
+    if (kpi) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(kpi)}" y2="${y(kpi)}" stroke="var(--good)" stroke-dasharray="3 3"/><text x="${W - pad.r + 3}" y="${y(kpi) + 4}" font-size="9" fill="var(--good-text)">KPI</text>`;
     for (const n of names) {
       const pts = B.map((b, i) => { const m = metrics(calls.filter(r => r.closer === n && inRange(r, b))); return m[key] == null ? null : { x: x(i), y: y(m[key]), v: m[key], m }; });
       const segs = []; let cur = [];
@@ -449,7 +427,7 @@ function renderCards(P, names) {
     ["section", "Outcome"],
     ["Wins", m => m.wins], ["Nurturing", m => m.nurturing, "dim"], ["Lost", m => m.lost, "dim"], ["Set to Jill", m => m.setToJill, "dim"],
     ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"],
-    ["Close % (of completed)", m => m.closeRate, "pct"], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
+    ["Close % (KPI 25%)", m => m.closeRate, "pct", settings.kpis.close], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
   ];
   $("#cards").innerHTML = names.map(n => {
     const all = calls.filter(r => r.closer === n && inRange(r, P));
@@ -468,60 +446,102 @@ function renderCards(P, names) {
       `</tbody></table></div></div>`;
   }).join("") || `<div class="panel empty">No calls logged for ${esc(P.label)} yet.</div>`;
 }
-function renderLog(rows, P) {
-  $("#log-sub").textContent = `${rows.length} call${rows.length === 1 ? "" : "s"} · ${P.label}${canWrite ? " · click a row to edit" : ""}`;
-  if (!rows.length) { $("#log-table").innerHTML = `<p class="empty">${calls.length ? "Nothing in this period." : "Waiting for the shared call log…"}</p>`; return; }
-  const yn = v => v ? "Yes" : "";
-  $("#log-table").innerHTML = `<table><thead><tr><th>Date</th><th style="text-align:left">Closer</th><th style="text-align:left">Lead</th><th style="text-align:left">Type</th><th>Conf.</th><th>Offer</th><th>No-show</th><th>Cxl</th><th style="text-align:left">Status</th><th>Revenue</th><th>Cash</th><th style="text-align:left">Next steps</th></tr></thead><tbody>` +
-    rows.map(r => `<tr class="row" data-id="${esc(r.id)}"><td style="text-align:left">${shortDate(r.date)}${r.dateEstimated ? '<span class="dim" title="date estimated from sheet week">*</span>' : ""}</td><td style="text-align:left"><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td style="text-align:left">${esc(r.lead)}</td><td style="text-align:left" class="dim">${esc(r.callType || "")}</td><td>${yn(r.confirmed)}</td><td>${yn(r.offer)}</td><td>${yn(r.noShow)}</td><td>${yn(r.cxl)}</td><td style="text-align:left"><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td><td>${r.revenue ? fmtMoney(r.revenue) : ""}</td><td>${r.cash ? fmtMoney(r.cash) : ""}</td><td class="notes">${esc(r.notes)}</td></tr>`).join("") + "</tbody></table>";
-  if (canWrite) for (const tr of $("#log-table").querySelectorAll("tr.row")) tr.onclick = () => openEditor(calls.find(c => c.id === tr.dataset.id));
+// ---------- Closer Tracker grid (the spreadsheet tab, editable in place) ----------
+const STATUSES = [["OPEN", "—"], ["WIN", "WIN"], ["LOST", "LOST"], ["NURTURING", "NURTURING"], ["NO-SHOW", "NO-SHOW"], ["CXL'D", "CXL'D"], ["RESCHEDULED", "RESCHEDULED"], ["SET TO JILL", "SET TO JILL"], ["UNQUALIFIED", "UNQUALIFIED"]];
+const trackerHost = $("#tracker-body");
+let trackerStale = false;
+const trackerMonth = () => state.anchor.slice(0, 7);
+function renderTracker(force) {
+  if (!force && trackerHost.contains(document.activeElement)) { trackerStale = true; return; }
+  trackerStale = false;
+  const ym = trackerMonth(), d = parse(ym + "-01"), monthLabel = MONTHS[d.getMonth()] + " " + d.getFullYear();
+  if (!settings.closers.some(c => c.name === state.tab)) state.tab = settings.closers[0].name;
+  $("#tabs").innerHTML = settings.closers.map(c => { const n = calls.filter(r => r.closer === c.name && r.date.slice(0, 7) === ym).length;
+    return `<button type="button" role="tab" aria-selected="${state.tab === c.name}" data-tab="${esc(c.name)}"><span class="dot" style="background:var(--${c.color})"></span>${esc(c.name)}<span class="n">${n}</span></button>`; }).join("");
+  for (const b of $("#tabs").children) b.onclick = () => { state.tab = b.dataset.tab; renderTracker(true); };
+  $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Type into a row; it saves when you leave the cell. Use ‹ › above to change month."}`;
+  const weeks = monthWeeks(ym);
+  const rows = calls.filter(r => r.closer === state.tab && r.date.slice(0, 7) === ym);
+  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="x"></th></tr></thead>`;
+  trackerHost.innerHTML = weeks.map((w, i) => {
+    const wr = rows.filter(r => inRange(r, w)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "").localeCompare(b.createdAt || ""));
+    const m = metrics(wr);
+    return `<div class="wk"><h3>Week ${i + 1}<span>${shortDate(w.from)} – ${shortDate(w.to)}</span></h3><span class="status-line">${m.booked} booked · ${m.held} completed · ${m.wins} win${m.wins === 1 ? "" : "s"} · ${fmtMoney(m.cash)} cash</span></div>
+      <div class="tablewrap"><table class="grid">${head}<tbody>${wr.map(r => rowHtml(r, w)).join("")}${canWrite === false ? "" : rowHtml(null, w)}</tbody></table></div>`;
+  }).join("");
 }
-
-// ---------- editor ----------
-let editing = null;
-function openEditor(rec) {
-  if (!canWrite) return;
-  editing = rec || null;
-  $("#editor-title").textContent = rec ? `Edit call · ${rec.lead}` : "Log a call";
-  const sel = $("#f-closer"); sel.innerHTML = settings.closers.map(c => `<option>${esc(c.name)}</option>`).join("");
-  let last = ""; try { last = localStorage.getItem("ct.lastCloser") || ""; } catch (e) {}
-  sel.value = rec ? rec.closer : (last || settings.closers[0].name);
-  $("#f-date").value = rec ? rec.date : todayStr(); $("#f-lead").value = rec ? rec.lead : ""; $("#f-type").value = rec ? rec.callType || "" : "New Consult";
-  $("#f-status").value = rec ? rec.status : "OPEN";
-  $("#f-confirmed").checked = !!rec?.confirmed; $("#f-offer").checked = !!rec?.offer; $("#f-noshow").checked = !!rec?.noShow; $("#f-cxl").checked = !!rec?.cxl; $("#f-deposit").checked = !!rec?.deposit;
-  $("#f-revenue").value = rec?.revenue || ""; $("#f-cash").value = rec?.cash || ""; $("#f-notes").value = rec?.notes || "";
-  $("#f-err").hidden = true;
-  $("#del-area").innerHTML = rec ? `<button class="btn danger" type="button" id="btn-del">Delete</button>` : "";
-  if (rec) $("#btn-del").onclick = () => { $("#del-area").innerHTML = `<span class="confirm">Delete this call? <button class="btn danger" type="button" id="btn-del-yes">Yes, delete</button></span>`; $("#btn-del-yes").onclick = deleteCall; };
-  $("#scrim").hidden = false; $("#editor").hidden = false; $("#f-lead").focus();
+function rowHtml(r, w) {
+  const dis = canWrite === false ? " disabled" : "", chk = v => v ? " checked" : "";
+  const st = r?.status || "OPEN";
+  return `<tr data-id="${esc(r?.id || "")}" data-from="${w.from}" data-to="${w.to}" class="${r ? "" : "new"}">
+    <td><input data-f="lead" type="text" autocomplete="off" value="${esc(r?.lead || "")}" placeholder="${r ? "" : "+ add a lead"}" aria-label="Lead name"${dis}></td>
+    <td><input data-f="date" type="date" value="${r?.date || ""}" aria-label="Date of call"${dis}></td>
+    <td class="c"><input data-f="offer" type="checkbox"${chk(r?.offer)} aria-label="Offer made"${dis}></td>
+    <td class="c"><input data-f="noShow" type="checkbox"${chk(r?.noShow)} aria-label="No show"${dis}></td>
+    <td class="c"><input data-f="cxl" type="checkbox"${chk(r?.cxl)} aria-label="Lead cancelled"${dis}></td>
+    <td><select data-f="status" class="${esc(st)}" aria-label="Sales status"${dis}>${STATUSES.map(([v, l]) => `<option value="${esc(v)}"${v === st ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></td>
+    <td class="c"><input data-f="deposit" type="checkbox"${chk(r?.deposit)} aria-label="Deposit received"${dis}></td>
+    <td><input data-f="revenue" type="number" class="num" min="0" step="1" inputmode="decimal" value="${r?.revenue || ""}" aria-label="Total revenue generated"${dis}></td>
+    <td><input data-f="cash" type="number" class="num" min="0" step="1" inputmode="decimal" value="${r?.cash || ""}" aria-label="Cash collected today"${dis}></td>
+    <td><select data-f="callType" aria-label="Call type"${dis}><option value=""${!r?.callType ? " selected" : ""}>—</option><option${r?.callType === "New Consult" ? " selected" : ""}>New Consult</option><option${r?.callType === "Follow-up" ? " selected" : ""}>Follow-up</option></select></td>
+    <td><input data-f="notes" type="text" autocomplete="off" value="${esc(r?.notes || "")}" aria-label="Next steps"${dis}></td>
+    <td class="x">${r && canWrite !== false ? `<button type="button" class="x" data-del title="Delete this row" aria-label="Delete row">×</button>` : ""}</td></tr>`;
 }
-function closeEditor() { $("#scrim").hidden = true; $("#editor").hidden = true; editing = null; }
-// keep status and the no-show / cancel checkboxes in step
-$("#f-status").addEventListener("change", e => { const v = e.target.value; if (v === "NO-SHOW") { $("#f-noshow").checked = true; $("#f-cxl").checked = false; } if (v === "CXL'D") { $("#f-cxl").checked = true; $("#f-noshow").checked = false; } });
-$("#f-noshow").addEventListener("change", e => { if (e.target.checked && $("#f-status").value === "OPEN") $("#f-status").value = "NO-SHOW"; });
-$("#f-cxl").addEventListener("change", e => { if (e.target.checked && $("#f-status").value === "OPEN") $("#f-status").value = "CXL'D"; });
-async function saveCall() {
-  const lead = $("#f-lead").value.trim(), date = $("#f-date").value;
-  if (!lead || !date) { $("#f-err").textContent = "A lead name and a call date are needed."; $("#f-err").hidden = false; return; }
-  const rec = { id: editing ? editing.id : "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    closer: $("#f-closer").value, lead, date, callType: $("#f-type").value, status: $("#f-status").value,
-    confirmed: $("#f-confirmed").checked, offer: $("#f-offer").checked, noShow: $("#f-noshow").checked, cxl: $("#f-cxl").checked, deposit: $("#f-deposit").checked,
-    revenue: +$("#f-revenue").value || 0, cash: +$("#f-cash").value || 0, notes: $("#f-notes").value.trim(),
-    dateEstimated: false, source: editing ? editing.source || "dashboard" : "dashboard", createdAt: editing ? editing.createdAt || new Date().toISOString() : new Date().toISOString(), updatedAt: new Date().toISOString() };
-  if (rec.status === "NO-SHOW") rec.noShow = true; if (rec.status === "CXL'D") rec.cxl = true;
-  $("#btn-save").disabled = true;
-  try { await db.collection("calls").doc(rec.id).set(rec); try { localStorage.setItem("ct.lastCloser", rec.closer); } catch (e) {} closeEditor(); }
-  catch (e) { $("#f-err").textContent = e?.code === "invalid_argument" ? "This page is read-only for your account. Ask the owner to make you a Contributor." : "Couldn't save (" + (e?.code || "error") + "). Try again."; $("#f-err").hidden = false; }
-  $("#btn-save").disabled = false;
+function readRow(tr) {
+  const g = f => tr.querySelector(`[data-f="${f}"]`);
+  const prev = calls.find(c => c.id === tr.dataset.id) || {};
+  const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
+    status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(),
+    confirmed: prev.confirmed ?? false, source: prev.source || "dashboard", createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+  if (rec.date !== prev.date) rec.dateEstimated = false;
+  return rec;
 }
-async function deleteCall() {
-  if (!editing) return;
-  try { await db.collection("calls").doc(editing.id).delete(); closeEditor(); }
-  catch (e) { $("#f-err").textContent = "Couldn't delete (" + (e?.code || "error") + ")."; $("#f-err").hidden = false; }
+const writeQueue = {};
+function writeDoc(rec) {
+  const op = () => db.collection("calls").doc(rec.id).set(rec);
+  writeQueue[rec.id] = (writeQueue[rec.id] || Promise.resolve()).then(op, op).catch(e => {
+    setStatus(e?.code === "invalid_argument" ? "Couldn't save: this page is read-only for your account. Ask the owner to make you a Contributor." : `Couldn't save ${rec.lead || "row"} (${e?.code || "error"}). Try the cell again.`, true);
+  });
 }
-$("#btn-add").onclick = () => openEditor(null);
-$("#btn-cancel").onclick = closeEditor; $("#scrim").onclick = closeEditor; $("#btn-save").onclick = saveCall;
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#editor").hidden) closeEditor(); });
+trackerHost.addEventListener("change", e => {
+  const inp = e.target.closest("[data-f]"); if (!inp || canWrite === false) return;
+  const tr = inp.closest("tr"), f = inp.dataset.f, q = f => tr.querySelector(`[data-f="${f}"]`);
+  // keep the status column and the no-show / cancel boxes in step, like the sheet
+  if (f === "status") { if (inp.value === "NO-SHOW") { q("noShow").checked = true; q("cxl").checked = false; } if (inp.value === "CXL'D") { q("cxl").checked = true; q("noShow").checked = false; } }
+  if ((f === "noShow" || f === "cxl") && inp.checked && q("status").value === "OPEN") q("status").value = f === "noShow" ? "NO-SHOW" : "CXL'D";
+  if ((f === "noShow" || f === "cxl") && !inp.checked && q("status").value === (f === "noShow" ? "NO-SHOW" : "CXL'D")) q("status").value = "OPEN";
+  q("status").className = q("status").value;
+  const isNew = !tr.dataset.id;
+  if (isNew) {
+    if (!q("lead").value.trim()) return;             // a blank row only becomes a call once it has a lead
+    tr.dataset.id = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    tr.classList.remove("new"); q("lead").placeholder = "";
+    tr.querySelector("td.x").innerHTML = `<button type="button" class="x" data-del title="Delete this row" aria-label="Delete row">×</button>`;
+    tr.insertAdjacentHTML("afterend", rowHtml(null, { from: tr.dataset.from, to: tr.dataset.to }));
+  }
+  if (!q("date").value) { const t = todayStr(); q("date").value = t >= tr.dataset.from && t <= tr.dataset.to ? t : tr.dataset.from; }
+  const rec = readRow(tr);
+  if (!rec.lead) return;
+  const i = calls.findIndex(c => c.id === rec.id); if (i >= 0) calls[i] = rec; else calls.push(rec);
+  renderTop();
+  writeDoc(rec);
+});
+trackerHost.addEventListener("click", e => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  const tr = b.closest("tr"), id = tr.dataset.id;
+  if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Delete?"; setTimeout(() => { b.classList.remove("armed"); b.textContent = "×"; }, 3500); return; }
+  calls = calls.filter(c => c.id !== id); tr.remove(); renderTop();
+  const op = () => db.collection("calls").doc(id).delete();
+  writeQueue[id] = (writeQueue[id] || Promise.resolve()).then(op, op).catch(e => setStatus(`Couldn't delete that row (${e?.code || "error"}).`, true));
+});
+trackerHost.addEventListener("focusout", () => setTimeout(() => { if (trackerStale && !trackerHost.contains(document.activeElement)) renderTracker(true); }, 0));
+// Enter in a text cell moves down the same column, like a sheet
+trackerHost.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.target.tagName !== "INPUT" || e.target.type === "checkbox") return;
+  const td = e.target.closest("td"), tr = td.parentElement, idx = [...tr.children].indexOf(td), next = tr.nextElementSibling;
+  e.preventDefault(); e.target.blur();
+  if (next) next.children[idx]?.querySelector("input,select")?.focus();
+});
 for (const b of $("#seg-period").children) b.onclick = () => { state.period = b.dataset.p; render(); };
 $("#nav-prev").onclick = () => shift(-1); $("#nav-next").onclick = () => shift(1); $("#nav-today").onclick = () => { state.anchor = todayStr(); render(); };
 
@@ -530,13 +550,13 @@ function setStatus(t, warn) { const el = $("#status"); el.textContent = t; el.cl
 render();
 (async () => {
   db = await claude.use("db");
-  if (!db) { setStatus("Sign in to claude.ai to see and log calls.", true); $("#btn-add").disabled = true; return; }
+  if (!db) { setStatus("Sign in to claude.ai to see and log calls.", true); canWrite = false; renderTracker(true); return; }
   userApi = await claude.use("user");
   canWrite = userApi ? await userApi.can("data.write") : null;
-  if (canWrite === false) { $("#btn-add").disabled = true; setStatus("Read-only: ask the owner to make you a Contributor to log calls."); }
+  if (canWrite === false) setStatus("Read-only: ask the owner to make you a Contributor to log calls.");
   else if (canWrite === null) canWrite = true; // not told: keep inputs, a refused write will say so
   let timer = setTimeout(() => setStatus("Still reaching the call log… numbers may be out of date.", true), 10000);
-  db.doc("settings/main").onSnapshot(s => { if (s.exists) { const d = s.data(); settings = { ...DEFAULT_SETTINGS, ...d, kpis: { ...DEFAULT_SETTINGS.kpis, ...(d.kpis || {}) } }; render(); } }, () => {});
+  db.doc("settings/main").onSnapshot(s => { if (s.exists) { const d = s.data(); settings = { ...DEFAULT_SETTINGS, ...d, kpis: { ...DEFAULT_SETTINGS.kpis, ...(d.kpis || {}) }, cashGoals: { ...DEFAULT_SETTINGS.cashGoals, ...(d.cashGoals || {}) } }; render(); } }, () => {});
   db.collection("calls").onSnapshot(snap => {
     calls = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer);
     if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(`${calls.length} calls on record${canWrite ? "" : " · read-only"}`); }
