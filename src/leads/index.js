@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { requireEnv } = require('../config');
 const { fetchAllRegistrations } = require('./webinarjam');
-const { fetchBookings, fetchPayments, fetchThreadEmails } = require('./slackActivity');
+const { fetchBookings, fetchPayments, fetchThreadEmails, fetchPostWebinarStats } = require('./slackActivity');
+const { buildWebinarStats } = require('./webinarStats');
 const { buildNameIndex, matchItems } = require('./matchPeople');
 const { buildLeads } = require('./buildLeads');
 const { renderTracker } = require('./render');
@@ -12,6 +13,7 @@ const { sampleInputs } = require('./sampleData');
 
 const TIME_ZONE = process.env.REPORT_TIMEZONE || 'America/New_York';
 const ALIASES_FILE = process.env.LEAD_EMAIL_ALIASES_FILE;
+const WEBINAR_NOTES_FILE = process.env.WEBINAR_NOTES_FILE;
 const OUT_DIR = path.resolve(process.env.LEADS_OUT_DIR || 'dist');
 const DEMO = process.argv.includes('--demo');
 
@@ -54,7 +56,24 @@ async function loadInputs() {
       warnings.push(`Couldn't read a payment thread (${err.message}); matching by thread was skipped for it.`);
     }
   }
-  return { registrations, bookings, payments, warnings, threadEmails };
+
+  let slackPosts = {};
+  const statsChannel = process.env.WEBINAR_STATS_CHANNEL_ID;
+  if (statsChannel) {
+    try {
+      slackPosts = await fetchPostWebinarStats(slackToken, statsChannel, oldest, TIME_ZONE);
+    } catch (err) {
+      warnings.push(`Couldn't read the post-webinar stats channel (${err.message}); the Slack column is blank this sync.`);
+    }
+  }
+  return { registrations, bookings, payments, warnings, threadEmails, slackPosts };
+}
+
+// What the team learned from each webinar (chat, transcript, what Jacqueline
+// did), keyed by webinar day: { "2026-11-09": { "summary": "...", "points": [...] } }.
+// It quotes attendees, so like the aliases it lives with the private page.
+function loadNotes(file) {
+  return file ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
 }
 
 function loadAliases(file) {
@@ -64,7 +83,7 @@ function loadAliases(file) {
 }
 
 async function main() {
-  const { registrations, bookings, payments, warnings, threadEmails } = await loadInputs();
+  const { registrations, bookings, payments, warnings, threadEmails, slackPosts = {} } = await loadInputs();
 
   // Bookings and payments made under a different email than the
   // registration are linked by hand-entered aliases, the payment's Slack
@@ -87,7 +106,12 @@ async function main() {
   const autoMatched = [...matchedBookings, ...matchedPayments].filter((i) => i.matchedBy === 'name' || i.matchedBy === 'thread');
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const payload = { generatedAt: new Date().toISOString(), timeZone: TIME_ZONE, warnings, leads, unmatchedPayments };
+  const webinars = buildWebinarStats(registrations, matchedBookings, {
+    slackPosts,
+    notes: loadNotes(WEBINAR_NOTES_FILE),
+    timeZone: TIME_ZONE,
+  });
+  const payload = { generatedAt: new Date().toISOString(), timeZone: TIME_ZONE, warnings, leads, unmatchedPayments, webinars };
   // lead-tracker.html opens straight from disk; artifact.html is what gets
   // published to the team's claude.ai page.
   const outFile = path.join(OUT_DIR, 'lead-tracker.html');

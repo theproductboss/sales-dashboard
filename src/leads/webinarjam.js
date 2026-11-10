@@ -51,6 +51,13 @@ async function listRegistrants(apiKey, webinarId) {
   return all;
 }
 
+// "01:09:46" -> 4186 seconds; WebinarJam uses this for join offsets and watch time.
+function hmsToSeconds(value) {
+  const parts = String(value || '').split(':').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return 0;
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+}
+
 function isTruthyFlag(value) {
   if (value === true || value === 1) return true;
   return /^(1|yes|true)$/i.test(String(value ?? '').trim());
@@ -105,6 +112,10 @@ function normalizeRegistrant(raw, webinar, scheduleDates) {
     webinarDate,
     attendedLive: isTruthyFlag(raw.attended_live),
     timeLive: raw.time_live || null,
+    // When they joined (seconds after the start) and how long they stayed,
+    // which together give the live attendance curve.
+    enteredLiveSec: hmsToSeconds(raw.entered_live),
+    watchedLiveSec: hmsToSeconds(raw.time_live),
     attendedReplay: isTruthyFlag(raw.attended_replay),
     revenueLevel: findRevenueLevel(raw),
     utm: {
@@ -150,6 +161,7 @@ async function fetchAllRegistrations(apiKey, { webinarIds, nameIncludes } = {}) 
 }
 
 module.exports = {
+  hmsToSeconds,
   webinarjamFetch,
   listWebinars,
   getWebinar,

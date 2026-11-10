@@ -31,6 +31,7 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font-body); }
   .wrap { max-width: 1280px; margin: 0 auto; padding-block: 24px 64px;
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -84,6 +85,33 @@
   .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
   .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
   .footnote { max-width: 90ch; margin: 0; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+  .tabs a { padding: 10px 14px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
+    letter-spacing: .08em; text-transform: uppercase; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+  .tabs a[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel { display: grid; gap: 16px; }
+  h3 { font: 600 12px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .callout { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 16px; }
+  .callout h2 { margin-bottom: 4px; }
+  .callout p { margin: 4px 0 0; max-width: 90ch; }
+  #webinarTable tbody tr { cursor: pointer; }
+  #webinarTable tbody tr:hover td { background: var(--pill); }
+  #webinarTable tbody tr.selected td { background: var(--accent-soft); }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .chart-wrap .tip { position: absolute; top: 0; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); margin-top: 6px; }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); vertical-align: middle; margin-right: 6px; }
+  .legend i.cmp { border-top: 2px dashed var(--muted); }
+  .legend b.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good); vertical-align: middle; margin-right: 6px; }
+  .compare { display: flex; align-items: center; gap: 8px; }
+  .grid-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 16px; }
+  .note-box { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+  .note-box h4 { margin: 0 0 6px; font-size: 13px; }
+  .note-box ul { margin: 6px 0 0; padding-left: 18px; }
+  .goal-yes { color: var(--good); font-weight: 600; }
+  .goal-no { color: var(--warn); font-weight: 600; }
   button.drill { font: inherit; color: var(--accent); background: none; border: 0; padding: 0 2px; border-bottom: 1px dashed currentColor; border-radius: 0; font-weight: 600; }
   button.drill:hover, button.drill.on { border-bottom-style: solid; }
   tr.detail > td { background: var(--peach); padding: 4px 8px 10px; white-space: normal; }
@@ -104,6 +132,29 @@
   </header>
   <div id="banner"></div>
 
+  <section class="card ask" id="askCard">
+    <div class="toolbar"><h2>Ask about your leads</h2></div>
+    <form id="askForm">
+      <input id="question" type="text" placeholder="e.g. Where did jane@example.com come from?" aria-label="Question" autocomplete="off">
+      <button class="primary" id="askBtn">Ask</button>
+      <button type="button" id="stopBtn" hidden>Stop</button>
+    </form>
+    <div class="examples" id="examples">
+      <button type="button">Which campaign booked the most calls in the last 30 days?</button>
+      <button type="button">How many people are signed up for the next webinar?</button>
+      <button type="button">Which ad has the best show-up rate?</button>
+      <button type="button">Who paid in the last 2 weeks, and which ad did they come from?</button>
+    </div>
+    <div class="answer" id="answer" hidden></div>
+    <p class="muted small" id="askNote" hidden></p>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <a href="#leads" role="tab" id="tabLeads" aria-controls="panelLeads">Leads</a>
+    <a href="#webinars" role="tab" id="tabWebinars" aria-controls="panelWebinars">Webinar performance</a>
+  </nav>
+
+  <div class="panel" id="panelLeads" role="tabpanel" aria-labelledby="tabLeads">
   <section class="card">
     <div class="filters">
       <label class="wide">Search name, email, phone, or ad
@@ -142,22 +193,6 @@
     </div>
   </section>
 
-  <section class="card ask" id="askCard">
-    <div class="toolbar"><h2>Ask about your leads</h2></div>
-    <form id="askForm">
-      <input id="question" type="text" placeholder="e.g. Where did jane@example.com come from?" aria-label="Question" autocomplete="off">
-      <button class="primary" id="askBtn">Ask</button>
-      <button type="button" id="stopBtn" hidden>Stop</button>
-    </form>
-    <div class="examples" id="examples">
-      <button type="button">Which campaign booked the most calls in the last 30 days?</button>
-      <button type="button">How many people are signed up for the next webinar?</button>
-      <button type="button">Which ad has the best show-up rate?</button>
-      <button type="button">Who paid in the last 2 weeks, and which ad did they come from?</button>
-    </div>
-    <div class="answer" id="answer" hidden></div>
-    <p class="muted small" id="askNote" hidden></p>
-  </section>
 
   <div class="kpis" id="kpis"></div>
 
@@ -205,6 +240,49 @@
     webinar" averages each session's own rate. Bookings and payments only count if they came in on or after the
     lead registered. A lead's ad and registration date come from their first registration.
   </p>
+  </div>
+
+  <div class="panel" id="panelWebinars" role="tabpanel" aria-labelledby="tabWebinars" hidden>
+    <div class="callout" id="bestCallout" hidden></div>
+
+    <section class="card">
+      <div class="toolbar">
+        <h2>Every Collective webinar</h2>
+        <span class="muted small">Goal: over 20% of live attendees in each $25K+ range book a call. Click a webinar for the details.</span>
+      </div>
+      <div class="table-wrap"><table id="webinarTable"></table></div>
+    </section>
+
+    <section class="card" id="sessionCard">
+      <div class="toolbar">
+        <h2 id="sessionTitle">Webinar</h2>
+        <label class="muted small compare">Compare attendance with
+          <select id="compareWith"></select>
+        </label>
+      </div>
+      <div class="kpis" id="sessionKpis"></div>
+      <h3>Who was in the room, minute by minute</h3>
+      <div class="chart-wrap" id="curveWrap">
+        <svg id="curve" role="img" aria-labelledby="curveDesc" preserveAspectRatio="none"></svg>
+        <div class="tip" id="curveTip" hidden></div>
+      </div>
+      <p class="muted small" id="curveDesc"></p>
+      <div class="legend small" id="curveLegend" hidden></div>
+      <h3>Booked by revenue range</h3>
+      <div class="table-wrap"><table id="rangeTable"></table></div>
+      <div class="grid-notes">
+        <div class="note-box" id="slackBox"></div>
+        <div class="note-box" id="notesBox"></div>
+      </div>
+    </section>
+
+    <p class="muted small footnote">
+      Show rate is attended live ÷ registered. Book rate is calls booked ÷ live attendees, counting bookings from an hour before the
+      webinar to two days after. Joelle's Slack post divides bookings by the peak number in the room, so her percentage reads higher.
+      The minute-by-minute curve is rebuilt from when each attendee joined and how long they stayed, so its peak can differ slightly
+      from WebinarJam's "max at one time."
+    </p>
+  </div>
 </div>
 
 <script>
@@ -537,6 +615,21 @@ const askTools = [
       return out;
     },
   },
+  {
+    name: 'webinar_performance',
+    description: 'Returns every Collective webinar session: registered, attended live, show rate, peak attendance and when it happened, biggest drop-off, average minutes watched, calls booked and book rates (overall, $25K+, under $25K), how many $25K+ revenue ranges beat the 20% booking goal, the per-revenue-range breakdown, Joelle\'s Slack post and any notes on what happened. Use it for any question comparing webinars.',
+    execute() {
+      return (DATA.webinars || []).map((w) => ({
+        date: w.date, happened: w.happened, registered: w.registered, attendedLive: w.attended,
+        showRate: pctOrDash(w.showRate), peak: w.moments && w.moments.peak, peakMinute: w.moments && w.moments.peakMinute,
+        biggestDrop: w.moments && w.moments.bigDrop, avgMinutesWatched: w.avgMinutesWatched,
+        booked: w.booked, bookRateOfLive: pctOrDash(w.bookRate), bookRate25kPlus: pctOrDash(w.bookRate25k),
+        rangesOver20Pct: `${w.goal.met} of ${w.goal.of}`,
+        ranges: w.ranges.filter((r) => r.registered).map((r) => ({ range: r.label, registered: r.registered, live: r.attended, booked: r.booked, bookRate: pctOrDash(r.bookRate) })),
+        slackPost: w.slack, notes: w.notes,
+      }));
+    },
+  },
 ];
 
 function askPrompt(question, withTools) {
@@ -553,7 +646,7 @@ function askPrompt(question, withTools) {
     `The person asking currently has these page filters set (only use them if the question refers to "these" or "this view"): ${JSON.stringify(pickFilters(currentFilters()))}.`,
   ];
   if (withTools) {
-    lines.push('Use the find_leads and count_leads tools to get the facts. Prefer one well-filtered call over many.');
+    lines.push('Use the find_leads and count_leads tools to get the facts about leads, and webinar_performance to compare webinars (show rate, attendance peaks and drop-offs, bookings by revenue range against the goal of over 20% of live $25K+ attendees booking). Prefer one well-filtered call over many.');
   } else {
     // Without tools, send the leads in the current view, trimmed to fit the prompt limit.
     const rows = [];
@@ -646,4 +739,205 @@ $('examples').addEventListener('click', (e) => {
   ask(b.textContent);
 });
 render();
+
+// ---- Webinar performance tab ----
+const WEBINARS = DATA.webinars || [];
+const past = WEBINARS.filter((w) => w.happened && w.attended > 0);
+const goalPct = 0.2;
+const pctOrDash = (r) => (r === null || r === undefined ? '—' : pct1(r * 1000, 1000).replace(/%$/, '') + '%');
+const wDate = (w) => fmtDate(w.webinarDate);
+const wDay = (w) => new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(w.webinarDate));
+const minuteLabel = (m) => `minute ${m}`;
+const clock = (w, m) => new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' })
+  .format(new Date(new Date(w.webinarDate).getTime() + m * 60000));
+
+// The best booking day: highest share of $25K+ live attendees who booked,
+// among webinars with enough $25K+ attendees for the rate to mean something.
+const best = past.filter((w) => w.attended25k >= 5).sort((a, b) => b.bookRate25k - a.bookRate25k)[0] || null;
+const showLeader = past.slice().sort((a, b) => b.showRate - a.showRate)[0] || null;
+const wstate = { selected: (best || past[0] || WEBINARS[0] || {}).date, compare: '' };
+
+function renderBestCallout() {
+  if (!best) { $('bestCallout').hidden = true; return; }
+  const others = past.filter((w) => w !== best && w.attended25k >= 5);
+  const next = others.slice().sort((a, b) => b.bookRate25k - a.bookRate25k)[0];
+  const avgOthers = others.length ? others.reduce((sum, w) => sum + w.bookRate25k, 0) / others.length : null;
+  const show = best.showRate;
+  $('bestCallout').hidden = false;
+  $('bestCallout').innerHTML = `<h2>Best booking day: ${esc(wDay(best))}</h2>
+    <p><strong>${pctOrDash(best.bookRate25k)}</strong> of $25K+ live attendees booked a call (${best.booked25k} of ${best.attended25k})${
+      next ? `, against ${pctOrDash(next.bookRate25k)} on the next-best day (${esc(wDay(next))})${avgOthers !== null ? ` and an average of ${pctOrDash(avgOthers)} across the other webinars` : ''}` : ''}.
+    ${best.goal.of ? `${best.goal.met} of ${best.goal.of} $25K+ ranges cleared the 20% goal.` : ''}
+    Show rate was ${pctOrDash(show)}${show !== null && show < goalPct ? ', under the 20% goal' : ''}${showLeader && showLeader !== best ? ` (best show rate: ${pctOrDash(showLeader.showRate)} on ${esc(wDay(showLeader))})` : ''}.</p>`;
+}
+
+function renderWebinarTable() {
+  const head = `<thead><tr><th>Webinar</th><th class="num">Registered</th><th class="num">Live</th><th class="num" title="Attended live ÷ registered">Show %</th>
+    <th class="num" title="Most people in the room at once (rebuilt from join and watch times)">Peak</th><th class="num">Avg watched</th>
+    <th class="num">Booked</th><th class="num" title="Booked ÷ live attendees">Book %</th><th class="num" title="$25K+ live attendees who booked">$25K+ book %</th>
+    <th class="num" title="$25K+ ranges where over 20% of live attendees booked">Ranges over 20%</th></tr></thead>`;
+  const rows = WEBINARS.map((w) => {
+    const upcoming = !w.happened;
+    const flag = w === best ? ' <span class="pill good">Best booking day</span>' : '';
+    const cells = upcoming
+      ? `<td class="num">${w.registered}</td><td class="num" colspan="8"><span class="pill accent">upcoming</span></td>`
+      : `<td class="num">${w.registered}</td><td class="num">${w.attended}</td>
+        <td class="num ${w.showRate >= goalPct ? 'goal-yes' : 'goal-no'}">${pctOrDash(w.showRate)}</td>
+        <td class="num">${w.moments ? `${w.moments.peak} <span class="muted small">at ${clock(w, w.moments.peakMinute)}</span>` : '—'}</td>
+        <td class="num">${w.avgMinutesWatched !== null ? w.avgMinutesWatched + ' min' : '—'}</td>
+        <td class="num">${w.booked}</td><td class="num">${pctOrDash(w.bookRate)}</td>
+        <td class="num ${w.bookRate25k >= goalPct ? 'goal-yes' : 'goal-no'}">${pctOrDash(w.bookRate25k)} <span class="muted small">${w.booked25k}/${w.attended25k}</span></td>
+        <td class="num">${w.goal.of ? `<span class="${w.goal.met === w.goal.of ? 'goal-yes' : ''}">${w.goal.met} of ${w.goal.of}</span>` : '—'}</td>`;
+    return `<tr data-date="${w.date}" class="${w.date === wstate.selected ? 'selected' : ''}"><td>${esc(wDay(w))}${flag}</td>${cells}</tr>`;
+  }).join('');
+  $('webinarTable').innerHTML = head + '<tbody>' + (rows || '<tr><td colspan="10" class="muted">No webinars yet.</td></tr>') + '</tbody>';
+}
+
+function renderSession() {
+  const w = WEBINARS.find((x) => x.date === wstate.selected);
+  if (!w) { $('sessionCard').hidden = true; return; }
+  $('sessionCard').hidden = false;
+  $('sessionTitle').textContent = `${wDay(w)} · ${w.name || 'Collective Webinar'}`;
+  const tile = (label, value, sub) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  const m = w.moments;
+  $('sessionKpis').innerHTML = w.happened ? [
+    tile('Show rate', pctOrDash(w.showRate), `${w.attended} of ${w.registered} registered · goal 20%`),
+    tile('Peak in the room', m ? m.peak : '—', m ? `at ${clock(w, m.peakMinute)} (minute ${m.peakMinute})` : 'no attendance data'),
+    tile('Booked a call', w.booked, `${pctOrDash(w.bookRate)} of live attendees${w.bookedNotLive ? ` · plus ${w.bookedNotLive} who didn't attend live` : ''}`),
+    tile('$25K+ book rate', pctOrDash(w.bookRate25k), `${w.booked25k} of ${w.attended25k} · ${w.goal.met} of ${w.goal.of} ranges over 20%`),
+  ].join('') : tile('Registered so far', w.registered, 'This webinar hasn\'t happened yet');
+
+  const opts = past.filter((x) => x.date !== w.date).map((x) => `<option value="${x.date}">${esc(wDay(x))}</option>`).join('');
+  $('compareWith').innerHTML = '<option value="">Nothing</option>' + opts;
+  if (wstate.compare && wstate.compare !== w.date && past.some((x) => x.date === wstate.compare)) $('compareWith').value = wstate.compare;
+  else { wstate.compare = ''; $('compareWith').value = ''; }
+  $('compareWith').parentElement.hidden = !w.happened || !past.length;
+  renderCurve(w, past.find((x) => x.date === wstate.compare));
+
+  // Revenue ranges, in Joelle's post-webinar format.
+  const rows = w.ranges.filter((r) => r.registered > 0);
+  $('rangeTable').innerHTML = `<thead><tr><th>Revenue level</th><th class="num">Registered</th><th class="num">Live</th><th class="num">Show %</th><th class="num">Booked</th><th class="num">Book % of live</th><th>vs 20% goal</th></tr></thead><tbody>` +
+    rows.map((r) => `<tr><td>${esc(r.label)}</td><td class="num">${r.registered}</td><td class="num">${w.happened ? r.attended : '—'}</td><td class="num">${w.happened ? pctOrDash(r.showRate) : '—'}</td>
+      <td class="num">${w.happened ? r.booked + (r.bookedNotLive ? ` <span class="muted small">+${r.bookedNotLive} not live</span>` : '') : '—'}</td>
+      <td class="num">${w.happened ? pctOrDash(r.bookRate) : '—'}</td>
+      <td>${!w.happened || !r.min25k ? '' : r.attended === 0 ? '<span class="muted small">no one attended</span>' : r.bookRate >= goalPct ? '<span class="pill good">Over 20%</span>' : '<span class="pill warn">Under 20%</span>'}</td></tr>`).join('') +
+    `<tr><td><strong>Total</strong></td><td class="num"><strong>${w.registered}</strong></td><td class="num"><strong>${w.happened ? w.attended : '—'}</strong></td><td class="num"><strong>${w.happened ? pctOrDash(w.showRate) : '—'}</strong></td><td class="num"><strong>${w.happened ? w.booked : '—'}</strong></td><td class="num"><strong>${w.happened ? pctOrDash(w.bookRate) : '—'}</strong></td><td></td></tr></tbody>`;
+
+  const sl = w.slack;
+  $('slackBox').innerHTML = `<h4>Joelle's post-webinar stats (Slack)</h4>` + (sl
+    ? `<ul><li>Attended in total: <strong>${sl.attendedTotal ?? '—'}</strong></li><li>Max at one time: <strong>${sl.maxAtOnce ?? '—'}</strong></li>
+       <li>Show rate: <strong>${sl.showRate !== null ? pctOrDash(sl.showRate) : '—'}</strong></li><li>Booked: <strong>${esc(sl.bookedText || '—')}</strong></li></ul>`
+    : `<p class="muted small">${w.happened ? 'No post-webinar stats post found in #collective-webinars for this day.' : 'Posted after the webinar.'}</p>`);
+
+  const n = w.notes;
+  $('notesBox').innerHTML = `<h4>What happened on the call</h4>` + (n
+    ? `${n.summary ? `<p>${esc(n.summary)}</p>` : ''}${(n.points || []).length ? `<ul>${n.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}${n.source ? `<p class="muted small">From: ${esc(n.source)}</p>` : ''}`
+    : `<p class="muted small">No notes yet. WebinarJam doesn't share the chat or replay through its API, so export the chat and transcript from WebinarJam and give them to Claude. The takeaways will show here.</p>`);
+}
+
+function renderCurve(w, cmp) {
+  const svg = $('curve'), tip = $('curveTip');
+  const curve = w.curve || [];
+  if (!w.happened || !curve.length) {
+    svg.innerHTML = ''; $('curveWrap').hidden = true; $('curveLegend').hidden = true;
+    $('curveDesc').textContent = w.happened ? 'No attendance timing for this webinar.' : 'The attendance curve appears after the webinar.';
+    return;
+  }
+  $('curveWrap').hidden = false;
+  const series = [{ w, curve, cls: 'main' }].concat(cmp ? [{ w: cmp, curve: cmp.curve || [], cls: 'cmp' }] : []);
+  const width = Math.max(320, $('curveWrap').clientWidth || 800), height = 240;
+  const pad = { l: 36, r: 12, t: 14, b: 26 };
+  const bookedAt = (w.bookingMinutes || []);
+  const maxX = Math.max(...series.map((s) => s.curve.length - 1), ...bookedAt);
+  const rawMaxY = Math.max(...series.map((s) => Math.max(...s.curve)));
+  const step = rawMaxY > 40 ? 20 : rawMaxY > 20 ? 10 : 5;
+  const maxY = Math.max(step, Math.ceil(rawMaxY / step) * step);
+  const x = (m) => pad.l + (m / maxX) * (width - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - v / maxY) * (height - pad.t - pad.b);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const grid = [];
+  for (let v = 0; v <= maxY; v += step) grid.push(`<line x1="${pad.l}" x2="${width - pad.r}" y1="${y(v)}" y2="${y(v)}" class="grid"/><text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end" class="axis">${v}</text>`);
+  const xStep = maxX > 90 ? 15 : 10;
+  for (let m = 0; m <= maxX; m += xStep) grid.push(`<text x="${x(m)}" y="${height - 6}" text-anchor="middle" class="axis">${m === 0 ? 'start' : m + 'm'}</text>`);
+  const path = (c) => c.map((v, m) => `${m ? 'L' : 'M'}${x(m).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const main = series[0];
+  const area = `${path(main.curve)}L${x(main.curve.length - 1)},${y(0)}L${x(0)},${y(0)}Z`;
+  const mm = w.moments;
+  svg.innerHTML = `<style>
+      .grid{stroke:var(--border);stroke-width:1}.axis{fill:var(--muted);font:11px var(--font-body)}
+      .area{fill:var(--accent-soft)}.line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+      .cmpline{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:5 4}
+      .peak{fill:var(--accent);stroke:var(--surface);stroke-width:2}.peaklabel{fill:var(--text);font:600 12px var(--font-body)}
+      .drop{fill:var(--warn-soft);opacity:.7}.cross{stroke:var(--muted);stroke-width:1}
+      .bk{fill:var(--good);stroke:var(--surface);stroke-width:1.5}
+    </style>
+    ${mm && mm.bigDrop ? `<rect class="drop" x="${x(mm.bigDrop.from)}" y="${pad.t}" width="${x(mm.bigDrop.to) - x(mm.bigDrop.from)}" height="${y(0) - pad.t}"/>` : ''}
+    ${grid.join('')}
+    <path class="area" d="${area}"/>
+    ${cmp ? `<path class="cmpline" d="${path(series[1].curve)}"/>` : ''}
+    <path class="line" d="${path(main.curve)}"/>
+    ${mm ? `<circle class="peak" cx="${x(mm.peakMinute)}" cy="${y(mm.peak)}" r="5"/><text class="peaklabel" x="${x(mm.peakMinute)}" y="${y(mm.peak) - 9}" text-anchor="middle">Peak ${mm.peak}</text>` : ''}
+    ${bookedAt.map((m, i) => `<circle class="bk" cx="${x(m)}" cy="${y(0) - 5 - (bookedAt.slice(0, i).filter((k) => k === m).length * 9)}" r="4"/>`).join('')}
+    <line id="cross" class="cross" x1="0" x2="0" y1="${pad.t}" y2="${y(0)}" visibility="hidden"/>
+    <rect id="hit" x="${pad.l}" y="0" width="${width - pad.l - pad.r}" height="${height}" fill="transparent"/>`;
+  $('curveLegend').hidden = !cmp && !bookedAt.length;
+  $('curveLegend').innerHTML = `<span><i></i>${esc(wDay(w))} in the room</span>` +
+    (cmp ? `<span><i class="cmp"></i>${esc(wDay(cmp))} in the room</span>` : '') +
+    (bookedAt.length ? `<span><b class="dot"></b>A live attendee booked a call</span>` : '');
+  $('curveDesc').textContent = mm
+    ? `Peaked at ${mm.peak} people at ${clock(w, mm.peakMinute)} (minute ${mm.peakMinute}). ` +
+      (mm.bigDrop ? `The biggest drop-off was minutes ${mm.bigDrop.from}–${mm.bigDrop.to} (${clock(w, mm.bigDrop.from)}–${clock(w, mm.bigDrop.to)}), when ${mm.bigDrop.lost} left (shaded). ` : '') +
+      (mm.below75Minute !== null ? `Fewer than three-quarters of the peak were still there from minute ${mm.below75Minute}. ` : 'At least three-quarters of the peak stayed until the end. ') +
+      `${mm.nearEnd} were still watching 10 minutes before the end (minute ${mm.lengthMinutes}).` +
+      (bookedAt.length ? ` ${bookedAt.length} live attendee${bookedAt.length === 1 ? '' : 's'} booked while it was running; the first at minute ${bookedAt[0]} (${clock(w, bookedAt[0])}).` : '')
+    : '';
+  const hit = svg.querySelector('#hit'), cross = svg.querySelector('#cross');
+  const move = (ev) => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * width;
+    const m = Math.max(0, Math.min(maxX, Math.round(((px - pad.l) / (width - pad.l - pad.r)) * maxX)));
+    cross.setAttribute('x1', x(m)); cross.setAttribute('x2', x(m)); cross.setAttribute('visibility', 'visible');
+    tip.hidden = false;
+    const bookedSoFar = bookedAt.filter((k) => k <= m).length;
+    tip.innerHTML = `<strong>${minuteLabel(m)}</strong> · ${clock(w, m)}<br>${esc(wDay(w))}: <strong>${main.curve[m] ?? 0}</strong> in the room` +
+      (bookedAt.length ? `, <strong>${bookedSoFar}</strong> booked so far` : '') +
+      (cmp ? `<br>${esc(wDay(cmp))}: <strong>${series[1].curve[m] ?? 0}</strong>` : '');
+    const left = (x(m) / width) * rect.width;
+    tip.style.left = Math.min(rect.width - tip.offsetWidth, Math.max(0, left + 10)) + 'px';
+  };
+  hit.addEventListener('mousemove', move);
+  hit.addEventListener('touchstart', (e) => move(e.touches[0]), { passive: true });
+  hit.addEventListener('touchmove', (e) => move(e.touches[0]), { passive: true });
+  hit.addEventListener('mouseleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+}
+
+function renderWebinars() {
+  renderBestCallout();
+  renderWebinarTable();
+  renderSession();
+}
+
+$('webinarTable').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-date]');
+  if (!tr) return;
+  wstate.selected = tr.dataset.date;
+  renderWebinarTable();
+  renderSession();
+  $('sessionCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('compareWith').addEventListener('input', () => { wstate.compare = $('compareWith').value; renderSession(); });
+window.addEventListener('resize', () => { if (!$('panelWebinars').hidden) renderSession(); });
+
+// Tabs: #leads (default) and #webinars.
+function showTab() {
+  const onWebinars = location.hash === '#webinars';
+  $('panelLeads').hidden = onWebinars;
+  $('panelWebinars').hidden = !onWebinars;
+  $('tabLeads').setAttribute('aria-selected', String(!onWebinars));
+  $('tabWebinars').setAttribute('aria-selected', String(onWebinars));
+  if (onWebinars) renderWebinars();
+}
+window.addEventListener('hashchange', showTab);
+showTab();
+
 </script>

@@ -222,6 +222,28 @@ cloud environment needs the secrets listed below.
    - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated webinar IDs to use
      instead of matching by name.
 
+### Webinar performance tab
+
+A second tab compares every Collective webinar: registered, live, show rate,
+peak attendance and when it hit, average minutes watched, calls booked, and
+the booking rate by revenue range against the goal of **over 20% of live
+attendees in every $25K+ range booking a call**. Click a webinar for:
+
+- a minute-by-minute curve of who was in the room (rebuilt from each
+  attendee's join time and watch time), with the peak, the biggest drop-off
+  and a mark for each live attendee who booked, plus an optional comparison
+  line for another webinar
+- the booked-by-revenue-range table, in the same layout as Joelle's
+  post-webinar screenshot
+- Joelle's post-webinar stats from `#collective-webinars` (set
+  `WEBINAR_STATS_CHANNEL_ID`)
+- notes on what happened on the call, from `webinar-notes.json`, published
+  with the private page like `email-aliases.json`:
+  `{ "2026-11-09": { "summary": "...", "points": ["..."], "source": "..." } }`
+
+WebinarJam's API has no chat or transcript, so those come from WebinarJam's
+own export and the replay, and get summarized into the notes file.
+
 ### Someone paid or booked with a different email
 
 The tracker matches bookings and payments to leads by email. When the email

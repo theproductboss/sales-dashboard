@@ -1,4 +1,6 @@
+const { DateTime } = require('luxon');
 const { slackFetch } = require('../slack');
+const { parsePostWebinarStats } = require('./webinarStats');
 
 // Pages through a channel's history back to `oldest` (a JS Date).
 async function fetchChannelHistory(token, channelId, oldest) {
@@ -94,4 +96,18 @@ async function fetchThreadEmails(token, channelId, ts) {
   return [...emails];
 }
 
-module.exports = { fetchBookings, fetchPayments, fetchThreadEmails, parseBookingMessage, parsePaymentMessage, extractEmail };
+// Joelle's post-webinar stats posts in #collective-webinars, keyed by the
+// day they were posted (the webinar's day), newest post winning.
+async function fetchPostWebinarStats(token, channelId, oldest, timeZone) {
+  const messages = await fetchChannelHistory(token, channelId, oldest);
+  const byDay = {};
+  for (const m of [...messages].sort((a, b) => Number(a.ts) - Number(b.ts))) {
+    const stats = parsePostWebinarStats(m.text || '');
+    if (!stats) continue;
+    const day = DateTime.fromSeconds(Number(m.ts)).setZone(timeZone).toISODate();
+    byDay[day] = { ...stats, postedAt: slackTsToIso(m.ts) };
+  }
+  return byDay;
+}
+
+module.exports = { fetchBookings, fetchPayments, fetchThreadEmails, fetchPostWebinarStats, parseBookingMessage, parsePaymentMessage, extractEmail };

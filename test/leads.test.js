@@ -152,3 +152,45 @@ test('links a payment under another email by alias, Slack thread, or exact full 
   assert.deepEqual([accent.email, accent.matchedBy], ['zoe@reg.com', 'name']);
   assert.equal(direct.matchedBy, undefined);
 });
+
+test('webinar stats: attendance curve, revenue ranges and the 20% goal', () => {
+  const { buildWebinarStats, revenueRange, parsePostWebinarStats } = require('../src/leads/webinarStats');
+  assert.equal(revenueRange('$25,000-$50,000').key, '25-50k');
+  assert.equal(revenueRange('$100,000 to $500,000').key, '100-500k');
+  assert.equal(revenueRange('$1,000,000 to $5,000,000').key, '1m-5m');
+  assert.equal(revenueRange('Under $5000').key, 'u5k');
+
+  const start = '2026-11-09T18:00:00.000Z';
+  const reg = (email, revenueLevel, attendedLive, enteredLiveSec = 0, watchedLiveSec = 0) =>
+    ({ email, revenueLevel, attendedLive, enteredLiveSec, watchedLiveSec, webinarDate: start, webinarName: 'W' });
+  const regs = [
+    reg('a@x', '$25,000-$50,000', true, 0, 60 * 60),
+    reg('b@x', '$25,000-$50,000', true, 10 * 60, 20 * 60),
+    reg('c@x', '$25,000-$50,000', false),
+    reg('d@x', '$50,000 to $100,000', true, 0, 30 * 60),
+    reg('e@x', 'Under $5000', true, 0, 5 * 60),
+  ];
+  const bookings = [
+    { email: 'a@x', bookedAt: '2026-11-09T19:00:00.000Z' }, // during the webinar: counts
+    { email: 'c@x', bookedAt: '2026-11-09T20:00:00.000Z' }, // didn't attend live
+    { email: 'd@x', bookedAt: '2026-11-20T20:00:00.000Z' }, // too late to credit this webinar
+  ];
+  const [w] = buildWebinarStats(regs, bookings, {
+    now: new Date('2026-11-10T00:00:00Z'),
+    slackPosts: { '2026-11-09': { maxAtOnce: 3 } },
+  });
+  assert.equal(w.date, '2026-11-09');
+  assert.equal(w.registered, 5);
+  assert.equal(w.attended, 4);
+  assert.equal(w.showRate, 0.8);
+  const r25 = w.ranges.find((r) => r.key === '25-50k');
+  assert.deepEqual([r25.registered, r25.attended, r25.booked, r25.bookedNotLive], [3, 2, 1, 1]);
+  assert.equal(r25.bookRate, 0.5);
+  assert.deepEqual(w.goal, { met: 1, of: 2 }, '25-50K is over 20%, 50-100K is not');
+  assert.equal(w.moments.peak, 3, 'never more than three in the room at once');
+  assert.equal(w.curve[15], 3, 'e@x left at minute 5, b@x joined at minute 10');
+  assert.equal(w.slack.maxAtOnce, 3);
+
+  const post = parsePostWebinarStats('*How many attended (in total)?*\n36\n*How many attended (max at one time)*\n31\n*What was the show up rate?*\n19.05%\n*How many booked a call? (Number and percentage)*\n15 - 48% (7 at 25k+ - 22.5%)');
+  assert.deepEqual(post, { attendedTotal: 36, maxAtOnce: 31, showRate: 0.1905, bookedText: '15 - 48% (7 at 25k+ - 22.5%)' });
+});
