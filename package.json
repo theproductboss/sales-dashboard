@@ -2,16 +2,20 @@
   "name": "sales-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Daily Slack dashboard for sales call bookings (Calendly) and cash-collected pace ($37k/week target).",
+  "description": "Closer Tracker web app (Render) + daily Slack sales report.",
   "main": "src/index.js",
   "scripts": {
+    "start": "node server/index.js",
     "report": "node src/index.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
-    "luxon": "^3.4.4"
+    "express": "^4.21.2",
+    "luxon": "^3.4.4",
+    "pg": "^8.13.1"
   }
 }

@@ -1,0 +1,27 @@
+# Render Blueprint: one web service for the Closer Tracker + a Postgres database
+# so the team's entries persist across deploys and restarts.
+# Deploy: Render dashboard → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: closer-tracker
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: closer-tracker-db
+          property: connectionString
+      - key: TEAM_PASSWORD
+        sync: false            # set this in the Render dashboard; it's the shared password the closers type in
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: closer-tracker-db
+    plan: basic-256mb
+    databaseName: closer_tracker
