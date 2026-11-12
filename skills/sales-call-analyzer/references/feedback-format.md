@@ -87,5 +87,11 @@ Pick the one that matches the biggest leak.
 - **Ask-for-it drill.** End every practice call with a direct ask. Done when the ask is one sentence with no hedge words.
 - **Objection flashcards.** One card per objection type; partner flips, rep answers with acknowledge-isolate-clarify-reframe-close. Done at under 3 seconds to start each answer (Hormozi's flashcard drilling).
 - **Question-only discovery.** Run a 10-minute discovery where every rep sentence must end in a question mark. Done when you do it without a statement slipping in.
+- **Six layers deep (Miner).** Partner names a surface problem; keep asking "and what happens then?" until you reach personal or family impact. Done when you reach 5+ layers without it sounding like an interrogation.
+- **Bridge, don't fill (Miner).** Record a role-play and count every "okay, okay," "gotcha," "I'm curious, let me ask you." Redo it, launching each next question off the prospect's last words. Done at zero fillers.
+- **Camouflage the question (Miner).** Rewrite your five most generic discovery questions into specific "what's caused you to feel like..." versions that use this offer's language. Done when none of them could be asked on any other company's call.
+- **Thread it (Sapp).** Partner gives one pain point; ask 8 follow-ups off that one point before moving on. Done when you can do it without repeating a question.
+- **AARR reps (Sapp).** Flashcards of the six common objections; answer each with acknowledge, ask, answer, redirect, ending in a re-close question. Done when every answer ends with a question.
+- **Pre-handle scan (Sapp, Martell).** Re-read your last three transcripts and mark every partner, cost, and "old problem" signal you didn't follow up. Write the pre-handle question you should have asked for each.
 - **Periods, not commas.** Record yourself pitching, then cut every run-on into short sentences that end flat (Sapp). Re-record.
-- **Self-review.** Rate your own recorded call 1 to 10 on script, tonality, rapport, energy, and the ask before reading this skill's score; compare (Sapp's role-play rating, applied to real calls).
+- **Self-review.** Before reading this skill's score, rate your own recorded call out of 10 on Sapp's five: script, tonality, body language, connection or rapport, energy. Then compare. Big gaps between your rating and the score are the coaching conversation.

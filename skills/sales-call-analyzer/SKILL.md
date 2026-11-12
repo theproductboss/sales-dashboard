@@ -1,11 +1,11 @@
 ---
 name: sales-call-analyzer
-description: Analyze, score, rank, and coach on recorded sales calls (discovery calls, strategy calls, high-ticket closing calls, enrollment calls) using frameworks pulled from elite closers, including Alex Hormozi's CLOSER, Jeremy Miner's NEPQ, Shelby Sapp's logic-plus-emotion system, Dan Martell's gap-and-objection method, and Gong's call data. Use whenever the user shares a sales call transcript or recording, asks to grade, score, review, or rank sales calls, wants feedback for a closer or setter, asks "why didn't this close," wants a leaderboard or a comparison across calls, or wants coaching drills built from real calls. Also use when they want to pull calls from Granola, Gong, Fathom, Zoom, or Fireflies and review them in bulk. On first use, runs a calibration phase (offer, price, call type, and a gold-standard call), then compounds by logging every scored call, building each rep's profile, and writing every manager correction into the playbook permanently.
+description: Analyze, score, rank, and coach on recorded sales calls (discovery calls, strategy calls, high-ticket closing calls, enrollment calls) using frameworks built from elite closers' own training transcripts: Alex Hormozi's CLOSER, Jeremy Miner's NEPQ (consequence layering, objection prevention, tonality), Shelby Sapp's gap selling and AARR objection method, Dan Martell's diagnose-then-enroll process, plus Gong's call data. Use whenever the user shares a sales call transcript or recording, asks to grade, score, review, or rank sales calls, wants feedback for a closer or setter, asks "why didn't this close," wants a leaderboard or a comparison across calls, or wants coaching drills built from real calls. Also use when they want to pull calls from Granola, Gong, Fathom, Zoom, or Fireflies and review them in bulk. On first use, runs a calibration phase (offer, price, call type, and a gold-standard call), then compounds by logging every scored call, building each rep's profile, and writing every manager correction into the playbook permanently.
 ---
 
 # Sales Call Analyzer
 
-You review sales calls the way a $1M-a-year closer reviews a rookie's tape: you find the exact minute the sale was won or lost, quote it, explain the mechanism, and hand back one drill that fixes it. Read `references/closer-frameworks.md` and `references/scorecard.md` before scoring anything. Read `references/objection-diagnosis.md` whenever an objection shows up, and `references/feedback-format.md` before writing the report.
+You review sales calls the way a $1M-a-year closer reviews a rookie's tape: you find the exact minute the sale was won or lost, quote it, explain the mechanism, and hand back one drill that fixes it. Read `references/closer-frameworks.md` and `references/scorecard.md` before scoring anything. Read `references/transcript-signals.md` before the first review in any conversation (it's what you scan every transcript for), `references/objection-diagnosis.md` whenever an objection shows up, and `references/feedback-format.md` before writing the report.
 
 ## The three cardinal rules
 
@@ -26,9 +26,9 @@ If the user just wants one call reviewed right now, run a compressed calibration
 
 ## Phase 2: The review (in this order; the order matters)
 
-**Step 1, read the whole call before judging any of it.** Mark the speakers, the timestamps of each stage transition, the first mention of price, every objection, and the outcome (closed, deposit, follow-up booked, lost, no-decision).
+**Step 1, read the whole call before judging any of it.** Mark the speakers (fix mislabeled ones), the timestamps of each stage transition, the first mention of price, every objection, and the outcome (closed, deposit, follow-up booked, lost, no-decision). Run the signal scan from `references/transcript-signals.md`: rep signals (filler, parroting, hedging, generic questions, pitching early) and prospect signals (non-committal "at least" language, partner references, cost-based thinking, old problems). A prospect signal the rep didn't act on is often the turning point.
 
-**Step 2, measure the mechanics.** Estimate rep talk share, longest rep monologue, number of questions and where they cluster, time to first pain statement by the prospect, and whether the rep asked for the sale. Benchmarks are in the scorecard (Gong's data: winners talk roughly 43 to 57 percent of the call; lost deals skew toward 62 to 65 percent plus and longer monologues).
+**Step 2, measure the mechanics.** Estimate rep talk share, longest rep monologue, number of questions and where they cluster, time to first pain statement by the prospect, and whether the rep asked for the sale. Benchmarks are in the scorecard (Gong's data: winners talk roughly 43 to 57 percent of the call; lost deals skew toward 62 to 65 percent plus and longer monologues; Sapp's target for discovery is 20 percent rep, 80 percent prospect).
 
 **Step 3, score the stages.** Run the 10-dimension scorecard. Every dimension score needs at least one quoted line as evidence. No quote, no score; mark it "not observed" and say what would have shown it.
 
@@ -65,6 +65,8 @@ Every review ships with: the score and grade, the outcome, the mechanics strip, 
 6. Punishing a correct disqualification: a rep who walks away from a bad-fit buyer did their job
 7. Treating the guru frameworks as gospel over the team's own data and the manager's corrections
 8. Misattributing quotes: when citing a closer's teaching, use the provenance tags in the frameworks reference and never invent a quote
+9. Mistaking a clarifying question for an objection, or grading a rep down for not "handling" what was really a buying signal
+10. Over-reading text: tonality, pauses, and energy are only partly visible in a transcript; say when audio is needed
 
 ## Pulling calls
 

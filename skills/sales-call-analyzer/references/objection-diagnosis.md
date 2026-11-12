@@ -15,36 +15,42 @@ The objection at the end of the call is a symptom. The cause was usually earlier
 
 ## Step 2: Grade the in-the-moment handle
 
-A strong handle follows this sequence (merged from Martell's five steps and Sapp's four):
+First, check it really is an objection. A clarifying question after the price ("does that include the one-on-ones?") is not an objection. Answer it, ask if there's anything else, and go to paperwork (Sapp). A rep who treats a buying question as resistance and starts handling it has created a problem.
 
-1. **Acknowledge, don't agree or argue.** "Makes sense, I'd ask the same." (Martell)
-2. **Isolate.** "Besides that, is there anything else in the way?" (Martell). Make sure it's the real one.
-3. **Clarify with a question, not a rebuttal.** "When you say think about it, what specifically do you want to think through?" Don't debate what they meant; ask.
-4. **Reframe to their own words.** Tie it back to the outcome and the cost they stated earlier. Price versus cost, problem versus symptom (Sapp). A short story from someone in the same situation (Hormozi).
-5. **Re-close with a question.** Ask for the sale again.
+A strong handle follows Sapp's AARR, with Martell's isolate step built in:
 
-Common handling failures to call out: defending instead of asking; dropping price before isolating; accepting "send me info" without a booked follow-up time; stacking three rebuttals in a row; answering an objection the prospect didn't raise; getting quieter and less certain.
+1. **Acknowledge, never agree.** "I hear you." Not "yeah, it is expensive" or "everyone feels that way," which confirms the belief (Sapp). Martell's version: "Makes sense. I would ask the same." Frame it as us versus the objection, not me versus you.
+2. **Ask for context, then isolate.** What came up that made them feel that way? Have they done something like this before? Then: "Besides that, is there anything else in the way?" (Martell). Watch for smokescreens: a spouse objection is often price in disguise ("he'll think it's too expensive") (Sapp).
+3. **Answer with permission and a reframe.** "Can I challenge that?" (the thinking, not the person). Then one reframe, tied to what the prospect said in discovery: price versus cost, time versus information, certainty versus information, problem versus symptom, or a similar client's story (Sapp). Don't debate what they meant; ask (Martell).
+4. **Redirect and re-close.** Ask for the decision again right away. If the rep goes quiet after a good reframe, the prospect fills the silence with "I'll still think about it" (Sapp).
+
+**For "not now / keep in touch" (Miner's deframe).** No rebuttals. Ask permission and a consequence question in a calm, concerned tone ("How can I communicate to you that you might be making a mistake without you getting upset with me?"), then walk the consequences down layer by layer, bring in how their partner feels about the problem continuing, and finish with a push-away or identity question ("why not push it down the road like a lot of [people like them] who never fix it?"). Grade the tone too: concerned and curious, not pushy.
+
+Handling failures to call out: defending instead of asking; agreeing with the objection; dropping the price before isolating; three rebuttals in a row; accepting "send me info" without booking the next meeting on the call; answering an objection the prospect didn't raise; getting quieter and less certain; leaving a good reframe hanging with no re-close.
 
 ## Step 3: Trace the cause
 
 | Objection | Check this earlier stage first | What the evidence looks like |
 |---|---|---|
 | Price | Stage 3 pain depth, stage 4 gap, stage 5 label | The cost of the problem was never quantified, so there's nothing to compare the price to. Prospect never said the pain in their own words. |
-| Stall ("think about it") | Stage 5 label and commitment test; stage 7 ask | No "now or later" test was asked. Or the ask was vague so the prospect had nothing to say yes to. |
-| Decision-maker | Stage 1 frame, stage 2 clarify | Nobody asked up front "is there anyone else you'd make this decision with?" Partner agreement wasn't established. |
+| Stall ("think about it") | Stage 4 outcome, stage 5 why now, stage 7 ask | Non-committal language ("if I could at least...") was left unchallenged in discovery (Miner's open loop). No "now or later" test. The prospect never said why now. Or the ask was vague so there was nothing to say yes to. |
+| Decision-maker | Stage 1 frame, stage 6 pre-handle | "We" or partner references in discovery weren't followed up. Nobody asked how past decisions were made or how the partner feels about the problem (Sapp, Miner). |
 | Fit / belief | Stage 3 past attempts; stage 6 stories | Past attempts listed but never "why didn't that work?" No story about someone like them. |
 | Trust | Stage 6 proof; stage 10 certainty | Pitch had no relevant proof; rep hedged on results. |
-| Timing | Stage 3 consequence; stage 4 gap | No consequence question ("what happens if this is still the same in 6 months?"). Sapp's cost of delay was never calculated. |
+| Timing | Stage 3 consequence; stage 5 cost of inaction | Consequences stopped at the first layer (Miner). No cost-of-inaction question. Sapp's cost of delay was never calculated. The problem is old and nobody asked why now. |
 
 ## Rewrite patterns (questions, restatements, stories only)
 
-Write these in the rep's voice and the team's script language. Patterns, not scripts:
+Write these in the rep's voice and the team's script language, and tie them to something the prospect actually said on this call. Patterns, not scripts. Where a line is the closer's own wording, it's marked.
 
-- **Price, value gap.** Restate their pain number, then ask: "Earlier you said this is costing you about [X] a month. If we close that gap, how does [price] compare to staying where you are for another six months?"
-- **Think about it.** "Totally fair. Usually when someone says that, there's one specific piece they're unsure about. What's the piece for you?" Then isolate.
-- **Partner.** "Does [partner] know you're looking for a solution to this? What would they say if you came home with it solved?" Lean on the agreement already made (Hormozi). Better yet, prevent it at stage 1.
-- **Timing.** Push-away question (Miner): "Why look at doing this now, why not push it down the road?" Let them argue for now.
-- **Send me info.** "Happy to. So I send the right thing, what specifically would you need to see to make a decision?" Then book the follow-up time on the call.
+- **Too expensive (Sapp's price versus cost).** "I hear you. Can I challenge that? Are you talking about the price or the cost? The price is what it takes to start. The cost is what you told me earlier: [their number] every month this stays the same. Which one are you more comfortable paying?"
+- **Think about it (Sapp's time versus information).** "Totally fair. You don't really need more time, you need the right information, and we have it right here. What's the one piece you'd want to think through?" Then isolate.
+- **Talk to my partner.** Prevent it first: in discovery, ask how past similar decisions were made, and how their partner feels about the problem continuing (Sapp, Miner). If it comes up anyway: "You'll talk to them either way. Do you want to bring them a problem or a solution?" (Sapp, paraphrased). Check whether it's really price.
+- **Not now / next quarter (Miner).** Permission, concern, consequences, push-away: "Why look at doing this now, why not push it down the road?" Let them argue for now.
+- **Tried something before (Sapp).** "If the goal's still the same, does it matter what didn't work before, as long as you get there?" Then a story about a similar client.
+- **Send me info (Martell).** "Happy to. What specifically would you want to see in it?" Handle that, ask again, and if a second call is truly needed, book it on this call, plus the no-show line: "If something comes up, could you do me the honor of texting me beforehand so I can fill that slot?" (his wording, lightly trimmed).
+- **Scared / big decision (Sapp).** "You can be scared and still make the decision. That fear usually means it's bigger than where you are now."
+- **After the yes (Martell's takeaway close).** Recap the three problems you'll solve, then: "Apart from a global financial meltdown, is there any other reason you wouldn't get on your onboarding call?" (paraphrased).
 
 ## The house library
 
