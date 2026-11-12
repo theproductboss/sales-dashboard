@@ -121,6 +121,11 @@ td.dim { color: var(--muted); }
 .tabs button .dot { width: 10px; height: 10px; border-radius: 50%; }
 .tabs button .n { font-family: var(--font-body); font-size: 11px; font-weight: 500; color: var(--muted); }
 .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs.months { display: flex; flex-wrap: wrap; border-bottom: 0; gap: 6px; margin-bottom: 10px; }
+.tabs.months button { border: 1px solid var(--line-strong); border-radius: 999px; margin: 0; padding: 5px 12px; font-family: var(--font-body); font-size: 13px; font-weight: 600; }
+.tabs.months button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tabs.months button.future { border-style: dashed; }
+.tabs.closers { display: flex; margin-bottom: 4px; }
 .wk { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
 .wk:first-child { margin-top: 4px; }
 .wk h3 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
@@ -209,17 +214,18 @@ footer.defs b { color: var(--ink); }
     <div>
       <p class="eyebrow">Sales team</p>
       <h1>Closer Tracker</h1>
-      <p class="sub">Every call booked, by closer. Track calls in the Closer Tracker grid at the bottom instead of the monthly spreadsheet; the scorecards and rates update as you type.</p>
+      <p class="sub">Every call booked, by closer. Log calls in the Closer Tracker tab instead of the monthly spreadsheet; the dashboard updates as you type.</p>
     </div>
     <p class="status-line" id="status">Connecting to the shared call log…</p>
   </header>
 
   <nav class="views" aria-label="Dashboard section" id="views">
-    <button type="button" data-v="tracker" aria-pressed="true">Closer Tracker</button>
+    <button type="button" data-v="dashboard" aria-pressed="true">Closer Dashboard</button>
+    <button type="button" data-v="tracker" aria-pressed="false">Closer Tracker</button>
     <button type="button" data-v="reviews" aria-pressed="false">Call Reviews <span class="n" id="views-n"></span></button>
   </nav>
 
-  <section class="controls" aria-label="View controls">
+  <section class="controls" aria-label="View controls" data-views="dashboard reviews">
    <div class="row">
     <div class="seg" role="group" aria-label="Period" id="seg-period">
       <button type="button" data-p="week">Week</button>
@@ -238,9 +244,9 @@ footer.defs b { color: var(--ink); }
    <div class="row"><span class="eyebrow" style="color:var(--muted)">Showing</span><div class="chips" id="chips" role="group" aria-label="Closer"></div></div>
   </section>
 
-  <section class="kpis" id="kpis" aria-label="Headline numbers" data-view="tracker"></section>
+  <section class="kpis" id="kpis" aria-label="Headline numbers" data-views="dashboard"></section>
 
-  <section class="panel" id="reviews" data-view="reviews" hidden>
+  <section class="panel" id="reviews" data-views="reviews" hidden>
     <div class="panel-head">
       <div><p class="eyebrow">Qualitative</p><h2>Call Reviews</h2><p class="status-line" id="reviews-sub"></p></div>
       <a class="btn" href="https://app.notion.com/p/290e8fe4c7514cb0b6b0ec0b9c86cee8" target="_blank" rel="noopener">Open the Notion board ↗</a>
@@ -250,7 +256,7 @@ footer.defs b { color: var(--ink); }
     <div id="review-list"></div>
   </section>
 
-  <section class="charts" data-view="tracker">
+  <section class="charts" data-views="dashboard">
     <div class="panel chart" id="chart-booked">
       <div class="panel-head"><h2>Calls booked per week</h2><span class="status-line" id="chart-booked-sub"></span></div>
       <div id="chart-booked-svg"></div>
@@ -262,17 +268,18 @@ footer.defs b { color: var(--ink); }
     </div>
   </section>
 
-  <section class="cards" id="cards" aria-label="Scorecards" data-view="tracker"></section>
+  <section class="cards" id="cards" aria-label="Scorecards" data-views="dashboard"></section>
 
-  <section class="panel tracker" id="tracker" data-view="tracker">
+  <section class="panel tracker" id="tracker" data-views="tracker" hidden>
     <div class="panel-head">
       <div><p class="eyebrow">Fill this in</p><h2>Closer Tracker</h2><p class="status-line" id="tracker-sub"></p></div>
-      <div class="tabs" id="tabs" role="tablist" aria-label="Closer tab"></div>
     </div>
+    <div class="tabs months" id="month-tabs" role="tablist" aria-label="Month"></div>
+    <div class="tabs closers" id="tabs" role="tablist" aria-label="Closer"></div>
     <div id="tracker-body"></div>
   </section>
 
-  <section class="panel" id="pipeline" data-view="tracker">
+  <section class="panel" id="pipeline" data-views="dashboard">
     <div class="panel-head"><div><p class="eyebrow">Follow-ups</p><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
     <div id="pipeline-table"></div>
     <div id="pipeline-callout"></div>
@@ -308,9 +315,11 @@ let calls = [];               // all call records
 let canWrite = null;          // null = unknown, true/false
 let db = null, userApi = null;
 let reviews = [];             // call reviews pulled from the Notion "Sales Calls" board
-const state = { period: "month", anchor: todayStr(), closer: "all", tab: "Jill", view: "tracker" };
-try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; if (s.tab) state.tab = s.tab; } catch (e) {}
-if (location.hash === "#reviews") state.view = "reviews";
+const VIEWS = ["dashboard", "tracker", "reviews"];
+const state = { period: "month", anchor: todayStr(), closer: "all", tab: "Jill", view: "dashboard", tmonth: todayStr().slice(0, 7) };
+try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; if (s.tab) state.tab = s.tab; if (s.tmonth) state.tmonth = s.tmonth; } catch (e) {}
+const hashView = () => VIEWS.find(v => "#" + v === location.hash);
+if (hashView()) state.view = hashView();
 
 // ---------- dates (all as YYYY-MM-DD strings) ----------
 function todayStr() { const d = new Date(); return iso(d); }
@@ -398,12 +407,12 @@ const visibleClosers = () => state.closer === "all" ? settings.closers.map(c => 
 // ---------- render ----------
 function render() { renderTop(); renderTracker(false); }
 function applyView() {
-  for (const el of document.querySelectorAll("[data-view]")) el.hidden = el.dataset.view !== state.view;
+  for (const el of document.querySelectorAll("[data-views]")) el.hidden = !el.dataset.views.split(" ").includes(state.view);
   for (const b of $("#views").children) b.setAttribute("aria-pressed", b.dataset.v === state.view);
 }
 function renderTop() {
   applyView();
-  try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer, tab: state.tab })); } catch (e) {}
+  try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer, tab: state.tab, tmonth: state.tmonth })); } catch (e) {}
   const P = periodRange();
   $("#nav-label").textContent = P.label;
   $("#nav-prev").disabled = $("#nav-next").disabled = state.period === "all";
@@ -646,16 +655,30 @@ function renderCards(P, names) {
 const STATUSES = [["OPEN", "—"], ["WIN", "WIN"], ["LOST", "LOST"], ["NURTURING", "NURTURING"], ["NO-SHOW", "NO-SHOW"], ["CXL'D", "CXL'D"], ["RESCHEDULED", "RESCHEDULED"], ["SET TO JILL", "SET TO JILL"], ["UNQUALIFIED", "UNQUALIFIED"]];
 const trackerHost = $("#tracker-body");
 let trackerStale = false;
-const trackerMonth = () => state.anchor.slice(0, 7);
+const trackerMonth = () => state.tmonth;
+// Month tabs run from the first month with data through next month, so the coming month can be filled in ahead of time
+function trackerMonths() {
+  const dates = calls.map(c => c.date).filter(Boolean).sort();
+  const first = dates.length ? dates[0].slice(0, 7) : todayStr().slice(0, 7);
+  const next = new Date(); next.setDate(1); next.setMonth(next.getMonth() + 1);
+  const last = iso(next).slice(0, 7);
+  const out = []; let s = first + "-01";
+  while (s.slice(0, 7) <= last) { out.push(s.slice(0, 7)); s = addDays(monthEnd(s), 1); }
+  if (!out.includes(state.tmonth)) out.push(state.tmonth);
+  return out.sort();
+}
 function renderTracker(force) {
   if (!force && trackerHost.contains(document.activeElement)) { trackerStale = true; return; }
   trackerStale = false;
-  const ym = trackerMonth(), d = parse(ym + "-01"), monthLabel = MONTHS[d.getMonth()] + " " + d.getFullYear();
+  const ym = trackerMonth(), d = parse(ym + "-01"), monthLabel = MONTHS[d.getMonth()] + " " + d.getFullYear(), thisMonth = todayStr().slice(0, 7);
+  $("#month-tabs").innerHTML = trackerMonths().map(m => { const md = parse(m + "-01"); const n = calls.filter(r => r.date.slice(0, 7) === m).length;
+    return `<button type="button" role="tab" aria-selected="${m === ym}" data-m="${m}" class="${m > thisMonth ? "future" : ""}">${MON3[md.getMonth()]} ${md.getFullYear()}${n ? ` <span class="n">${n}</span>` : ""}</button>`; }).join("");
+  for (const b of $("#month-tabs").children) b.onclick = () => { state.tmonth = b.dataset.m; renderTracker(true); try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer, tab: state.tab, tmonth: state.tmonth })); } catch (e) {} };
   if (!settings.closers.some(c => c.name === state.tab)) state.tab = settings.closers[0].name;
   $("#tabs").innerHTML = settings.closers.map(c => { const n = calls.filter(r => r.closer === c.name && r.date.slice(0, 7) === ym).length;
     return `<button type="button" role="tab" aria-selected="${state.tab === c.name}" data-tab="${esc(c.name)}"><span class="dot" style="background:var(--${c.color})"></span>${esc(c.name)}<span class="n">${n}</span></button>`; }).join("");
   for (const b of $("#tabs").children) b.onclick = () => { state.tab = b.dataset.tab; renderTracker(true); };
-  $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Type into a row; it saves when you leave the cell. Use ‹ › above to change month."}`;
+  $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Pick the month and the closer, then type into a row; it saves when you leave the cell."}`;
   const weeks = monthWeeks(ym);
   const rows = calls.filter(r => r.closer === state.tab && r.date.slice(0, 7) === ym);
   const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="x"></th></tr></thead>`;
@@ -740,8 +763,8 @@ trackerHost.addEventListener("keydown", e => {
   if (next) next.children[idx]?.querySelector("input,select")?.focus();
 });
 for (const b of $("#seg-period").children) b.onclick = () => { state.period = b.dataset.p; render(); };
-for (const b of $("#views").children) b.onclick = () => { state.view = b.dataset.v; try { history.replaceState(null, "", state.view === "reviews" ? "#reviews" : "#tracker"); } catch (e) {} render(); window.scrollTo({ top: 0 }); };
-window.addEventListener("hashchange", () => { const v = location.hash === "#reviews" ? "reviews" : "tracker"; if (v !== state.view) { state.view = v; render(); } });
+for (const b of $("#views").children) b.onclick = () => { state.view = b.dataset.v; try { history.replaceState(null, "", "#" + state.view); } catch (e) {} render(); if (state.view === "tracker") renderTracker(true); window.scrollTo({ top: 0 }); };
+window.addEventListener("hashchange", () => { const v = hashView() || "dashboard"; if (v !== state.view) { state.view = v; render(); } });
 $("#nav-prev").onclick = () => shift(-1); $("#nav-next").onclick = () => shift(1); $("#nav-today").onclick = () => { state.anchor = todayStr(); render(); };
 
 // ---------- data ----------
