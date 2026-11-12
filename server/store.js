@@ -15,10 +15,22 @@ async function createStore() {
 // ---------- Postgres ----------
 async function pgStore(url) {
   const { Pool } = require("pg");
-  const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
-  await pool.query(`CREATE TABLE IF NOT EXISTS docs (
-    collection TEXT NOT NULL, id TEXT NOT NULL, data JSONB NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (collection, id))`);
+  const internal = /localhost|127\.0\.0\.1|-a(\/|$)/.test(url.split("@")[1] || "");  // Render internal hosts end in "-a" and don't use TLS
+  const pool = new Pool({ connectionString: url, ssl: internal ? false : { rejectUnauthorized: false } });
+  // A freshly created database can refuse connections for a minute after it reports "available":
+  // keep trying rather than crash-looping the service.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS docs (
+        collection TEXT NOT NULL, id TEXT NOT NULL, data JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (collection, id))`);
+      break;
+    } catch (e) {
+      if (attempt >= 20) throw e;
+      console.warn(`Postgres not ready (${e.code || e.message}); retrying in 6s (${attempt}/20)`);
+      await new Promise(r => setTimeout(r, 6000));
+    }
+  }
   return {
     kind: "postgres",
     async all() {
