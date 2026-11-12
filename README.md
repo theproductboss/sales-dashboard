@@ -171,3 +171,12 @@ rescheduled); offer rate = offers ÷ completed; close rate = wins ÷ completed
 Cash goals: $30,000 per week, $150,000 per month (quarter = 3 × month).
 Weeks inside a month follow the spreadsheet: week 1 is the 1st through the
 first Sunday, then Monday–Sunday.
+
+### Call Reviews tab
+
+The second tab shows the qualitative side: the AI score, a one-line summary,
+"what went well" / "what to work on", and links to the Notion review page,
+recording and transcript for every reviewed call on the Notion **Sales Calls**
+board. Snapshots live in the artifact's `reviews` collection (seeded from
+`dashboard/data/call-reviews.json`). Rep mapping: Notion "Jess" and any
+"Free Scale Strategy Call (Under 25k)" → Jessica; "Jill" → Jill.

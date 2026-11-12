@@ -44,8 +44,15 @@ header.top .sub { color: var(--ink-2); max-width: 60ch; }
 .status-line { font-size: 12px; color: var(--muted); }
 .status-line.warn { color: var(--bad); }
 
-/* Controls */
-.controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+/* Section switch */
+.views { display: flex; gap: 4px; border-bottom: 2px solid var(--line); }
+.views button { background: transparent; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 16px; font: inherit; font-family: var(--font-head); font-weight: 700; font-size: 17px; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.views button .n { font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 7px; }
+.views button[aria-pressed="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Controls: period + navigation on one row, closer filter on its own row underneath */
+.controls { display: grid; gap: 10px; }
+.controls .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
 .seg button { background: transparent; border: 0; color: var(--ink-2); padding: 7px 12px; font: inherit; font-weight: 500; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--line); }
@@ -168,6 +175,31 @@ table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600
 #pipeline select.WIN { color: var(--good-text); font-weight: 600; }
 #pipeline .money { font-variant-numeric: tabular-nums; }
 .closer-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+/* Call reviews */
+#reviews .panel-head a.btn { text-decoration: none; }
+.review { display: grid; grid-template-columns: 72px 1fr; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+.review .score { font-family: var(--font-head); font-size: 30px; font-weight: 700; line-height: 1; text-align: center; padding: 12px 0 8px; border-radius: 10px; align-self: start; }
+.review .score small { display: block; font-family: var(--font-body); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; margin-top: 6px; opacity: 0.85; }
+.score.s-good { background: color-mix(in srgb, var(--good) 14%, var(--panel)); color: var(--good-text); }
+.score.s-fair { background: color-mix(in srgb, var(--warn) 22%, var(--panel)); color: #9a3d16; }
+.score.s-low { background: color-mix(in srgb, var(--bad) 12%, var(--panel)); color: var(--bad); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .score.s-fair { color: var(--warn); } }
+:root[data-theme="dark"] .score.s-fair { color: var(--warn); }
+.review .rhead { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.review .rhead b { font-family: var(--font-head); font-size: 16px; }
+.review .meta { color: var(--muted); font-size: 12px; }
+.review .outcome { font-size: 12px; font-weight: 600; color: var(--blush-ink); background: var(--blush); border-radius: 4px; padding: 1px 7px; }
+.review .rsum { color: var(--ink-2); margin: 6px 0 10px; max-width: 80ch; }
+.review .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .review { grid-template-columns: 56px 1fr; gap: 10px; } .review .cols { grid-template-columns: 1fr; } .review .score { font-size: 24px; } }
+.review h4 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 4px; }
+.review h4.good { color: var(--good-text); } .review h4.bad { color: var(--bad); }
+.review ul { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 3px; }
+.review .rlinks { margin-top: 10px; font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+.review .rlinks a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.review .rlinks a:hover { text-decoration: underline; }
+.review .pending { color: var(--muted); font-style: italic; font-size: 13px; }
 footer.defs { color: var(--ink-2); font-size: 12px; display: grid; gap: 4px; max-width: 80ch; }
 footer.defs b { color: var(--ink); }
 </style>
@@ -182,7 +214,13 @@ footer.defs b { color: var(--ink); }
     <p class="status-line" id="status">Connecting to the shared call log…</p>
   </header>
 
+  <nav class="views" aria-label="Dashboard section" id="views">
+    <button type="button" data-v="tracker" aria-pressed="true">Closer Tracker</button>
+    <button type="button" data-v="reviews" aria-pressed="false">Call Reviews <span class="n" id="views-n"></span></button>
+  </nav>
+
   <section class="controls" aria-label="View controls">
+   <div class="row">
     <div class="seg" role="group" aria-label="Period" id="seg-period">
       <button type="button" data-p="week">Week</button>
       <button type="button" data-p="month" aria-pressed="true">Month</button>
@@ -196,12 +234,23 @@ footer.defs b { color: var(--ink); }
       <button type="button" id="nav-next" aria-label="Next period">›</button>
       <button type="button" id="nav-today" class="btn" style="padding:5px 10px;font-weight:500">Today</button>
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Closer"></div>
+   </div>
+   <div class="row"><span class="eyebrow" style="color:var(--muted)">Showing</span><div class="chips" id="chips" role="group" aria-label="Closer"></div></div>
   </section>
 
-  <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+  <section class="kpis" id="kpis" aria-label="Headline numbers" data-view="tracker"></section>
 
-  <section class="charts">
+  <section class="panel" id="reviews" data-view="reviews" hidden>
+    <div class="panel-head">
+      <div><p class="eyebrow">Qualitative</p><h2>Call Reviews</h2><p class="status-line" id="reviews-sub"></p></div>
+      <a class="btn" href="https://app.notion.com/p/290e8fe4c7514cb0b6b0ec0b9c86cee8" target="_blank" rel="noopener">Open the Notion board ↗</a>
+    </div>
+    <div class="kpis" id="review-kpis"></div>
+    <div class="chart" id="chart-scores" style="margin-top:16px"><div class="panel-head"><h3>AI score by call</h3><span class="status-line">75+ strong · 60–74 fair · under 60 needs work</span></div><div id="chart-scores-svg"></div><div class="legend" id="chart-scores-legend"></div></div>
+    <div id="review-list"></div>
+  </section>
+
+  <section class="charts" data-view="tracker">
     <div class="panel chart" id="chart-booked">
       <div class="panel-head"><h2>Calls booked per week</h2><span class="status-line" id="chart-booked-sub"></span></div>
       <div id="chart-booked-svg"></div>
@@ -213,9 +262,9 @@ footer.defs b { color: var(--ink); }
     </div>
   </section>
 
-  <section class="cards" id="cards" aria-label="Scorecards"></section>
+  <section class="cards" id="cards" aria-label="Scorecards" data-view="tracker"></section>
 
-  <section class="panel tracker" id="tracker">
+  <section class="panel tracker" id="tracker" data-view="tracker">
     <div class="panel-head">
       <div><p class="eyebrow">Fill this in</p><h2>Closer Tracker</h2><p class="status-line" id="tracker-sub"></p></div>
       <div class="tabs" id="tabs" role="tablist" aria-label="Closer tab"></div>
@@ -223,7 +272,7 @@ footer.defs b { color: var(--ink); }
     <div id="tracker-body"></div>
   </section>
 
-  <section class="panel" id="pipeline">
+  <section class="panel" id="pipeline" data-view="tracker">
     <div class="panel-head"><div><p class="eyebrow">Follow-ups</p><h2>Pipeline — still being nurtured</h2><p class="status-line" id="pipeline-sub"></p></div></div>
     <div id="pipeline-table"></div>
     <div id="pipeline-callout"></div>
@@ -258,8 +307,10 @@ let settings = DEFAULT_SETTINGS;
 let calls = [];               // all call records
 let canWrite = null;          // null = unknown, true/false
 let db = null, userApi = null;
-const state = { period: "month", anchor: todayStr(), closer: "all", tab: "Jill" };
+let reviews = [];             // call reviews pulled from the Notion "Sales Calls" board
+const state = { period: "month", anchor: todayStr(), closer: "all", tab: "Jill", view: "tracker" };
 try { const s = JSON.parse(localStorage.getItem("ct.view") || "{}"); if (s.period) state.period = s.period; if (s.closer) state.closer = s.closer; if (s.tab) state.tab = s.tab; } catch (e) {}
+if (location.hash === "#reviews") state.view = "reviews";
 
 // ---------- dates (all as YYYY-MM-DD strings) ----------
 function todayStr() { const d = new Date(); return iso(d); }
@@ -346,7 +397,12 @@ const visibleClosers = () => state.closer === "all" ? settings.closers.map(c => 
 
 // ---------- render ----------
 function render() { renderTop(); renderTracker(false); }
+function applyView() {
+  for (const el of document.querySelectorAll("[data-view]")) el.hidden = el.dataset.view !== state.view;
+  for (const b of $("#views").children) b.setAttribute("aria-pressed", b.dataset.v === state.view);
+}
 function renderTop() {
+  applyView();
   try { localStorage.setItem("ct.view", JSON.stringify({ period: state.period, closer: state.closer, tab: state.tab })); } catch (e) {}
   const P = periodRange();
   $("#nav-label").textContent = P.label;
@@ -360,6 +416,48 @@ function renderTop() {
   renderBookedChart(P, names);
   renderRateCharts(P, names);
   renderCards(P, names);
+  renderReviews(P, names);
+}
+
+// ---------- Call reviews (qualitative) ----------
+const scoreBand = s => s >= 75 ? "good" : s >= 60 ? "fair" : "low";
+function renderReviews(P, names) {
+  $("#views-n").textContent = reviews.length || "";
+  const inP = reviews.filter(r => inRange(r, P) && names.includes(r.closer)).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : b.score - a.score);
+  const avg = a => a.length ? a.reduce((s, r) => s + r.score, 0) / a.length : null;
+  $("#reviews-sub").textContent = `${inP.length} reviewed call${inP.length === 1 ? "" : "s"} · ${P.label}. Scores and notes come from the AI call review on the Sales Calls board; each card links back to the full write-up.`;
+  const perCloser = names.map(n => { const rs = inP.filter(r => r.closer === n); return rs.length ? [n, avg(rs), rs.length] : null; }).filter(Boolean);
+  const strong = inP.filter(r => r.score >= 75).length;
+  $("#review-kpis").innerHTML = [
+    ["Calls reviewed", inP.length, `${reviews.length} on the board all time`],
+    ["Average score", inP.length ? Math.round(avg(inP)) : "—", inP.length ? `${strong} of ${inP.length} scored 75+` : "no reviews in this period"],
+    ...perCloser.map(([n, a, c]) => [`${n} avg`, Math.round(a), `${c} call${c === 1 ? "" : "s"} · best ${Math.max(...inP.filter(r => r.closer === n).map(r => r.score))}`]),
+  ].map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${esc(k)}</p><div class="v">${v}</div><div class="d">${esc(d)}</div></div>`).join("");
+  // score-by-call chart: one dot per reviewed call, by date, colored by closer, with the 75 line
+  const W = 760, H = 200, pad = { l: 34, r: 16, t: 12, b: 26 }, iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const t0 = parse(P.from).getTime(), t1 = parse(P.to).getTime() + 86400000, x = d => pad.l + ((parse(d).getTime() + 43200000 - t0) / (t1 - t0)) * iw, y = v => pad.t + ih - (v / 100) * ih;
+  let s = svgOpen(W, H) + `<g class="grid">`;
+  for (const v of [0, 25, 50, 75, 100]) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `</g><line x1="${pad.l}" x2="${W - pad.r}" y1="${y(75)}" y2="${y(75)}" stroke="var(--good)" stroke-dasharray="3 3"/>`;
+  const labelEvery = Math.max(1, Math.ceil(P.chartBuckets.length / 8));
+  P.chartBuckets.forEach((b, i) => { if (i % labelEvery === 0) { const lx = Math.min(x(b.from), W - pad.r - 40); s += `<text x="${lx}" y="${H - 8}" text-anchor="start" font-size="10">${esc(b.label)}</text>`; } });
+  // nudge same-day dots apart so they don't stack
+  const seen = {};
+  for (const r of [...inP].reverse()) { const k = r.date + "|" + Math.round(r.score / 5); const n = (seen[k] = (seen[k] || 0) + 1); const cx = x(r.date) + (n - 1) * 9;
+    s += `<circle cx="${cx}" cy="${y(r.score)}" r="6" fill="${closerColor(r.closer)}" stroke="var(--panel)" stroke-width="2"/><circle class="hit" cx="${cx}" cy="${y(r.score)}" r="12" data-tip="${esc(r.lead)} · ${esc(r.closer)} · ${shortDate(r.date)}: ${r.score}" data-cx="${cx}" data-cy="${y(r.score)}"/>`; }
+  $("#chart-scores-svg").innerHTML = s + "</svg>"; wireTips($("#chart-scores"));
+  $("#chart-scores-legend").innerHTML = names.map(n => `<span><i style="background:${closerColor(n)}"></i>${esc(n)}</span>`).join("");
+  const link = (href, label) => href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${label} ↗</a>` : "";
+  $("#review-list").innerHTML = inP.length ? inP.map(r => `<article class="review">
+      <div class="score s-${scoreBand(r.score)}">${r.score}<small>/ 100</small></div>
+      <div class="rbody">
+        <div class="rhead"><b>${esc(r.lead)}</b><span class="meta"><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)} · ${shortDate(r.date)}${r.lengthMin ? ` · ${r.lengthMin} min` : ""}</span>${r.outcome ? `<span class="outcome">${esc(r.outcome)}</span>` : ""}</div>
+        ${r.wentWell?.length || r.workOn?.length ? `<p class="rsum">${esc(r.summary)}</p>
+        <div class="cols"><div><h4 class="good">What went well</h4><ul>${(r.wentWell || []).map(t => `<li>${esc(t)}</li>`).join("")}</ul></div><div><h4 class="bad">What to work on</h4><ul>${(r.workOn || []).map(t => `<li>${esc(t)}</li>`).join("")}</ul></div></div>`
+        : `<p class="pending">Scored on the board, but the written review isn't saved to the Notion page yet — open it to add one.</p>`}
+        <div class="rlinks">${link(r.notion, "Full review in Notion")}${link(r.recording, "Recording")}${link(r.transcript, "Transcript")}</div>
+      </div></article>`).join("")
+    : `<p class="empty">No reviewed calls in ${esc(P.label)}${state.closer !== "all" ? " for " + esc(state.closer) : ""}. Widen the period above, or check the Notion board for calls still waiting on a transcript.</p>`;
 }
 function renderChips() {
   const el = $("#chips"); el.innerHTML = "";
@@ -642,6 +740,8 @@ trackerHost.addEventListener("keydown", e => {
   if (next) next.children[idx]?.querySelector("input,select")?.focus();
 });
 for (const b of $("#seg-period").children) b.onclick = () => { state.period = b.dataset.p; render(); };
+for (const b of $("#views").children) b.onclick = () => { state.view = b.dataset.v; try { history.replaceState(null, "", state.view === "reviews" ? "#reviews" : "#tracker"); } catch (e) {} render(); window.scrollTo({ top: 0 }); };
+window.addEventListener("hashchange", () => { const v = location.hash === "#reviews" ? "reviews" : "tracker"; if (v !== state.view) { state.view = v; render(); } });
 $("#nav-prev").onclick = () => shift(-1); $("#nav-next").onclick = () => shift(1); $("#nav-today").onclick = () => { state.anchor = todayStr(); render(); };
 
 // ---------- data ----------
@@ -656,6 +756,7 @@ render();
   else if (canWrite === null) canWrite = true; // not told: keep inputs, a refused write will say so
   let timer = setTimeout(() => setStatus("Still reaching the call log… numbers may be out of date.", true), 10000);
   db.doc("settings/main").onSnapshot(s => { if (s.exists) { const d = s.data(); settings = { ...DEFAULT_SETTINGS, ...d, kpis: { ...DEFAULT_SETTINGS.kpis, ...(d.kpis || {}) }, cashGoals: { ...DEFAULT_SETTINGS.cashGoals, ...(d.cashGoals || {}) } }; render(); } }, () => {});
+  db.collection("reviews").onSnapshot(snap => { reviews = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer && r.score != null); renderTop(); }, () => {});
   db.collection("calls").onSnapshot(snap => {
     calls = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer);
     if (!snap.metadata.fromCache) { clearTimeout(timer); setStatus(`${calls.length} calls on record${canWrite ? "" : " · read-only"}`); }
