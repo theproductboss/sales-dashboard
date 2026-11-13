@@ -128,6 +128,10 @@ td.dim { color: var(--muted); }
 .tabs.months button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .tabs.months button.future { border-style: dashed; }
 .tabs.closers { display: flex; margin-bottom: 4px; }
+td button.jump { background: transparent; border: 0; padding: 0; margin: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+td button.jump:hover { text-decoration-style: solid; }
+.wkblock { scroll-margin-top: 12px; border-radius: 10px; transition: background .4s, box-shadow .4s; }
+.wkblock.flash { background: var(--blush); box-shadow: 0 0 0 8px var(--blush); }
 .wk { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
 .wk:first-child { margin-top: 4px; }
 .wk h3 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
@@ -650,12 +654,13 @@ function renderCards(P, names) {
     const rowsDef = rowsFor(n);
     const all = calls.filter(r => r.closer === n && inRange(r, P));
     if (!all.length && state.closer === "all") return "";
-    const cols = [{ label: P.kind === "month" ? P.label.split(" ")[0].toUpperCase() + " OVERALL" : "OVERALL", sub: "", m: metrics(all), total: true }, ...B.map(b => ({ label: b.label, sub: b.sub, m: metrics(all.filter(r => inRange(r, b))) }))];
+    const cols = [{ label: P.kind === "month" ? P.label.split(" ")[0].toUpperCase() + " OVERALL" : "OVERALL", sub: "", m: metrics(all), total: true, from: P.from, to: P.to }, ...B.map(b => ({ label: b.label, sub: b.sub, m: metrics(all.filter(r => inRange(r, b))), from: b.from, to: b.to }))];
     const cell = (def, c) => {
-      const [, fn, kind, kpi] = def; const v = fn(c.m);
+      const [label, fn, kind, kpi] = def; const v = fn(c.m);
       let txt = kind === "pct" ? fmtPct(v) : kind === "money" ? (v ? fmtMoney(v) : "—") : (v === 0 && !c.total ? "·" : v);
       let cls = kind === "dim" ? "dim" : "";
       if (kind === "pct" && kpi != null && v != null) cls = v >= kpi ? "over" : "under";
+      if (label === "Total scheduled" && v > 0) txt = `<button type="button" class="jump" data-closer="${esc(n)}" data-from="${c.from}" data-to="${c.to}" title="Open these ${v} call${v === 1 ? "" : "s"} in the Closer Tracker">${v} ↗</button>`;
       return `<td class="${cls}${c.total ? " total" : ""}">${txt}</td>`;
     };
     return `<div class="panel"><div class="card-head"><span class="dot" style="background:${closerColor(n)}"></span><h2>${esc(n)}</h2><span class="status-line">${all.length} call${all.length === 1 ? "" : "s"} in ${esc(P.label)}</span></div>
@@ -664,6 +669,13 @@ function renderCards(P, names) {
       `</tbody></table></div></div>`;
   }).join("") || `<div class="panel empty">No calls logged for ${esc(P.label)} yet.</div>`;
 }
+// "Total scheduled" numbers jump to the Closer Tracker: right closer, right month, scrolled to that week
+$("#cards").addEventListener("click", e => {
+  const b = e.target.closest("button.jump"); if (!b) return;
+  state.tab = b.dataset.closer; state.tmonth = b.dataset.from.slice(0, 7); state.view = "tracker"; state.jumpTo = { from: b.dataset.from, to: b.dataset.to };
+  try { history.replaceState(null, "", "#tracker"); } catch (err) {}
+  renderTop(); renderTracker(true);
+});
 // ---------- Closer Tracker grid (the spreadsheet tab, editable in place) ----------
 const STATUSES = [["OPEN", "—"], ["WIN", "WIN"], ["LOST", "LOST"], ["NURTURING", "NURTURING"], ["NO-SHOW", "NO-SHOW"], ["CXL'D", "CXL'D"], ["RESCHEDULED", "RESCHEDULED"], ["SET TO JILL", "SET TO JILL"], ["UNQUALIFIED", "UNQUALIFIED"]];
 const trackerHost = $("#tracker-body");
@@ -698,9 +710,15 @@ function renderTracker(force) {
   trackerHost.innerHTML = weeks.map((w, i) => {
     const wr = rows.filter(r => inRange(r, w)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "").localeCompare(b.createdAt || ""));
     const m = metrics(wr);
-    return `<div class="wk"><h3>Week ${i + 1}<span>${shortDate(w.from)} – ${shortDate(w.to)}</span></h3><span class="status-line">${m.booked} booked · ${m.held} completed · ${m.wins} win${m.wins === 1 ? "" : "s"} · ${fmtMoney(m.cash)} cash</span></div>
-      <div class="tablewrap"><table class="grid">${head}<tbody>${wr.map(r => rowHtml(r, w)).join("")}${canWrite === false ? "" : rowHtml(null, w)}</tbody></table></div>`;
+    return `<section class="wkblock" data-from="${w.from}" data-to="${w.to}"><div class="wk"><h3>Week ${i + 1}<span>${shortDate(w.from)} – ${shortDate(w.to)}</span></h3><span class="status-line">${m.booked} booked · ${m.held} completed · ${m.wins} win${m.wins === 1 ? "" : "s"} · ${fmtMoney(m.cash)} cash</span></div>
+      <div class="tablewrap"><table class="grid">${head}<tbody>${wr.map(r => rowHtml(r, w)).join("")}${canWrite === false ? "" : rowHtml(null, w)}</tbody></table></div></section>`;
   }).join("");
+  if (state.jumpTo) {
+    const j = state.jumpTo; state.jumpTo = null;
+    const wholeMonth = j.from.slice(0, 7) === j.to.slice(0, 7) && j.from.endsWith("-01") && j.to === monthEnd(j.from);
+    const target = wholeMonth ? $("#tracker") : [...trackerHost.querySelectorAll(".wkblock")].find(s => j.from <= s.dataset.to && j.to >= s.dataset.from);
+    if (target) { target.scrollIntoView({ behavior: "smooth", block: "start" }); if (!wholeMonth) { target.classList.add("flash"); setTimeout(() => target.classList.remove("flash"), 2500); } }
+  }
 }
 function rowHtml(r, w) {
   const dis = canWrite === false ? " disabled" : "", chk = v => v ? " checked" : "";
