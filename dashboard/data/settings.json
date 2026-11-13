@@ -1,1 +1,1 @@
-{"closers":[{"name":"Jill","color":"jill"},{"name":"Jacqueline","color":"jacqueline"},{"name":"Jessica","color":"jessica"}],"kpis":{"show":0.7,"offer":0.9,"close":0.25},"cashGoals":{"week":30000,"month":150000}}
+{"closers":[{"name":"Jill","color":"jill"},{"name":"Jacqueline","color":"jacqueline"},{"name":"Jessica","color":"jessica","kpis":{"show":0.7,"offer":null,"close":null,"cashRevenue":null},"cashGoal":false}],"kpis":{"show":0.7,"offer":0.9,"close":0.25,"cashRevenue":0.5},"cashGoals":{"week":30000,"month":150000}}

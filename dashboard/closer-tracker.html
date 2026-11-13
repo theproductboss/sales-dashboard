@@ -303,8 +303,17 @@ const MON3 = MONTHS.map(m => m.slice(0, 3));
 
 // ---------- state ----------
 const DEFAULT_SETTINGS = { closers: [{ name: "Jill", color: "jill" }, { name: "Jacqueline", color: "jacqueline" }, { name: "Jessica", color: "jessica" }],
-  kpis: { show: 0.7, offer: 0.9, close: 0.25 }, cashGoals: { week: 30000, month: 150000 } };
+  kpis: { show: 0.7, offer: 0.9, close: 0.25, cashRevenue: 0.5 }, cashGoals: { week: 30000, month: 150000 } };
+// A closer can have their own KPI set (a key set to null means "no KPI for them"); otherwise the team KPIs apply.
+function closerCfg(name) { return settings.closers.find(c => c.name === name) || {}; }
+function kpiFor(key) {
+  if (state.closer === "all") return settings.kpis[key] ?? null;
+  const own = closerCfg(state.closer).kpis;
+  return own && key in own ? own[key] : (settings.kpis[key] ?? null);
+}
+function kpiForCloser(name, key) { const own = closerCfg(name).kpis; return own && key in own ? own[key] : (settings.kpis[key] ?? null); }
 function cashGoal(P) { // weekly and monthly targets; a quarter is three months; YTD / all time have no single goal
+  if (state.closer !== "all" && closerCfg(state.closer).cashGoal === false) return null;
   const g = settings.cashGoals || {};
   if (P.kind === "week") return g.week || null;
   if (P.kind === "month") return g[P.from.slice(0, 7)] || g.month || null;
@@ -477,7 +486,7 @@ function renderChips() {
   for (const c of settings.closers) mk(c.name, c.name, `var(--${c.color})`);
 }
 function kpiPill(val, target, higherIsBetter = true) {
-  if (val == null) return "";
+  if (val == null || target == null) return "";
   const ok = higherIsBetter ? val >= target : val <= target;
   const near = Math.abs(val - target) < 0.1;
   const cls = ok ? "good" : near ? "warn" : "bad";
@@ -490,10 +499,10 @@ function renderKpis(rows, P) {
   const goalPill = goal ? `<span class="pill ${m.cash >= goal ? "good" : m.cash >= goal * 0.8 ? "warn" : "bad"}">${m.cash >= goal ? "✓" : "!"} ${fmtPct(m.cash / goal)} of ${fmtMoney(goal)}</span>` : "";
   const tiles = [
     ["Calls booked", m.booked, `${m.held} completed · ${m.noShow} no-show · ${m.cxl} cxl`],
-    ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, settings.kpis.show) || "no completed calls yet"],
-    ["Close rate", fmtPct(m.closeRate), (kpiPill(m.closeRate, settings.kpis.close) || "") + ` ${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
-    ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, settings.kpis.offer) || "") + ` ${m.offers} offers`],
-    ["Revenue generated", fmtMoney(m.revenue), m.revenue ? `${fmtPct(m.cash / m.revenue)} collected as cash · ${m.wins ? fmtMoney(m.revenue / m.wins) + " avg per win" : ""}` : "no wins with revenue yet"],
+    ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, kpiFor("show")) || "no completed calls yet"],
+    ["Close rate", fmtPct(m.closeRate), (kpiPill(m.closeRate, kpiFor("close")) || "") + ` ${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
+    ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, kpiFor("offer")) || "") + ` ${m.offers} offers`],
+    ["Revenue generated", fmtMoney(m.revenue), m.revenue ? `${kpiFor("cashRevenue") != null ? fmtPct(m.cash / m.revenue) + " collected as cash · " : ""}${m.wins ? fmtMoney(m.revenue / m.wins) + " avg per win" : ""}` : "no wins with revenue yet"],
     ["Cash collected", fmtMoney(m.cash), goal ? goalPill + (goal > m.cash ? ` ${fmtMoney(goal - m.cash)} to go` : " goal met") : `${m.nurturing} still nurturing · ${m.lost} lost`],
   ];
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
@@ -595,7 +604,7 @@ function renderRateCharts(P, names) {
     let s = svgOpen(W, H) + `<g class="grid">`;
     for (const v of [0, 0.5, 1]) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
     s += `</g>`;
-    const kpi = key === "showRate" ? settings.kpis.show : settings.kpis.close;
+    const kpi = kpiFor(key === "showRate" ? "show" : "close");
     if (kpi) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(kpi)}" y2="${y(kpi)}" stroke="var(--good)" stroke-dasharray="3 3"/><text x="${W - pad.r + 3}" y="${y(kpi) + 4}" font-size="9" fill="var(--good-text)">KPI</text>`;
     for (const n of names) {
       const pts = B.map((b, i) => { const m = metrics(calls.filter(r => r.closer === n && inRange(r, b))); return m[key] == null ? null : { x: x(i), y: y(m[key]), v: m[key], m }; });
@@ -623,19 +632,21 @@ function wireTips(host) {
 // Scorecards — the spreadsheet tab, one per closer
 function renderCards(P, names) {
   const B = P.buckets;
-  const rowsDef = [
+  const kpiLabel = (base, k) => k != null ? `${base} (KPI ${fmtPct(k)})` : base;
+  const rowsFor = n => { const K = key => kpiForCloser(n, key); return [
     ["section", "Calls"],
     ["Total scheduled", m => m.booked], ["New consults", m => m.newConsults, "dim"], ["Follow-ups", m => m.followUps, "dim"],
     ["No-shows", m => m.noShow], ["Lead cancels", m => m.cxl], ["Rescheduled", m => m.resch, "dim"], ["Completed calls", m => m.held],
-    ["Show % (KPI 70%)", m => m.showRate, "pct", settings.kpis.show],
+    [kpiLabel("Show %", K("show")), m => m.showRate, "pct", K("show")],
     ["section", "Pitch"],
-    ["Offers made", m => m.offers], ["Offer % (KPI 90%)", m => m.offerRate, "pct", settings.kpis.offer],
+    ["Offers made", m => m.offers], [kpiLabel("Offer %", K("offer")), m => m.offerRate, "pct", K("offer")],
     ["section", "Outcome"],
     ["Wins", m => m.wins], ["Nurturing", m => m.nurturing, "dim"], ["Lost", m => m.lost, "dim"], ["Set to Jill", m => m.setToJill, "dim"],
-    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"], ["Cash vs revenue (KPI 50%)", m => m.revenue ? m.cash / m.revenue : null, "pct", 0.5],
-    ["Close % (KPI 25%)", m => m.closeRate, "pct", settings.kpis.close], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
-  ];
+    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"], [kpiLabel("Cash vs revenue", K("cashRevenue")), m => m.revenue ? m.cash / m.revenue : null, "pct", K("cashRevenue")],
+    [kpiLabel("Close %", K("close")), m => m.closeRate, "pct", K("close")], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
+  ]; };
   $("#cards").innerHTML = names.map(n => {
+    const rowsDef = rowsFor(n);
     const all = calls.filter(r => r.closer === n && inRange(r, P));
     if (!all.length && state.closer === "all") return "";
     const cols = [{ label: P.kind === "month" ? P.label.split(" ")[0].toUpperCase() + " OVERALL" : "OVERALL", sub: "", m: metrics(all), total: true }, ...B.map(b => ({ label: b.label, sub: b.sub, m: metrics(all.filter(r => inRange(r, b))) }))];
