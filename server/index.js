@@ -71,7 +71,7 @@ ${page}
   const guard = (req, res, next) => authed(req) ? next() : (req.path.startsWith("/api/") ? res.status(401).json({ error: "sign in" }) : res.status(401).send(loginPage()));
   app.use(guard);
 
-  app.get("/", (req, res) => { res.type("html").send(shell(fs.readFileSync(PAGE, "utf8"))); });
+  app.get("/", (req, res) => { res.set("Cache-Control", "no-store").type("html").send(shell(fs.readFileSync(PAGE, "utf8"))); });
 
   app.get("/api/state", async (req, res) => {
     const state = await store.all();
