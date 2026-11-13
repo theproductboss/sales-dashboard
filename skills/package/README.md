@@ -10,6 +10,7 @@ It's built from the training material of well-known closers: Alex Hormozi (CLOSE
 |---|---|
 | `sales-call-analyzer.skill` | The skill, ready to upload to Claude (claude.ai or the Claude desktop app) |
 | `sales-call-analyzer/` | The same skill as a plain folder, for Claude Code users |
+| `sales-call-analyzer/automation/notion-review-prompt.md` | A one-prompt version for automations (Zapier, Make, n8n) that score every call and write the results into a database |
 | `README.md` | This guide |
 
 ## How to install it

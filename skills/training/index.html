@@ -1,0 +1,456 @@
+<title>Build a Sales Call Coach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a facilitator's run book. Narrow reading column, module cards keyed to the run-of-show clock, one pipeline diagram as the anchor. */
+:root{
+  --bg:#f5f7f8; --surface:#ffffff; --ink:#14232b; --muted:#566872; --line:#d9e1e5;
+  --accent:#0f6b73; --accent-soft:#e1f0f1; --rec:#d9480f; --rec-soft:#fdeee6; --ok:#2b8a3e; --ok-soft:#e6f4ea;
+  --code-bg:#eef2f4;
+  --f-display:"Sora", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f171b; --surface:#16232a; --ink:#e3ecef; --muted:#9db0b8; --line:#2a3b43;
+  --accent:#5cc4cc; --accent-soft:#173539; --rec:#ff8a55; --rec-soft:#3a2318; --ok:#69c97d; --ok-soft:#173222;
+  --code-bg:#1c2c34; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171b; --surface:#16232a; --ink:#e3ecef; --muted:#9db0b8; --line:#2a3b43;
+  --accent:#5cc4cc; --accent-soft:#173539; --rec:#ff8a55; --rec-soft:#3a2318; --ok:#69c97d; --ok-soft:#173222;
+  --code-bg:#1c2c34; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,2.75rem);font-weight:700;letter-spacing:-0.01em}
+h2{font-size:1.6rem;font-weight:600;margin-top:56px;margin-bottom:12px}
+h3{font-size:1.15rem;font-weight:600}
+p{margin:0 0 12px;max-width:68ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--f-mono);font-size:0.86em}
+code{background:var(--code-bg);padding:1px 6px;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+
+header.hero{padding-block:48px 24px;border-bottom:1px solid var(--line)}
+.hero .rec{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:0.78rem;color:var(--rec);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px}
+.hero .rec::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--rec)}
+.hero p.lede{font-size:1.15rem;color:var(--muted);margin-top:14px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:24px}
+.fact{border-left:3px solid var(--accent);padding:4px 12px}
+.fact b{display:block;font-family:var(--f-display);font-size:1rem}
+.fact span{font-size:0.88rem;color:var(--muted)}
+
+nav.toc{margin-top:28px;display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{font-size:0.85rem;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--ink);background:var(--surface)}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);outline:none}
+
+.bigidea{margin-top:28px;background:var(--accent-soft);border-radius:10px;padding:20px 22px}
+.bigidea p{margin:0;font-size:1.1rem}
+.bigidea strong{font-family:var(--f-display)}
+
+.diagram{overflow-x:auto;margin:20px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.d-brain{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.d-t{fill:var(--ink);font-family:var(--f-display);font-size:14px;font-weight:600}
+.d-s{fill:var(--muted);font-family:var(--f-body);font-size:11.5px}
+.d-arrow{stroke:var(--muted);stroke-width:1.5;fill:none}
+.d-head{fill:var(--muted)}
+.d-rec{fill:var(--rec)}
+.d-tag{fill:var(--accent);font-family:var(--f-mono);font-size:11px}
+
+table{border-collapse:collapse;width:100%;font-size:0.92rem}
+.tbl{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:0.74rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:none}
+td.t{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent)}
+
+.module{margin-top:28px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.module .mhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.module .mhead .clock{font-family:var(--f-mono);font-size:0.8rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.module .mbody{padding:16px 20px;display:grid;gap:14px}
+.module .goal{font-size:1rem}
+.row{display:grid;grid-template-columns:110px 1fr;gap:4px 16px}
+.row > .lbl{font-family:var(--f-mono);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.row > div{min-width:0}
+.row ul,.row ol{margin:0;padding-left:20px}
+.row li{margin-bottom:4px}
+.say{border-left:3px solid var(--accent);padding-left:12px;font-style:italic}
+.screen{background:var(--code-bg);border-radius:6px;padding:8px 12px;font-size:0.92rem}
+.check{background:var(--ok-soft);border-radius:6px;padding:8px 12px;font-size:0.92rem}
+.trap{background:var(--rec-soft);border-radius:6px;padding:8px 12px;font-size:0.92rem}
+@media (max-width:560px){.row{grid-template-columns:1fr}.row > .lbl{padding-top:0}}
+
+.callout{margin-top:20px;border:1px solid var(--rec);border-radius:10px;padding:16px 20px;background:var(--rec-soft)}
+.callout h3{color:var(--rec);margin-bottom:8px}
+.callout ul{margin:0;padding-left:20px}
+
+pre{background:var(--code-bg);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--f-mono);font-size:0.82rem;line-height:1.55;margin:12px 0}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
+.opt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.opt.pick{border:2px solid var(--accent)}
+.opt .pill{display:inline-block;font-family:var(--f-mono);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px}
+.opt ul{margin:8px 0 0;padding-left:20px;font-size:0.92rem}
+ol.steps{padding-left:22px}
+ol.steps li{margin-bottom:8px}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:0.88rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="rec">Screen-share training · facilitator guide</div>
+  <h1>Build a Sales Call Coach</h1>
+  <p class="lede">How to turn the best closers' methods into an AI skill, then wire it to your call recordings so every sales call is scored and coached automatically. Written so you can present it live, one screen at a time.</p>
+  <div class="facts">
+    <div class="fact"><b>90 minutes</b><span>8 modules plus Q&amp;A</span></div>
+    <div class="fact"><b>Tool-agnostic</b><span>Any recorder, automation tool, AI model and database</span></div>
+    <div class="fact"><b>For</b><span>Founders, sales managers, ops leads</span></div>
+    <div class="fact"><b>They leave with</b><span>A skill, a review prompt, and a working pipeline plan</span></div>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#idea">The one idea</a><a href="#prep">Before you present</a><a href="#runofshow">Run of show</a><a href="#m1">Modules</a><a href="#review-step">The review step</a><a href="#trouble">Troubleshooting</a><a href="#homework">Homework</a>
+  </nav>
+</header>
+
+<section id="idea">
+  <h2>The one idea to teach</h2>
+  <p>Everything in this training hangs on one sentence. Say it early, draw it, and come back to it in Module 7.</p>
+  <div class="bigidea"><p><strong>Your database doesn't know how to rate a sales call. Neither does your automation.</strong> An AI step only knows what you send it on that run. The rubric has to travel with every transcript.</p></div>
+  <p style="margin-top:16px">There are three separate jobs, and people blur them together:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Job</th><th>What it does</th><th>Examples</th></tr></thead>
+    <tbody>
+      <tr><td><b>The brain</b></td><td>Knows how to judge a call: the rubric, the rules, the feedback format</td><td>The skill (for chatting with Claude); the automation prompt (for unattended runs)</td></tr>
+      <tr><td><b>The plumbing</b></td><td>Moves the recording and transcript from place to place and calls the AI</td><td>Zapier, Make, n8n, a script</td></tr>
+      <tr><td><b>The memory</b></td><td>Stores each call, its score and its review, so you can sort, filter and spot patterns</td><td>Notion, Airtable, a spreadsheet, a CRM</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="diagram" role="img" aria-label="Pipeline: a call recorder sends the recording to storage; the automation tool picks up the transcript, sends it with the review prompt to the AI model, and writes the score and review into the database.">
+    <svg viewBox="0 0 900 230" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="d-head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="d-box" x="10" y="60" width="150" height="90" rx="10"/>
+      <circle class="d-rec" cx="30" cy="80" r="5"/>
+      <text class="d-t" x="42" y="85">Recorder</text>
+      <text class="d-s" x="24" y="110">Zoom, Meet, Fathom</text>
+      <text class="d-s" x="24" y="128">records the call</text>
+
+      <rect class="d-box" x="195" y="60" width="150" height="90" rx="10"/>
+      <text class="d-t" x="211" y="85">Storage</text>
+      <text class="d-s" x="211" y="110">Google Drive</text>
+      <text class="d-s" x="211" y="128">video + transcript files</text>
+
+      <rect class="d-box" x="380" y="60" width="160" height="90" rx="10"/>
+      <text class="d-t" x="396" y="85">Automation</text>
+      <text class="d-s" x="396" y="110">Zapier, Make, n8n</text>
+      <text class="d-s" x="396" y="128">Zap A, Zap B, Zap C</text>
+
+      <rect class="d-brain" x="575" y="10" width="150" height="90" rx="10"/>
+      <text class="d-t" x="591" y="35">AI model</text>
+      <text class="d-s" x="591" y="60">Claude or another LLM</text>
+      <text class="d-tag" x="591" y="80">+ review prompt</text>
+
+      <rect class="d-box" x="740" y="110" width="150" height="90" rx="10"/>
+      <text class="d-t" x="756" y="135">Database</text>
+      <text class="d-s" x="756" y="160">Notion, Airtable</text>
+      <text class="d-s" x="756" y="178">score, flags, review</text>
+
+      <path class="d-arrow" d="M160 105 H193" marker-end="url(#ah)"/>
+      <path class="d-arrow" d="M345 105 H378" marker-end="url(#ah)"/>
+      <path class="d-arrow" d="M540 85 C560 70, 560 55, 573 55" marker-end="url(#ah)"/>
+      <path class="d-arrow" d="M650 100 C650 140, 700 155, 738 155" marker-end="url(#ah)"/>
+      <path class="d-arrow" d="M540 130 C600 175, 680 190, 738 180" marker-end="url(#ah)"/>
+      <text class="d-s" x="552" y="208">row created, then updated</text>
+      <text class="d-tag" x="556" y="128">JSON back</text>
+    </svg>
+  </div>
+  <p class="muted" style="font-size:0.9rem">The highlighted box is the only place judgment happens. Everything else just moves files.</p>
+</section>
+
+<section id="prep">
+  <h2>Before you present</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Have open</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>One finished review in your database, with the prospect's name and details hidden or replaced</td><td>Module 1 opens on the end result</td></tr>
+      <tr><td>Your example skills, and the finished <code>sales-call-analyzer</code> folder</td><td>Modules 2, 5 and 6</td></tr>
+      <tr><td>One closer video transcript, plus one web summary of the same video</td><td>Module 3: the side-by-side shows why transcripts win</td></tr>
+      <tr><td>Your automation tool with Zap A and Zap B open in the editor</td><td>Module 7</td></tr>
+      <tr><td>The automation prompt file (<code>automation/notion-review-prompt.md</code>)</td><td>Module 7</td></tr>
+      <tr><td>Three calls you know well: a clean close, a clear loss, a messy follow-up</td><td>The live test in Module 6</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <h3>Privacy check before you share your screen</h3>
+    <ul>
+      <li>Sales calls contain prospects' names, revenue, health and money worries. Use a test call or blur real names.</li>
+      <li>Close any tab showing API keys or connection settings.</li>
+      <li>If you share the recording later, check the frames where the database is visible.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="runofshow">
+  <h2>Run of show</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Clock</th><th>Module</th><th>On screen</th></tr></thead>
+    <tbody>
+      <tr><td class="t">0:00</td><td>1 · Start with the end</td><td>A finished review in the database</td></tr>
+      <tr><td class="t">0:05</td><td>2 · What a great skill looks like</td><td>Example skill files</td></tr>
+      <tr><td class="t">0:15</td><td>3 · Gather the source material</td><td>Transcript vs summary, side by side</td></tr>
+      <tr><td class="t">0:30</td><td>4 · Distill one framework</td><td>The master stage table</td></tr>
+      <tr><td class="t">0:40</td><td>5 · Make it gradable</td><td>Scorecard and signals files</td></tr>
+      <tr><td class="t">0:55</td><td>6 · Package and test</td><td>Skill upload, three test calls</td></tr>
+      <tr><td class="t">1:05</td><td>7 · Wire the pipeline</td><td>Automation editor and database</td></tr>
+      <tr><td class="t">1:25</td><td>8 · Close the loop</td><td>Database views, prompt version</td></tr>
+      <tr><td class="t">1:30</td><td>Q&amp;A</td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Short on time? Cut Module 4 to 5 minutes and Module 6 to a single test call. Never cut Module 7; it's the part people can't work out alone.</p>
+</section>
+
+<!-- MODULE 1 -->
+<article class="module" id="m1">
+  <div class="mhead"><span class="clock">0:00–0:05</span><h3>1 · Start with the end</h3></div>
+  <div class="mbody">
+    <p class="goal">Show what a finished review looks like before explaining anything, so every later step has a reason.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">One reviewed call in your database: the score, outcome and flags, then the review on the page: the turning point, keep three, fix three, the drill.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"Every call my team takes lands here, scored, with the exact line where the deal was won or lost and one drill for the next call. Nobody typed this. By the end you'll know how to build it, and the one piece most people get wrong."</div></div>
+    <div class="row"><div class="lbl">Do</div><div><ul><li>Point at one quote with a timestamp. Say: every claim is backed by a line from the call.</li><li>Sort the database by score to show it's a ranking, not just notes.</li></ul></div></div>
+    <div class="row"><div class="lbl">Check</div><div class="check">Ask: "What would you do with this every Monday?" Get two answers before moving on.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 2 -->
+<article class="module" id="m2">
+  <div class="mhead"><span class="clock">0:05–0:15</span><h3>2 · What a great skill looks like</h3></div>
+  <div class="mbody">
+    <p class="goal">Learners can name the parts of a strong skill and why each part exists.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">A well-built example skill: its main <code>SKILL.md</code> and its <code>references/</code> folder.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"A skill is a set of instructions plus reference material that Claude loads when the task comes up. Before I wrote a word of mine, I took apart skills that already worked and copied their structure, not their content."</div></div>
+    <div class="row"><div class="lbl">Teach</div><div><p>The anatomy, in order:</p><ol>
+      <li><b>Description</b>: when to use it. This is how the AI decides to load it, so list the real phrases people will type ("score this call," "why didn't this close").</li>
+      <li><b>Cardinal rules</b>: two or three rules it never breaks. For this skill: no transcript, no verdict; objections are symptoms; coach the rep, not the call.</li>
+      <li><b>Calibration</b>: what it asks on first use (the offer, the price, the best call on file).</li>
+      <li><b>The process</b>: numbered steps in a fixed order.</li>
+      <li><b>Output format</b>: exactly what every answer contains.</li>
+      <li><b>Compounding</b>: how it improves: logs, corrections, saved examples.</li>
+      <li><b>Failure modes</b>: the specific ways it goes wrong, so it can avoid them.</li>
+      <li><b>References</b>: the deep material, kept out of the main file so it stays readable.</li>
+    </ol></div></div>
+    <div class="row"><div class="lbl">Watch for</div><div class="trap">People write a skill as one giant prompt. The main file should be short enough to read in five minutes; depth goes in the reference files.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 3 -->
+<article class="module" id="m3">
+  <div class="mhead"><span class="clock">0:15–0:30</span><h3>3 · Gather the source material</h3></div>
+  <div class="mbody">
+    <p class="goal">Learners know where good source material comes from, and why full transcripts beat summaries.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">Left: an AI summary of a closer's video. Right: the real transcript of the same video. Scroll to the same idea in both.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"My first pass used web search, and I got summaries of summaries. Pages failed to load, some were paywalled, and for one closer almost nothing was usable. The skill only got good when I pasted in full transcripts of the actual videos."</div></div>
+    <div class="row"><div class="lbl">Do</div><div><ol class="steps">
+      <li>Pick four or five experts whose methods you trust. Here: Hormozi (CLOSER), Miner (NEPQ), Shelby Sapp (gap selling and objections), Dan Martell (diagnose, then enroll).</li>
+      <li>For each, find their longest teaching video on calls or objections, and copy its transcript (most video sites show one under the video).</li>
+      <li>Add one data source to keep the gurus honest. Here: Gong's research on talk ratios and question counts.</li>
+      <li>Ask the AI to extract their teaching and tag every idea as <b>verbatim</b>, <b>from a summary</b>, or <b>secondhand</b>.</li>
+    </ol></div></div>
+    <div class="row"><div class="lbl">Teach</div><div><p><b>Provenance tags matter.</b> Feedback that quotes a closer must quote them accurately. The skill only puts verbatim lines in quotation marks and paraphrases the rest. This stops the AI from making up an authoritative-sounding quote.</p></div></div>
+    <div class="row"><div class="lbl">Watch for</div><div class="trap">Don't put whole transcripts inside the skill. Distill them into rules and keep quotes short. It's lighter, it's fairer to the creators, and the skill reads faster.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 4 -->
+<article class="module" id="m4">
+  <div class="mhead"><span class="clock">0:30–0:40</span><h3>4 · Distill one framework</h3></div>
+  <div class="mbody">
+    <p class="goal">Turn four experts' methods into one call structure the AI can grade against.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">The master stage table in <code>references/closer-frameworks.md</code>: one row per stage, one column per expert.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"Different names, same skeleton. Every one of them frames the call, digs for pain, paints the outcome, makes waiting feel costly, pitches only what solves the pain, asks, handles concerns, and locks it in."</div></div>
+    <div class="row"><div class="lbl">Teach</div><div><ul>
+      <li><b>Map, don't merge.</b> Lay each expert's steps against the same eight stages. Where they line up, you've found a real principle.</li>
+      <li><b>Find the rules that run through everything.</b> Here there were two: the prospect says the pain, not the rep; and the sale is made in discovery, not at the close.</li>
+      <li><b>Settle disagreements on purpose.</b> Hormozi says restate the problem back. Miner says repeating everything back sounds scripted. The house rule: restate the one core problem, once, in their words. Write the ruling down so the AI doesn't flip-flop.</li>
+    </ul></div></div>
+    <div class="row"><div class="lbl">Check</div><div class="check">Ask learners: "Which two experts would disagree most about how you run your calls?" That disagreement is their first house rule.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 5 -->
+<article class="module" id="m5">
+  <div class="mhead"><span class="clock">0:40–0:55</span><h3>5 · Make it gradable</h3></div>
+  <div class="mbody">
+    <p class="goal">Learners can turn "good selling" into a rubric that scores the same way every time.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen"><code>references/scorecard.md</code>, then <code>references/transcript-signals.md</code>.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"If you can't write down what a 1, a 3 and a 5 look like, the AI will make it up, differently every time. The rubric is where your judgment becomes repeatable."</div></div>
+    <div class="row"><div class="lbl">Teach</div><div><ol>
+      <li><b>Ten dimensions, weighted to 100.</b> Pain depth and objection handling weigh most, because that's where these calls are won and lost. Weights change by call type (one-call close, discovery, setter).</li>
+      <li><b>Anchors for 1, 3 and 5.</b> A 3 is "done, but shallow or in the rep's own words." A 5 is "done fully, in the prospect's words, with evidence."</li>
+      <li><b>The evidence rule.</b> No quote, no score. This one rule does more for quality than anything else.</li>
+      <li><b>Automatic flags.</b> Things that matter regardless of the total: never asked for the sale, talked right after the price, compliance risk. A great score can't hide them.</li>
+      <li><b>Signals to scan for.</b> Phrases visible in a transcript: the rep's filler and hedging, the prospect's "if I could at least…", partner mentions, money worries. A prospect signal the rep ignored is often the turning point of the call.</li>
+      <li><b>The diagnosis rule.</b> The objection at minute 42 was usually caused at minute 8. Feedback names the earlier skipped step, not just a better comeback.</li>
+    </ol></div></div>
+    <div class="row"><div class="lbl">Watch for</div><div class="trap">A rubric that rewards any close. A rep who pressured a bad-fit buyer into a refund should score lower than a rep who correctly said "this isn't for you."</div></div>
+  </div>
+</article>
+
+<!-- MODULE 6 -->
+<article class="module" id="m6">
+  <div class="mhead"><span class="clock">0:55–1:05</span><h3>6 · Package and test</h3></div>
+  <div class="mbody">
+    <p class="goal">Install the skill, prove it scores well on calls you already understand, and package it to share.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">Your AI tool's skills settings, then a chat with one test call pasted in.</div></div>
+    <div class="row"><div class="lbl">Do</div><div><ol class="steps">
+      <li>Zip the skill folder (main file plus references). Some tools want a <code>.skill</code> file, which is the same zip renamed.</li>
+      <li>Check the description is under the tool's limit. Mine went over 1,024 characters and had to be trimmed.</li>
+      <li>Upload it, then run your three known calls: the clean close, the loss, the messy follow-up.</li>
+      <li>Check the ranking matches your gut. If the clean close doesn't score 85+, fix the rubric or the house context before you automate anything.</li>
+      <li>Check one quote from each review against the transcript. Every quote should actually be there.</li>
+    </ol></div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"Test on calls you already understand. If it can't tell your best call from your worst, automating it just spreads the mistake faster."</div></div>
+    <div class="row"><div class="lbl">Check</div><div class="check">The three test calls rank in the right order, and every quote checks out.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 7 -->
+<article class="module" id="m7">
+  <div class="mhead"><span class="clock">1:05–1:25</span><h3>7 · Wire the pipeline</h3></div>
+  <div class="mbody">
+    <p class="goal">Learners understand all three automations, and above all how the database "knows" how to rate a call.</p>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">Automation editor: Zap A, then Zap B, then the review step (Zap C). Keep the database open in another tab and watch a row change as each one runs.</div></div>
+    <div class="row"><div class="lbl">Teach</div><div>
+      <p><b>Zap A, when a recording is ready:</b> trigger on a new cloud recording → save the video to Drive → create a database row with the call name, rep, date, length, meeting ID and recording link. Status: <i>Waiting on transcript</i>.</p>
+      <p><b>Zap B, when the transcript is ready:</b> trigger on a new transcript → save it to Drive → find the row by meeting ID → add the transcript link. Status: <i>Ready for review</i>.</p>
+      <p><b>Zap C, the review:</b> trigger when status becomes <i>Ready for review</i> → get the transcript's <b>text</b> (not just its link) → send it to the AI model <b>with the review prompt</b> → read the JSON that comes back → write the score, grade, outcome, flags, top fix and drill into the row, and add the review to the page → set status to <i>Reviewed</i> last.</p>
+    </div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"Here's the part nobody explains. The skill lives inside the AI chat app. An automation doesn't load skills. When Zap C calls the AI, the model knows nothing except the prompt and the transcript we send on that run. So the rubric has to go in the prompt, every single time. That's what the automation prompt file is: the skill, compressed into one prompt, with an output a machine can read."</div></div>
+    <div class="row"><div class="lbl">Do</div><div><ol class="steps">
+      <li>Open <code>automation/notion-review-prompt.md</code>. Show the three parts: the system prompt (the rubric), the user message (call details plus transcript), and the JSON output.</li>
+      <li>Fill in the house context block: offers, prices, call type, reps, house rules.</li>
+      <li>Paste the system prompt into the AI step. Map the transcript text and the row's fields into the user message.</li>
+      <li>Make the allowed outcome values in the prompt match the database options <b>exactly</b>, down to the dash.</li>
+      <li>Add a parse-JSON step, then map each field to a database property.</li>
+      <li>Run it on one test row and watch it fill in.</li>
+    </ol></div></div>
+    <div class="row"><div class="lbl">Watch for</div><div class="trap">Three common breaks: sending the transcript <i>link</i> instead of its text (the AI can't open your Drive); free-text output that can't be mapped to fields; and setting status to Reviewed before the writes succeed, which hides failures.</div></div>
+    <div class="row"><div class="lbl">Check</div><div class="check">Ask: "If I change the rubric tomorrow, where do I change it?" The answer is the prompt in Zap C, with a new version number, not the database.</div></div>
+  </div>
+</article>
+
+<!-- MODULE 8 -->
+<article class="module" id="m8">
+  <div class="mhead"><span class="clock">1:25–1:30</span><h3>8 · Close the loop</h3></div>
+  <div class="mbody">
+    <p class="goal">The system gets better every week instead of drifting.</p>
+    <div class="row"><div class="lbl">Teach</div><div><ul>
+      <li><b>Corrections become house rules.</b> When a manager says "we do that on purpose," add it, dated, to the house rules in the prompt and in the skill.</li>
+      <li><b>Version the prompt.</b> Every review records its rubric version, so you can compare old and new scores fairly.</li>
+      <li><b>Outcomes outrank scores.</b> After 20 or more calls, check whether high scores actually close. If a dimension doesn't predict closes, lower its weight.</li>
+      <li><b>Use the right tool for each job.</b> The automation scores every call. The full skill, in a chat, handles coaching conversations, rankings across reps and drill plans.</li>
+    </ul></div></div>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">Three database views: Flags this week; Score by rep; Closed with a low score (refund watch).</div></div>
+  </div>
+</article>
+
+<section id="review-step">
+  <h2>The review step: two ways to build it</h2>
+  <p>Both work. Teach both, then recommend one based on the audience.</p>
+  <div class="compare">
+    <div class="opt pick">
+      <span class="pill">Recommended start</span>
+      <h3>Automation calls the AI</h3>
+      <p class="muted" style="margin-top:6px">Zap C sends the review prompt and the transcript to the model and writes the JSON back.</p>
+      <ul>
+        <li>Runs on every call within minutes, with no one involved</li>
+        <li>Structured fields every time, so sorting and filtering just work</li>
+        <li>You maintain a condensed prompt alongside the full skill</li>
+        <li>Costs one AI call per sales call</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <span class="pill">Highest quality</span>
+      <h3>An AI agent on a schedule</h3>
+      <p class="muted" style="margin-top:6px">An AI assistant with the full skill installed and database access runs daily: "Review every row marked Ready for review."</p>
+      <ul>
+        <li>Uses the complete skill, including rep patterns and saved examples</li>
+        <li>Can compare against earlier calls from the same rep</li>
+        <li>Batch, not instant; depends on the agent having access to the database and transcripts</li>
+        <li>Needs a strict output template, or the format drifts between calls</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">The user message Zap C sends</h3>
+  <pre>Call name: {{Call name}}
+Rep: {{Rep}}
+Call date: {{Call date}}
+Length (min): {{Length}}
+
+Allowed outcome values (choose exactly one):
+Closed – Collective | Closed – Sales Accelerator | Closed – Inner Circle | Follow-up | No decision | Not a fit
+
+Allowed revenue band values (choose one, or null):
+$25K–$50K | $50K–$250K | $250K–$1M | $1M+
+
+TRANSCRIPT:
+{{full transcript text}}</pre>
+  <p class="muted" style="font-size:0.9rem">Swap the outcome and revenue band lists for your own database's options. The full system prompt, JSON format and field mapping are in <code>automation/notion-review-prompt.md</code>.</p>
+
+  <h3 style="margin-top:24px">Database properties to add</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Property</th><th>Type</th><th>Filled from</th></tr></thead>
+    <tbody>
+      <tr><td>AI score</td><td>Number</td><td><code>ai_score</code></td></tr>
+      <tr><td>Grade</td><td>Select: A, B, C, D, F</td><td><code>grade</code></td></tr>
+      <tr><td>Outcome</td><td>Select</td><td><code>outcome</code></td></tr>
+      <tr><td>Flags</td><td>Multi-select</td><td><code>flags</code></td></tr>
+      <tr><td>Turning point</td><td>Text</td><td><code>turning_point</code></td></tr>
+      <tr><td>Top fix</td><td>Text</td><td><code>top_fix</code></td></tr>
+      <tr><td>Drill</td><td>Text</td><td><code>drill</code></td></tr>
+      <tr><td>Rubric version</td><td>Text</td><td><code>rubric_version</code></td></tr>
+      <tr><td>Page body</td><td>Content</td><td><code>review_markdown</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="trouble">
+  <h2>Troubleshooting</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Reviews use a different scorecard each time</td><td>The AI step has no rubric, or a vague one</td><td>Paste the full system prompt into the AI step</td></tr>
+      <tr><td>Score is in the page text but the number field is empty</td><td>The output is prose, not JSON, so nothing maps to the field</td><td>Require JSON output, add a parse step, map each field</td></tr>
+      <tr><td>Outcome select is blank, or gets a new odd option</td><td>The model's wording doesn't exactly match the select options</td><td>List the exact allowed values in the user message</td></tr>
+      <tr><td>The review talks about the wrong call</td><td>The transcript link was sent instead of its text, so the model guessed</td><td>Add a step that reads the document's text and send that</td></tr>
+      <tr><td>Quotes that aren't in the transcript</td><td>The evidence rule is missing or ignored</td><td>Keep rule 1 in the prompt; spot-check quotes weekly</td></tr>
+      <tr><td>Wrong speaker names</td><td>Transcription mislabels speakers</td><td>Pass the rep's name in the user message; the prompt says to fix labels</td></tr>
+      <tr><td>Very long calls fail or get cut off</td><td>The transcript exceeds the step's size limit</td><td>Use a model with a larger context, or raise the step's limit</td></tr>
+      <tr><td>Rows stuck on "Ready for review"</td><td>Zap C errored before the last step</td><td>Check the automation's run history; status should change only after the writes succeed</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="homework">
+  <h2>Homework for learners</h2>
+  <ol class="steps">
+    <li>Pick three experts and get one full transcript from each.</li>
+    <li>Fill in the master stage table for your own sales process, including one house rule where two experts disagree.</li>
+    <li>Write anchors (1, 3, 5) for the three dimensions that matter most in your calls.</li>
+    <li>Run the review prompt by hand on three calls you know. Adjust until the ranking matches your gut.</li>
+    <li>Only then build the review step, and test it on one row before switching it on.</li>
+  </ol>
+</section>
+
+<footer>
+  Files that go with this training: the <code>sales-call-analyzer</code> skill folder (main file plus six reference files) and <code>automation/notion-review-prompt.md</code>. The closer frameworks were distilled from public videos and podcasts; this training isn't affiliated with or endorsed by any of the people named.
+</footer>
+
+</div>
