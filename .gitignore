@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Anonymized demo snapshot: page source still holds real dollar figures, keep out of git
+skills/training/demo/
