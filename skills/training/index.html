@@ -129,7 +129,7 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-si
     <tbody>
       <tr><td><b>The brain</b></td><td>Knows how to judge a call: the rubric, the rules, the feedback format</td><td>The skill (for chatting with Claude); the automation prompt (for unattended runs)</td></tr>
       <tr><td><b>The plumbing</b></td><td>Moves the recording and transcript from place to place and calls the AI</td><td>Zapier, Make, n8n, a script</td></tr>
-      <tr><td><b>The memory</b></td><td>Stores each call, its score and its review, so you can sort, filter and spot patterns</td><td>Notion, Airtable, a spreadsheet, a CRM</td></tr>
+      <tr><td><b>The memory</b></td><td>Stores each call, its score and its review, so you can sort, filter and spot patterns</td><td>Here: a Notion board holds each call's record and review, and a Claude dashboard, kept in sync through a service on Render, is what the team actually reads. Elsewhere: Airtable, a spreadsheet, a CRM</td></tr>
     </tbody>
   </table></div>
 
@@ -158,8 +158,8 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-si
       <text class="d-tag" x="591" y="80">+ review prompt</text>
 
       <rect class="d-box" x="740" y="110" width="150" height="90" rx="10"/>
-      <text class="d-t" x="756" y="135">Database</text>
-      <text class="d-s" x="756" y="160">Notion, Airtable</text>
+      <text class="d-t" x="756" y="135">Memory</text>
+      <text class="d-s" x="756" y="160">Notion + dashboard</text>
       <text class="d-s" x="756" y="178">score, flags, review</text>
 
       <path class="d-arrow" d="M160 105 H193" marker-end="url(#ah)"/>
@@ -178,7 +178,7 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-si
   <h2>Before you present</h2>
   <p>Open these tabs in this order, so each segment is one click away:</p>
   <ol class="steps">
-    <li>One finished review in your database, with the prospect's details hidden</li>
+    <li>The demo Closer Tracker (anonymized copy) open on the Call Reviews tab, period set to All time</li>
     <li>The <code>sales-call-analyzer</code> folder: <code>SKILL.md</code> and <code>references/scorecard.md</code></li>
     <li>A chat with the skill installed, with one test call already reviewed</li>
     <li>Your automation tool with Zap A, Zap B and the review step open</li>
@@ -214,9 +214,9 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-si
   <div class="mhead"><span class="clock">0:00–0:03</span><h3>1 · Start with the end</h3></div>
   <div class="mbody">
     <p class="goal">Show the finished result first, so every later step has a reason.</p>
-    <div class="row"><div class="lbl">On screen</div><div class="screen">One reviewed call: the score, outcome and flags, then the review on the page.</div></div>
-    <div class="row"><div class="lbl">Say</div><div class="say">"Every call my team takes lands here, scored, with the exact line where the deal was won or lost and one drill for the next call. Nobody typed this. In 30 minutes you'll know how to build it, and the one piece most people get wrong."</div></div>
-    <div class="row"><div class="lbl">Do</div><div>Point at one quote with a timestamp: every claim is backed by a line from the call. Then sort by score to show it's a ranking.</div></div>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">The demo Closer Tracker, Call Reviews tab: the score-by-call chart, then one review card with what went well and what to work on.</div></div>
+    <div class="row"><div class="lbl">Say</div><div class="say">"Every call my team takes lands here, scored and coached, right next to our booking and close numbers. Nobody typed this. (Names are changed for today.) In 30 minutes you'll know how to build it, and the one piece most people get wrong."</div></div>
+    <div class="row"><div class="lbl">Do</div><div>Point at one review card: what went well, what to work on. Then switch to the Closer Dashboard tab to show the scores sit beside show rate and close rate.</div></div>
   </div>
 </article>
 
@@ -274,7 +274,7 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-si
       <li><b>Version the prompt.</b> Each review records which rubric version scored it.</li>
       <li><b>Outcomes beat scores.</b> After 20 calls, check that high scores actually close, and adjust the weights if not.</li>
     </ul></div></div>
-    <div class="row"><div class="lbl">On screen</div><div class="screen">Two database views: Flags this week, and Closed with a low score (refund watch).</div></div>
+    <div class="row"><div class="lbl">On screen</div><div class="screen">The demo dashboard: filter Call Reviews by one closer to show their average and best score over time.</div></div>
     <div class="row"><div class="lbl">Close with</div><div class="say">"Your homework: get three full transcripts from experts you trust, write what a 1, 3 and 5 look like for the three things that matter most on your calls, and test on three calls you know before you automate anything."</div></div>
   </div>
 </article>
