@@ -172,6 +172,9 @@ Cash goals: $30,000 per week, $150,000 per month (quarter = 3 × month).
 Weeks inside a month follow the spreadsheet: week 1 is the 1st through the
 first Sunday, then Monday–Sunday.
 
+**Average deal size** (dashboard tile and scorecard row) = revenue generated ÷
+wins with a revenue amount; wins without revenue are flagged, not averaged in.
+
 **Per-lead fields** in the tracker grid, beyond the spreadsheet's columns:
 Email, Notes (`memo`: anything worth remembering about the lead) and Bonuses
 promised (`bonuses`: what the closer offered to get the deal done). The Find a

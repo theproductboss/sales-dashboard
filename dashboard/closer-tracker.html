@@ -314,7 +314,7 @@ footer.defs b { color: var(--ink); }
   </section>
 
   <footer class="defs">
-    <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”.</p>
+    <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”. <b>Average deal size</b> = revenue generated ÷ wins that have a revenue amount entered; wins logged without revenue are counted separately so they don’t pull the average down.</p>
     <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. A row in the Closer Tracker becomes a call as soon as it has a lead name; leave the date blank and it takes today (or the first day of that week). A nurturing lead counts as <b>overdue</b> when its follow-up date has passed, or when it has no follow-up date and nothing has been changed on it for more than 7 days. Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
   </footer>
 </div>
@@ -435,6 +435,8 @@ function metrics(rows) {
   m.offerRate = m.held > 0 ? m.offers / m.held : null;
   m.closeRate = m.held > 0 ? m.wins / m.held : null;
   m.closeOfBooked = m.booked > 0 ? m.wins / m.booked : null;
+  m.winsPriced = rows.filter(r => r.status === "WIN" && r.revenue > 0).length; m.winsUnpriced = m.wins - m.winsPriced;
+  m.avgDeal = m.winsPriced ? m.revenue / m.winsPriced : null; // revenue ÷ wins that have a revenue amount
   return m;
 }
 const inRange = (r, b) => r.date >= b.from && r.date <= b.to;
@@ -529,7 +531,8 @@ function renderKpis(rows, P) {
     ["Show rate", fmtPct(m.showRate), kpiPill(m.showRate, kpiFor("show")) || "no completed calls yet"],
     ["Close rate", fmtPct(m.closeRate), (kpiPill(m.closeRate, kpiFor("close")) || "") + ` ${m.wins} win${m.wins === 1 ? "" : "s"} ÷ ${m.held} completed · ${fmtPct(m.closeOfBooked)} of booked`],
     ["Offer rate", fmtPct(m.offerRate), (kpiPill(m.offerRate, kpiFor("offer")) || "") + ` ${m.offers} offers`],
-    ["Revenue generated", fmtMoney(m.revenue), m.revenue ? `${kpiFor("cashRevenue") != null ? fmtPct(m.cash / m.revenue) + " collected as cash · " : ""}${m.wins ? fmtMoney(m.revenue / m.wins) + " avg per win" : ""}` : "no wins with revenue yet"],
+    ["Revenue generated", fmtMoney(m.revenue), m.revenue ? `${kpiFor("cashRevenue") != null ? fmtPct(m.cash / m.revenue) + " collected as cash · " : ""}${m.wins} win${m.wins === 1 ? "" : "s"}` : "no wins with revenue yet"],
+    ["Average deal size", m.avgDeal != null ? fmtMoney(m.avgDeal) : "—", (m.avgDeal != null ? (state.closer === "all" ? settings.closers.map(c => { const cm = metrics(rows.filter(r => r.closer === c.name)); return cm.avgDeal != null ? `<span><span class="closer-dot" style="background:${closerColor(c.name)}"></span>${esc(c.name)} ${fmtMoney(cm.avgDeal)}</span>` : ""; }).filter(Boolean).join(" ") : `revenue ÷ ${m.winsPriced} priced win${m.winsPriced === 1 ? "" : "s"}`) : "no priced wins yet") + (m.winsUnpriced ? ` · ${m.winsUnpriced} win${m.winsUnpriced === 1 ? "" : "s"} with no revenue entered` : "")],
     ["Cash collected", fmtMoney(m.cash), goal ? goalPill + (goal > m.cash ? ` ${fmtMoney(goal - m.cash)} to go` : " goal met") : `${m.nurturing} still nurturing · ${m.lost} lost`],
   ];
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
@@ -671,7 +674,7 @@ function renderCards(P, names) {
     ["Offers made", m => m.offers], [kpiLabel("Offer %", K("offer")), m => m.offerRate, "pct", K("offer")],
     ["section", "Outcome"],
     ["Wins", m => m.wins], ["Nurturing", m => m.nurturing, "dim"], ["Lost", m => m.lost, "dim"], ["Set to Jill", m => m.setToJill, "dim"],
-    ["Revenue generated", m => m.revenue, "money"], ["Cash collected", m => m.cash, "money"], [kpiLabel("Cash vs revenue", K("cashRevenue")), m => m.revenue ? m.cash / m.revenue : null, "pct", K("cashRevenue")],
+    ["Revenue generated", m => m.revenue, "money"], ["Average deal size", m => m.avgDeal, "money"], ["Cash collected", m => m.cash, "money"], [kpiLabel("Cash vs revenue", K("cashRevenue")), m => m.revenue ? m.cash / m.revenue : null, "pct", K("cashRevenue")],
     [kpiLabel("Close %", K("close")), m => m.closeRate, "pct", K("close")], ["Close % (of booked)", m => m.closeOfBooked, "pct"],
   ]; };
   $("#cards").innerHTML = names.map(n => {
