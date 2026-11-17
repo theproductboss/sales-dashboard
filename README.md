@@ -172,6 +172,13 @@ Cash goals: $30,000 per week, $150,000 per month (quarter = 3 × month).
 Weeks inside a month follow the spreadsheet: week 1 is the 1st through the
 first Sunday, then Monday–Sunday.
 
+**Per-lead fields** in the tracker grid, beyond the spreadsheet's columns:
+Email, Notes (`memo`: anything worth remembering about the lead) and Bonuses
+promised (`bonuses`: what the closer offered to get the deal done). The Find a
+lead box at the top of the Closer Tracker searches lead name, email, next
+steps, notes and bonuses across every month and closer, shows everything on
+record for each match, and jumps to the row. Bonuses also show in the pipeline.
+
 ### Call Reviews tab
 
 The second tab shows the qualitative side: the AI score, a one-line summary,

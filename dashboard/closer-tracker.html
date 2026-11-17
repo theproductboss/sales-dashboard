@@ -131,12 +131,32 @@ td.dim { color: var(--muted); }
 td button.jump { background: transparent; border: 0; padding: 0; margin: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 td button.jump:hover { text-decoration-style: solid; }
 .wkblock { scroll-margin-top: 12px; border-radius: 10px; transition: background .4s, box-shadow .4s; }
+.search { display: flex; align-items: center; gap: 10px; margin: 2px 0 14px; }
+.search label { font-family: var(--font-head); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.search input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); }
+.search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.search button { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; width: 34px; height: 34px; font-size: 18px; cursor: pointer; color: var(--ink-2); }
+#search-results { display: grid; gap: 12px; margin-bottom: 18px; }
+#search-results .hit { border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; background: color-mix(in srgb, var(--accent) 4%, var(--panel)); }
+#search-results .hit header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; }
+#search-results .hit header b { font-family: var(--font-head); font-size: 16px; }
+#search-results .hit header .email { color: var(--ink-2); }
+#search-results .hit header .status { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); }
+#search-results .hit header .open { margin-left: auto; }
+#search-results .hit dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; margin: 0; font-size: 13px; }
+#search-results .hit dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+#search-results .hit dd { margin: 0; }
+#search-results .hit dd:empty::before { content: "—"; color: var(--muted); }
+#search-results .hit .long { grid-column: 1 / -1; }
+#search-results .none { color: var(--muted); font-size: 13px; }
 .wkblock.flash { background: var(--blush); box-shadow: 0 0 0 8px var(--blush); }
+table.grid tr.flash td { background: var(--blush); }
+td button.jump.open { font-size: 13px; }
 .wk { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
 .wk:first-child { margin-top: 4px; }
 .wk h3 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
 .wk h3 span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 6px; }
-table.grid { min-width: 1200px; }
+table.grid { min-width: 1760px; }
 table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 4px 6px; white-space: normal; line-height: 1.2; vertical-align: bottom; border-bottom: 1px solid var(--line-strong); position: static; background: transparent; }
 table.grid th.c, table.grid td.c { text-align: center; }
 table.grid th.r { text-align: right; }
@@ -156,7 +176,7 @@ table.grid td.x { width: 28px; }
 table.grid button.x { background: transparent; border: 0; color: var(--muted); font: inherit; font-size: 16px; line-height: 1; padding: 6px; cursor: pointer; border-radius: 6px; }
 table.grid button.x:hover { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 table.grid button.x.armed { color: var(--bad); font-size: 11px; font-weight: 600; white-space: nowrap; }
-.col-lead { width: 15%; } .col-date { width: 11%; } .col-chk { width: 56px; } .col-status { width: 11%; } .col-num { width: 9%; } .col-type { width: 10%; }
+.col-lead { width: 11%; } .col-email { width: 12%; } .col-wide { width: 13%; } .col-date { width: 11%; } .col-chk { width: 56px; } .col-status { width: 11%; } .col-num { width: 9%; } .col-type { width: 10%; }
 .saving { color: var(--muted); }
 #pipeline table th, #pipeline table td { text-align: left; }
 #pipeline td.age { color: var(--muted); font-variant-numeric: tabular-nums; white-space: normal; min-width: 16ch; }
@@ -280,6 +300,8 @@ footer.defs b { color: var(--ink); }
     <div class="panel-head">
       <div><p class="eyebrow">Fill this in</p><h2>Closer Tracker</h2><p class="status-line" id="tracker-sub"></p></div>
     </div>
+    <div class="search"><label for="lead-search">Find a lead</label><input id="lead-search" type="text" autocomplete="off" placeholder="Type a name or email — searches every month and every closer"><button type="button" id="lead-search-clear" hidden aria-label="Clear search">×</button></div>
+    <div id="search-results" hidden></div>
     <div class="tabs months" id="month-tabs" role="tablist" aria-label="Month"></div>
     <div class="tabs closers" id="tabs" role="tablist" aria-label="Closer"></div>
     <div id="tracker-body"></div>
@@ -420,7 +442,7 @@ const closerColor = name => { const c = settings.closers.find(c => c.name === na
 const visibleClosers = () => state.closer === "all" ? settings.closers.map(c => c.name) : [state.closer];
 
 // ---------- render ----------
-function render() { renderTop(); renderTracker(false); }
+function render() { renderTop(); renderTracker(false); if (searchBox.value.trim()) renderSearch(); }
 function applyView() {
   for (const el of document.querySelectorAll("[data-views]")) el.hidden = !el.dataset.views.split(" ").includes(state.view);
   for (const b of $("#views").children) b.setAttribute("aria-pressed", b.dataset.v === state.view);
@@ -553,11 +575,12 @@ function renderPipeline(names) {
     : open.length ? `<div class="callout ok"><h3>Everyone in the pipeline has a plan</h3><p>Every open lead has a follow-up date that hasn't passed, or was updated within the last week.</p></div>` : "";
   if (!open.length) { $("#pipeline-table").innerHTML = ""; return; }
   const dis = canWrite === false ? " disabled" : "";
-  const table = list => `<div class="tablewrap"><table><thead><tr><th>Lead</th><th>Closer</th><th>Call date</th><th>Where it stands</th><th>Follow-up date</th><th>Offer</th><th>Status</th><th>Next steps</th></tr></thead><tbody>` +
+  const table = list => `<div class="tablewrap"><table><thead><tr><th>Lead</th><th>Closer</th><th>Call date</th><th>Where it stands</th><th>Follow-up date</th><th>Offer</th><th>Status</th><th>Next steps</th><th>Bonuses promised</th></tr></thead><tbody>` +
     list.map(({ r, group, why }) => `<tr data-id="${esc(r.id)}"><td><b>${esc(r.lead)}</b></td><td><span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}</td><td>${shortDate(r.date)}</td><td class="age ${group === "overdue" ? "old" : group === "due" ? "due" : ""}">${why}</td>
       <td><input data-pf="followUp" type="date" value="${r.followUp || ""}" aria-label="Follow-up date for ${esc(r.lead)}"${dis}></td><td>${r.offer ? "Yes" : "—"}</td>
       <td><select data-pf="status" class="${esc(r.status)}" aria-label="Status for ${esc(r.lead)}"${dis}>${STATUSES.map(([v, l]) => `<option value="${esc(v)}"${v === r.status ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></td>
-      <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td></tr>`).join("") + "</tbody></table></div>";
+      <td><input data-pf="notes" class="notes" type="text" value="${esc(r.notes)}" placeholder="next step…" aria-label="Next steps for ${esc(r.lead)}"${dis}></td>
+      <td><input data-pf="bonuses" class="notes" type="text" value="${esc(r.bonuses || "")}" placeholder="bonuses promised…" aria-label="Bonuses promised to ${esc(r.lead)}"${dis}></td></tr>`).join("") + "</tbody></table></div>";
   const section = (key, title, hint) => groups[key].length ? `<div class="pgroup ${key}"><h3><i></i>${title}<span class="cnt">${groups[key].length}</span></h3><p class="hint">${hint}</p>${table(groups[key])}</div>` : "";
   $("#pipeline-table").innerHTML =
     section("due", "Due this week", "Follow-ups coming up in the next 7 days, plus fresh calls that still need a date.") +
@@ -570,6 +593,7 @@ $("#pipeline-table").addEventListener("change", e => {
   const rec = { ...calls[i], updatedAt: new Date().toISOString() };
   if (inp.dataset.pf === "status") { rec.status = inp.value; if (rec.status === "NO-SHOW") rec.noShow = true; if (rec.status === "CXL'D") rec.cxl = true; }
   else if (inp.dataset.pf === "followUp") rec.followUp = inp.value || "";
+  else if (inp.dataset.pf === "bonuses") rec.bonuses = inp.value.trim();
   else rec.notes = inp.value.trim();
   calls[i] = rec; writeDoc(rec); render();
 });
@@ -676,6 +700,33 @@ $("#cards").addEventListener("click", e => {
   try { history.replaceState(null, "", "#tracker"); } catch (err) {}
   renderTop(); renderTracker(true);
 });
+// ---------- Lead search: name or email, across every month and closer ----------
+const searchBox = $("#lead-search"), searchOut = $("#search-results"), searchClear = $("#lead-search-clear");
+function weekFor(r) { return monthWeeks(r.date.slice(0, 7)).find(w => inRange(r, w)) || { from: r.date.slice(0, 8) + "01", to: monthEnd(r.date) }; }
+function renderSearch() {
+  const q = searchBox.value.trim().toLowerCase();
+  searchClear.hidden = !q;
+  if (q.length < 2) { searchOut.hidden = true; searchOut.innerHTML = ""; return; }
+  const hits = calls.filter(r => [r.lead, r.email, r.notes, r.memo, r.bonuses].some(v => (v || "").toLowerCase().includes(q)))
+    .sort((a, b) => a.date < b.date ? 1 : -1);
+  searchOut.hidden = false;
+  if (!hits.length) { searchOut.innerHTML = `<p class="none">No lead matches “${esc(searchBox.value.trim())}”. Search looks at lead name, email, next steps, notes and bonuses.</p>`; return; }
+  const field = (k, v, long) => `<div class="${long ? "long" : ""}"><dt>${k}</dt><dd>${v}</dd></div>`;
+  searchOut.innerHTML = `<p class="status-line">${hits.length} match${hits.length === 1 ? "" : "es"}${hits.length > 25 ? ", showing the 25 most recent" : ""}</p>` + hits.slice(0, 25).map(r => { const w = weekFor(r), st = STATUSES.find(x => x[0] === r.status)?.[1] || r.status;
+    return `<article class="hit"><header><b>${esc(r.lead)}</b>${r.email ? `<span class="email">${esc(r.email)}</span>` : ""}<span class="status ${esc(r.status)}">${esc(st === "—" ? "Open" : st)}</span>
+      <button type="button" class="jump open" data-closer="${esc(r.closer)}" data-from="${w.from}" data-to="${w.to}" data-id="${esc(r.id)}">Open in ${esc(r.closer)}’s ${MON3[parse(r.date).getMonth()]} tracker →</button></header>
+      <dl>${field("Closer", `<span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}`)}${field("Call date", shortDate(r.date) + " " + parse(r.date).getFullYear())}${field("Call type", esc(r.callType || ""))}
+      ${field("Offer made", r.offer ? "Yes" : "No")}${field("Showed", r.noShow ? "No-show" : r.cxl ? "Cancelled" : "Yes")}${field("Deposit", r.deposit ? "Yes" : "No")}
+      ${field("Revenue generated", r.revenue ? fmtMoney(r.revenue) : "")}${field("Cash collected", r.cash ? fmtMoney(r.cash) : "")}${field("Follow-up date", r.followUp ? shortDate(r.followUp) + " " + parse(r.followUp).getFullYear() : "")}
+      ${field("Next steps", esc(r.notes || ""), true)}${field("Notes", esc(r.memo || ""), true)}${field("Bonuses promised", esc(r.bonuses || ""), true)}</dl></article>`; }).join("");
+}
+searchBox.addEventListener("input", renderSearch);
+searchClear.onclick = () => { searchBox.value = ""; renderSearch(); searchBox.focus(); };
+searchOut.addEventListener("click", e => {
+  const b = e.target.closest("button.jump"); if (!b) return;
+  state.tab = b.dataset.closer; state.tmonth = b.dataset.from.slice(0, 7); state.jumpTo = { from: b.dataset.from, to: b.dataset.to, id: b.dataset.id };
+  renderTracker(true);
+});
 // ---------- Closer Tracker grid (the spreadsheet tab, editable in place) ----------
 const STATUSES = [["OPEN", "—"], ["WIN", "WIN"], ["LOST", "LOST"], ["NURTURING", "NURTURING"], ["NO-SHOW", "NO-SHOW"], ["CXL'D", "CXL'D"], ["RESCHEDULED", "RESCHEDULED"], ["SET TO JILL", "SET TO JILL"], ["UNQUALIFIED", "UNQUALIFIED"]];
 const trackerHost = $("#tracker-body");
@@ -706,7 +757,7 @@ function renderTracker(force) {
   $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Pick the month and the closer, then type into a row; it saves when you leave the cell."}`;
   const weeks = monthWeeks(ym);
   const rows = calls.filter(r => r.closer === state.tab && r.date.slice(0, 7) === ym);
-  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="x"></th></tr></thead>`;
+  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-email">Email</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="col-wide">Notes</th><th class="col-wide">Bonuses promised</th><th class="x"></th></tr></thead>`;
   trackerHost.innerHTML = weeks.map((w, i) => {
     const wr = rows.filter(r => inRange(r, w)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "").localeCompare(b.createdAt || ""));
     const m = metrics(wr);
@@ -718,6 +769,7 @@ function renderTracker(force) {
     const wholeMonth = j.from.slice(0, 7) === j.to.slice(0, 7) && j.from.endsWith("-01") && j.to === monthEnd(j.from);
     const target = wholeMonth ? $("#tracker") : [...trackerHost.querySelectorAll(".wkblock")].find(s => j.from <= s.dataset.to && j.to >= s.dataset.from);
     if (target) { target.scrollIntoView({ behavior: "smooth", block: "start" }); if (!wholeMonth) { target.classList.add("flash"); setTimeout(() => target.classList.remove("flash"), 2500); } }
+    if (j.id) { const tr = trackerHost.querySelector(`tr[data-id="${j.id}"]`); if (tr) { tr.classList.add("flash"); tr.querySelector('[data-f="lead"]')?.focus({ preventScroll: true }); setTimeout(() => tr.classList.remove("flash"), 3000); } }
   }
 }
 function rowHtml(r, w) {
@@ -725,6 +777,7 @@ function rowHtml(r, w) {
   const st = r?.status || "OPEN";
   return `<tr data-id="${esc(r?.id || "")}" data-from="${w.from}" data-to="${w.to}" class="${r ? "" : "new"}">
     <td><input data-f="lead" type="text" autocomplete="off" value="${esc(r?.lead || "")}" placeholder="${r ? "" : "+ add a lead"}" aria-label="Lead name"${dis}></td>
+    <td><input data-f="email" type="email" autocomplete="off" value="${esc(r?.email || "")}" aria-label="Email"${dis}></td>
     <td><input data-f="date" type="date" value="${r?.date || ""}" aria-label="Date of call"${dis}></td>
     <td class="c"><input data-f="offer" type="checkbox"${chk(r?.offer)} aria-label="Offer made"${dis}></td>
     <td class="c"><input data-f="noShow" type="checkbox"${chk(r?.noShow)} aria-label="No show"${dis}></td>
@@ -736,13 +789,15 @@ function rowHtml(r, w) {
     <td><select data-f="callType" aria-label="Call type"${dis}><option value=""${!r?.callType ? " selected" : ""}>—</option><option${r?.callType === "New Consult" ? " selected" : ""}>New Consult</option><option${r?.callType === "Follow-up" ? " selected" : ""}>Follow-up</option></select></td>
     <td><input data-f="notes" type="text" autocomplete="off" value="${esc(r?.notes || "")}" aria-label="Next steps"${dis}></td>
     <td><input data-f="followUp" type="date" value="${r?.followUp || ""}" aria-label="Follow-up date"${dis}></td>
+    <td><input data-f="memo" type="text" autocomplete="off" value="${esc(r?.memo || "")}" placeholder="${r ? "" : "anything worth remembering"}" aria-label="Notes"${dis}></td>
+    <td><input data-f="bonuses" type="text" autocomplete="off" value="${esc(r?.bonuses || "")}" placeholder="${r ? "" : "e.g. 2 extra 1:1s, free month"}" aria-label="Bonuses promised"${dis}></td>
     <td class="x">${r && canWrite !== false ? `<button type="button" class="x" data-del title="Delete this row" aria-label="Delete row">×</button>` : ""}</td></tr>`;
 }
 function readRow(tr) {
   const g = f => tr.querySelector(`[data-f="${f}"]`);
   const prev = calls.find(c => c.id === tr.dataset.id) || {};
-  const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
-    status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(), followUp: g("followUp").value || "",
+  const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), email: g("email").value.trim(), date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
+    status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(), followUp: g("followUp").value || "", memo: g("memo").value.trim(), bonuses: g("bonuses").value.trim(),
     confirmed: prev.confirmed ?? false, source: prev.source || "dashboard", createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (rec.date !== prev.date) rec.dateEstimated = false;
   return rec;
