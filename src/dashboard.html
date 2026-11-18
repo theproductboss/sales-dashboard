@@ -76,6 +76,10 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
   .seggroup { display: flex; flex-wrap: wrap; gap: 6px; }
   .seggroup button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .range { border-top: 1px solid var(--grid); margin-top: 16px; padding-top: 14px; }
+  .range h3 { font-size: 15px; margin: 0 0 10px; }
+  .range .sub { margin-bottom: 6px; }
+  .range table { max-width: 520px; }
   .controls label { color: var(--ink-2); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
   .controls input[type="search"] { width: 200px; max-width: 100%; }
   .scroll { overflow-x: auto; }
@@ -122,6 +126,20 @@
       <p class="sub" id="dailySub"></p>
       <ul class="legend" data-legend></ul>
       <div id="daily"></div>
+      <div class="range">
+        <h3>Totals for a date range</h3>
+        <div class="controls">
+          <label>From <input type="date" id="dateFrom"></label>
+          <label>To <input type="date" id="dateTo"></label>
+          <div class="seggroup" id="datePresets" role="group" aria-label="Quick ranges">
+            <button type="button" data-days="0" aria-pressed="true">All dates</button>
+            <button type="button" data-days="7" aria-pressed="false">Last 7 days</button>
+            <button type="button" data-days="30" aria-pressed="false">Last 30 days</button>
+          </div>
+        </div>
+        <p class="sub" id="rangeSub"></p>
+        <div class="scroll"><table id="rangeTotals"></table></div>
+      </div>
     </section>
 
     <section class="card">
@@ -252,7 +270,7 @@
   window.addEventListener('scroll', hideTip, { passive: true });
 
   // --- state ---
-  var state = { totals: null, renderedAt: null, funnelGroup: 'all', productGroup: 'all', timing: 'all', search: '', sortKey: 'netRevenue', sortDir: -1, showAll: false };
+  var state = { totals: null, renderedAt: null, funnelGroup: 'all', productGroup: 'all', timing: 'all', search: '', sortKey: 'netRevenue', sortDir: -1, showAll: false, dateFrom: null, dateTo: null };
   var PAGE_SIZE = 20;
   function group(key) { return state.totals.groups.find(function (g) { return g.key === key; }) || state.totals.groups[0]; }
   function optInIndex(key) { return state.totals.optIns.findIndex(function (o) { return o.key === key; }); }
@@ -296,6 +314,50 @@
     return { max: Math.ceil(v / step) * step, step: step };
   }
 
+  // The selected date range, clamped to the dates that have data.
+  function dateRange() {
+    var all = group('all'), min = all.firstOptInDate, max = all.lastOptInDate;
+    var from = state.dateFrom || min, to = state.dateTo || max;
+    if (from > to) { var swap = from; from = to; to = swap; }
+    if (from < min) from = min;
+    if (to > max) to = max;
+    if (from > to) from = to;
+    return { from: from, to: to, min: min, max: max, isAll: from === min && to === max };
+  }
+
+  function renderRange() {
+    var t = state.totals, table = $('rangeTotals');
+    if (!t.optInsByDay.length) { table.replaceChildren(); $('rangeSub').textContent = ''; return; }
+    var r = dateRange(), counts = {}, total = 0;
+    t.optInsByDay.forEach(function (row) {
+      if (row.date < r.from || row.date > r.to) return;
+      counts[row.optIn] = (counts[row.optIn] || 0) + row.count;
+      total += row.count;
+    });
+    var from = $('dateFrom'), to = $('dateTo');
+    from.min = to.min = r.min; from.max = to.max = r.max;
+    from.value = r.from; to.value = r.to;
+    var days = Math.round((parseDay(r.to) - parseDay(r.from)) / 86400000) + 1;
+    var lastStart = function (n) { var d = isoDay(new Date(parseDay(r.max).getTime() - (n - 1) * 86400000)); return d < r.min ? r.min : d; };
+    document.querySelectorAll('#datePresets button').forEach(function (b) {
+      var n = +b.dataset.days;
+      b.setAttribute('aria-pressed', String(n === 0 ? r.isAll : !r.isAll && r.to === r.max && r.from === lastStart(n)));
+    });
+    $('rangeSub').textContent = (r.from === r.to ? dayLabel(r.from, true) : dayLabel(r.from, true) + ' to ' + dayLabel(r.to, true)) +
+      ' · ' + days + (days === 1 ? ' day' : ' days') + ' · ' + (total / days).toFixed(1) + ' opt-ins per day. The chart above shows the same range.';
+
+    var head = el('thead', {}, el('tr', {}, el('th', { text: 'Opt-in' }), el('th', { class: 'n', text: 'Opt-ins' }), el('th', { class: 'n', text: 'Share' })));
+    var body = el('tbody');
+    t.optIns.forEach(function (o, i) {
+      var c = counts[o.key] || 0;
+      body.append(el('tr', {}, el('td', {}, el('span', { class: 'swatch', style: 'display:inline-block;margin-right:8px;background:' + colorFor(i) }), document.createTextNode(o.label)),
+        el('td', { class: 'n', text: num(c) }), el('td', { class: 'n', text: pct(c, total) })));
+    });
+    var foot = el('tfoot', {}, el('tr', {}, el('td', { text: 'Total opt-ins' }), el('td', { class: 'n', text: num(total) }), el('td', { class: 'n', text: total ? '100%' : '0%' })));
+    table.replaceChildren(head, body, foot);
+  }
+  function setRange(from, to) { state.dateFrom = from; state.dateTo = to; renderDaily(); renderRange(); }
+
   function renderDaily() {
     var t = state.totals, host = $('daily'), all = group('all');
     host.replaceChildren();
@@ -306,7 +368,8 @@
     var plotW = width - m.left - m.right, plotH = height - m.top - m.bottom;
 
     // Continuous day range; switch to weeks when days would be too thin to read.
-    var start = parseDay(all.firstOptInDate), end = parseDay(all.lastOptInDate);
+    var range = dateRange();
+    var start = parseDay(range.from), end = parseDay(range.to);
     var dayCount = Math.round((end - start) / 86400000) + 1;
     var weekly = plotW / dayCount < 5;
     var size = weekly ? 7 : 1;
@@ -315,13 +378,14 @@
       buckets.push({ start: isoDay(new Date(start.getTime() + i * size * 86400000)), counts: {}, total: 0 });
     }
     t.optInsByDay.forEach(function (row) {
+      if (row.date < range.from || row.date > range.to) return;
       var b = buckets[Math.floor(Math.round((parseDay(row.date) - start) / 86400000) / size)];
       b.counts[row.optIn] = (b.counts[row.optIn] || 0) + row.count;
       b.total += row.count;
     });
     $('dailyTitle').textContent = weekly ? 'Opt-ins by week' : 'Opt-ins by day';
     $('dailySub').textContent = (weekly ? 'Each bar is one week, starting on the date shown. ' : '') +
-      'Dates use ' + t.timezone.replace(/_/g, ' ') + ' time. Someone who took two opt-ins is counted once in each.';
+      'Dates use ' + t.timezone.replace(/_/g, ' ') + ' time. Someone who took two opt-ins is counted once in each, so the total here can be higher than the unique people at the top.';
 
     var scale = niceMax(Math.max.apply(null, buckets.map(function (b) { return b.total; })));
     var slot = plotW / buckets.length, barW = Math.max(1, Math.min(24, slot - (slot > 6 ? 2 : 0.5)));
@@ -498,7 +562,7 @@
     $('content').hidden = false;
     if (!state.totals.groups.some(function (g) { return g.key === state.funnelGroup; })) state.funnelGroup = 'all';
     if (!state.totals.groups.some(function (g) { return g.key === state.productGroup; })) state.productGroup = 'all';
-    renderSummary(); renderTiles(); renderLegends(); renderDaily(); renderChannels();
+    renderSummary(); renderTiles(); renderLegends(); renderDaily(); renderRange(); renderChannels();
     renderNewExisting(); renderFunnel(); renderProducts(); renderNotes();
   }
 
@@ -550,6 +614,14 @@
   $('timing').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     state.timing = b.dataset.timing; state.showAll = false; renderProducts();
+  });
+  $('dateFrom').addEventListener('change', function (e) { setRange(e.target.value || null, state.dateTo); });
+  $('dateTo').addEventListener('change', function (e) { setRange(state.dateFrom, e.target.value || null); });
+  $('datePresets').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var n = +b.dataset.days, max = group('all').lastOptInDate;
+    if (!n) return setRange(null, null);
+    setRange(isoDay(new Date(parseDay(max).getTime() - (n - 1) * 86400000)), max);
   });
   $('productSearch').addEventListener('input', function (e) { state.search = e.target.value; renderProducts(); });
   $('productsMore').addEventListener('click', function () { state.showAll = !state.showAll; renderProducts(); });
