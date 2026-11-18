@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ManyChat opt-in journeys</title>
+<style>
+  /* No at-rules in this file on purpose: the dark theme is switched from JS
+     (data-theme) and the layout wraps on its own, so the served HTML holds no
+     "at" sign and a simple search for one proves no email leaked. */
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #77756f;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.05);
+    --neutral-bar: #52514e; --accent: #2a78d6; --critical: #d03b3b; --critical-bg: #fbecec;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #999790;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
+    --neutral-bar: #c3c2b7; --accent: #3987e5; --critical: #e66767; --critical-bg: #2c1717;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; }
+  h2 { font-size: 17px; margin: 0 0 2px; }
+  p { margin: 0; }
+  .summary { color: var(--ink-2); max-width: 70ch; font-size: 16px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 14px 0 18px; color: var(--ink-2); font-size: 14px; }
+  .updating { display: inline-flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  button, select, input {
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--axis); border-radius: 8px; padding: 6px 12px; min-height: 34px;
+  }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--wash); }
+  button:disabled { opacity: 0.55; cursor: default; }
+  button:focus-visible, select:focus-visible, input:focus-visible, th button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .error { background: var(--critical-bg); border: 1px solid var(--critical); border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; overflow-wrap: anywhere; }
+  .error strong { display: block; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .tile { padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 30px; font-weight: 600; line-height: 1.2; }
+  .tile .note { color: var(--muted); font-size: 13px; }
+  .card { padding: 18px 18px 16px; margin-bottom: 16px; min-width: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--ink-2); margin: 0 0 10px; padding: 0; list-style: none; }
+  .legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  svg { display: block; width: 100%; overflow: visible; }
+  svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .hbars { display: grid; grid-template-columns: minmax(90px, max-content) minmax(0, 1fr) max-content; gap: 8px 12px; align-items: center; }
+  .hbars .name { font-size: 14px; overflow-wrap: anywhere; }
+  .hbars .num { font-variant-numeric: tabular-nums; font-size: 14px; text-align: right; }
+  .track { display: flex; gap: 2px; height: 18px; min-width: 0; }
+  .seg { height: 100%; min-width: 2px; border-radius: 0; }
+  .seg:last-child { border-radius: 0 4px 4px 0; }
+  .seg:hover { filter: brightness(1.12); }
+  .funnel { display: grid; gap: 12px; }
+  .funnel .row-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 14px; margin-bottom: 4px; }
+  .funnel .row-top .num { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .funnel .row-top .num b { color: var(--ink); }
+  .funnel .bar { height: 18px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; }
+  .seggroup { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seggroup button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .controls label { color: var(--ink-2); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .controls input[type="search"] { width: 200px; max-width: 100%; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; font-size: 13px; vertical-align: bottom; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 0; padding-left: 8px; }
+  td .pct { color: var(--muted); font-size: 12px; margin-left: 6px; display: inline-block; min-width: 30px; }
+  td.product { overflow-wrap: anywhere; min-width: 120px; }
+  tfoot td { font-weight: 600; border-bottom: 0; }
+  th button { border: 0; background: none; padding: 0; min-height: 0; font-weight: 600; color: var(--ink-2); border-radius: 4px; }
+  th button:hover:not(:disabled) { background: none; color: var(--ink); }
+  .more { margin-top: 12px; }
+  .empty { color: var(--muted); padding: 12px 0; }
+  .notes { color: var(--muted); font-size: 13px; padding-left: 18px; margin: 4px 0 0; }
+  .notes li { margin-bottom: 4px; }
+  .tooltip {
+    position: fixed; z-index: 10; pointer-events: none; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18); max-width: 260px;
+  }
+  .tooltip .t { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .r { display: flex; align-items: center; gap: 6px; }
+  .tooltip .r span:last-child { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ManyChat opt-in journeys</h1>
+  <p class="summary" id="summary">Loading…</p>
+  <div class="status">
+    <span id="updated"></span>
+    <span class="updating" id="updating" hidden><span class="dot"></span><span id="updatingText">Updating…</span></span>
+    <button type="button" id="refresh">Refresh now</button>
+  </div>
+  <div class="error" id="error" role="alert" hidden></div>
+
+  <div id="content" hidden>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="card">
+      <h2 id="dailyTitle">Opt-ins by day</h2>
+      <p class="sub" id="dailySub"></p>
+      <ul class="legend" data-legend></ul>
+      <div id="daily"></div>
+    </section>
+
+    <section class="card">
+      <h2>Where they opted in</h2>
+      <p class="sub">Opt-ins by ManyChat channel. People with only the main tag and no channel tag are left out here; they still count in the totals and the daily chart.</p>
+      <ul class="legend" data-legend></ul>
+      <div class="hbars" id="channels"></div>
+    </section>
+
+    <section class="card">
+      <h2>New vs. existing</h2>
+      <p class="sub">New to the list = Kit account created within 24 hours of the opt-in, or later. Bought before = a paid Stripe charge before the opt-in.</p>
+      <div class="scroll"><table id="newExisting"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>What happened next</h2>
+      <p class="sub">Counted from tags and charges after the opt-in. Steps can be skipped (someone can buy without registering for a webinar), so the counts are not strictly decreasing.</p>
+      <div class="controls"><div class="seggroup" id="funnelGroups" role="group" aria-label="Opt-in"></div></div>
+      <div class="funnel" id="funnel"></div>
+    </section>
+
+    <section class="card">
+      <h2>Purchases by product</h2>
+      <p class="sub">Paid Stripe charges from people who opted in. Net revenue = amount minus refunds.</p>
+      <div class="controls">
+        <label>Opt-in <select id="productGroup"></select></label>
+        <div class="seggroup" id="timing" role="group" aria-label="Timing">
+          <button type="button" data-timing="all" aria-pressed="true">All</button>
+          <button type="button" data-timing="after" aria-pressed="false">After opt-in</button>
+          <button type="button" data-timing="before" aria-pressed="false">Before opt-in</button>
+        </div>
+        <input type="search" id="productSearch" placeholder="Search products" aria-label="Search products">
+      </div>
+      <div class="scroll"><table id="products"></table></div>
+      <button type="button" class="more" id="productsMore" hidden></button>
+    </section>
+
+    <ul class="notes" id="notes"></ul>
+  </div>
+</main>
+<div class="tooltip" id="tooltip" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // --- theme (JS instead of a CSS media query, see note in the stylesheet) ---
+  var darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme() { document.documentElement.dataset.theme = darkQuery.matches ? 'dark' : 'light'; }
+  applyTheme();
+  darkQuery.addEventListener('change', applyTheme);
+  document.querySelector('.dot').animate([{ opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1200, iterations: Infinity });
+
+  // --- helpers ---
+  var $ = function (id) { return document.getElementById(id); };
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs) {
+    var node = document.createElement(tag);
+    for (var k in attrs || {}) {
+      if (k === 'text') node.textContent = attrs[k];
+      else if (k === 'style') node.style.cssText = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    }
+    for (var i = 2; i < arguments.length; i++) if (arguments[i]) node.append(arguments[i]);
+    return node;
+  }
+  function svg(tag, attrs) {
+    var node = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs || {}) {
+      if (k === 'text') node.textContent = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    }
+    return node;
+  }
+  var nf = new Intl.NumberFormat('en-US');
+  function num(n) { return nf.format(n); }
+  function pct(part, whole) {
+    if (!whole) return '0%';
+    var p = (part / whole) * 100;
+    return (p > 0 && p < 10 ? p.toFixed(1) : Math.round(p)) + '%';
+  }
+  function money(amount, currency) {
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: (currency || 'usd').toUpperCase(), maximumFractionDigits: 0 }).format(amount);
+    } catch (e) { return num(Math.round(amount)) + ' ' + String(currency).toUpperCase(); }
+  }
+  function parseDay(iso) { var p = iso.split('-'); return new Date(Date.UTC(+p[0], p[1] - 1, +p[2])); }
+  function isoDay(d) { return d.toISOString().slice(0, 10); }
+  function dayLabel(iso, withYear) {
+    var opts = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+    if (withYear) opts.year = 'numeric';
+    return parseDay(iso).toLocaleDateString('en-US', opts);
+  }
+  function ago(iso) {
+    var mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    var hours = Math.floor(mins / 60);
+    if (hours < 48) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+    return Math.floor(hours / 24) + ' days ago';
+  }
+  function colorFor(index) { return 'var(--s' + ((index % 8) + 1) + ')'; }
+
+  // --- tooltip ---
+  var tip = $('tooltip');
+  function showTip(evt, title, rows) {
+    tip.replaceChildren(el('div', { class: 't', text: title }));
+    rows.forEach(function (r) {
+      tip.append(el('div', { class: 'r' },
+        r.color ? el('span', { class: 'swatch', style: 'background:' + r.color }) : null,
+        el('span', { text: r.label }), el('span', { text: r.value })));
+    });
+    tip.hidden = false;
+    var box = tip.getBoundingClientRect();
+    var x = evt.clientX + 14, y = evt.clientY + 14;
+    if (x + box.width > window.innerWidth - 8) x = evt.clientX - box.width - 14;
+    if (y + box.height > window.innerHeight - 8) y = evt.clientY - box.height - 14;
+    tip.style.left = Math.max(8, x) + 'px';
+    tip.style.top = Math.max(8, y) + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+  function hover(node, title, rowsFn) {
+    node.addEventListener('pointerenter', function (e) { showTip(e, title, rowsFn()); });
+    node.addEventListener('pointermove', function (e) { showTip(e, title, rowsFn()); });
+    node.addEventListener('pointerleave', hideTip);
+  }
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  // --- state ---
+  var state = { totals: null, renderedAt: null, funnelGroup: 'all', productGroup: 'all', timing: 'all', search: '', sortKey: 'netRevenue', sortDir: -1, showAll: false };
+  var PAGE_SIZE = 20;
+  function group(key) { return state.totals.groups.find(function (g) { return g.key === key; }) || state.totals.groups[0]; }
+  function optInIndex(key) { return state.totals.optIns.findIndex(function (o) { return o.key === key; }); }
+
+  // --- sections ---
+  function renderSummary() {
+    var t = state.totals, all = group('all');
+    if (!all.optedIn) { $('summary').textContent = 'Nobody has opted in through the tracked ManyChat opt-ins yet.'; return; }
+    var n = t.optIns.length;
+    $('summary').textContent = num(all.optedIn) + ' people opted in through ' + n + ' ManyChat opt-in' + (n === 1 ? '' : 's') +
+      ' between ' + dayLabel(all.firstOptInDate, true) + ' and ' + dayLabel(all.lastOptInDate, true) + ': ' +
+      pct(all.newToList, all.optedIn) + ' were new to the list, ' + pct(all.alreadyCustomers, all.optedIn) +
+      ' had bought before, and ' + num(all.funnel.boughtAfter) + ' bought after opting in.';
+  }
+
+  function renderTiles() {
+    var all = group('all');
+    var tiles = [
+      ['Opted in', num(all.optedIn), 'unique subscribers'],
+      ['New to the list', num(all.newToList), pct(all.newToList, all.optedIn) + ' of opt-ins'],
+      ['Already customers', num(all.alreadyCustomers), pct(all.alreadyCustomers, all.optedIn) + ' had bought before'],
+      ['Bought after opting in', num(all.funnel.boughtAfter), pct(all.funnel.boughtAfter, all.optedIn) + ' of opt-ins'],
+    ];
+    $('tiles').replaceChildren.apply($('tiles'), tiles.map(function (t) {
+      return el('div', { class: 'tile' }, el('div', { class: 'label', text: t[0] }), el('div', { class: 'value', text: t[1] }), el('div', { class: 'note', text: t[2] }));
+    }));
+  }
+
+  function renderLegends() {
+    document.querySelectorAll('[data-legend]').forEach(function (list) {
+      list.replaceChildren.apply(list, state.totals.optIns.map(function (o, i) {
+        return el('li', {}, el('span', { class: 'swatch', style: 'background:' + colorFor(i) }), el('span', { text: o.label }));
+      }));
+    });
+  }
+
+  function niceMax(v) {
+    if (v <= 4) return { max: Math.max(v, 1), step: 1 };
+    var raw = v / 4, pow = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / pow;
+    var step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow;
+    return { max: Math.ceil(v / step) * step, step: step };
+  }
+
+  function renderDaily() {
+    var t = state.totals, host = $('daily'), all = group('all');
+    host.replaceChildren();
+    if (!t.optInsByDay.length) { host.append(el('p', { class: 'empty', text: 'No opt-ins yet.' })); return; }
+
+    var width = Math.max(280, host.clientWidth), height = 240;
+    var m = { top: 10, right: 4, bottom: 24, left: 40 };
+    var plotW = width - m.left - m.right, plotH = height - m.top - m.bottom;
+
+    // Continuous day range; switch to weeks when days would be too thin to read.
+    var start = parseDay(all.firstOptInDate), end = parseDay(all.lastOptInDate);
+    var dayCount = Math.round((end - start) / 86400000) + 1;
+    var weekly = plotW / dayCount < 5;
+    var size = weekly ? 7 : 1;
+    var buckets = [];
+    for (var i = 0; i < Math.ceil(dayCount / size); i++) {
+      buckets.push({ start: isoDay(new Date(start.getTime() + i * size * 86400000)), counts: {}, total: 0 });
+    }
+    t.optInsByDay.forEach(function (row) {
+      var b = buckets[Math.floor(Math.round((parseDay(row.date) - start) / 86400000) / size)];
+      b.counts[row.optIn] = (b.counts[row.optIn] || 0) + row.count;
+      b.total += row.count;
+    });
+    $('dailyTitle').textContent = weekly ? 'Opt-ins by week' : 'Opt-ins by day';
+    $('dailySub').textContent = (weekly ? 'Each bar is one week, starting on the date shown. ' : '') +
+      'Dates use ' + t.timezone.replace(/_/g, ' ') + ' time. Someone who took two opt-ins is counted once in each.';
+
+    var scale = niceMax(Math.max.apply(null, buckets.map(function (b) { return b.total; })));
+    var slot = plotW / buckets.length, barW = Math.max(1, Math.min(24, slot - (slot > 6 ? 2 : 0.5)));
+    var y = function (v) { return m.top + plotH - (v / scale.max) * plotH; };
+    var root = svg('svg', { viewBox: '0 0 ' + width + ' ' + height, height: height, role: 'img', 'aria-label': 'Stacked bars of opt-ins per ' + (weekly ? 'week' : 'day') + ', one color per opt-in' });
+
+    for (var v = 0; v <= scale.max + 1e-9; v += scale.step) {
+      root.append(svg('line', { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), stroke: v === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }));
+      root.append(svg('text', { x: m.left - 6, y: y(v) + 4, 'text-anchor': 'end', text: num(v) }));
+    }
+    var labelEvery = Math.max(1, Math.ceil(buckets.length / Math.max(2, Math.floor(plotW / 64))));
+
+    buckets.forEach(function (b, i) {
+      var x0 = m.left + i * slot, cx = x0 + slot / 2;
+      var band = svg('rect', { x: x0, y: m.top, width: slot, height: plotH, fill: 'transparent' });
+      var acc = 0, present = t.optIns.filter(function (o) { return b.counts[o.key]; });
+      present.forEach(function (o, j) {
+        var c = b.counts[o.key], top = y(acc + c), bottom = y(acc);
+        var gap = j > 0 && bottom - top > 3 ? 2 : 0; // surface gap between stacked segments
+        var h = Math.max(1, bottom - top - gap), r = j === present.length - 1 ? Math.min(4, barW / 2, h) : 0;
+        var x = cx - barW / 2;
+        root.append(svg('path', {
+          d: 'M' + x + ',' + (top + h) + 'V' + (top + r) + 'Q' + x + ',' + top + ' ' + (x + r) + ',' + top +
+            'H' + (x + barW - r) + 'Q' + (x + barW) + ',' + top + ' ' + (x + barW) + ',' + (top + r) + 'V' + (top + h) + 'Z',
+          fill: colorFor(optInIndex(o.key)),
+        }));
+        acc += c;
+      });
+      if (i % labelEvery === 0 && cx > m.left + 16 && cx < width - 16) {
+        root.append(svg('text', { x: cx, y: height - 6, 'text-anchor': 'middle', text: dayLabel(b.start) }));
+      }
+      band.addEventListener('pointerenter', function () { band.setAttribute('fill', 'var(--wash)'); });
+      band.addEventListener('pointerleave', function () { band.setAttribute('fill', 'transparent'); });
+      hover(band, (weekly ? 'Week of ' : '') + dayLabel(b.start, true), function () {
+        var rows = present.map(function (o) { return { color: colorFor(optInIndex(o.key)), label: o.label, value: num(b.counts[o.key]) }; });
+        if (present.length !== 1) rows.push({ label: 'Total', value: num(b.total) });
+        return rows;
+      });
+      root.append(band);
+    });
+    host.append(root);
+  }
+
+  function renderChannels() {
+    var t = state.totals, host = $('channels'), byChannel = {};
+    t.optInsByDay.forEach(function (row) {
+      if (row.channel === t.noChannelLabel) return;
+      var c = byChannel[row.channel] || (byChannel[row.channel] = { name: row.channel, counts: {}, total: 0 });
+      c.counts[row.optIn] = (c.counts[row.optIn] || 0) + row.count;
+      c.total += row.count;
+    });
+    var channels = Object.keys(byChannel).map(function (k) { return byChannel[k]; }).sort(function (a, b) { return b.total - a.total; });
+    host.replaceChildren();
+    if (!channels.length) { host.append(el('p', { class: 'empty', text: 'No channel tags yet.' })); return; }
+    var max = channels[0].total;
+    channels.forEach(function (c) {
+      var track = el('div', { class: 'track' });
+      t.optIns.forEach(function (o, i) {
+        if (!c.counts[o.key]) return;
+        var seg = el('div', { class: 'seg', style: 'background:' + colorFor(i) + ';width:' + (c.counts[o.key] / max) * 100 + '%' });
+        hover(seg, c.name, function () { return [{ color: colorFor(i), label: o.label, value: num(c.counts[o.key]) }]; });
+        track.append(seg);
+      });
+      host.append(el('div', { class: 'name', text: c.name }), track, el('div', { class: 'num', text: num(c.total) }));
+    });
+  }
+
+  function cellWithPct(value, whole) {
+    return el('td', { class: 'n' }, document.createTextNode(num(value)), el('span', { class: 'pct', text: pct(value, whole) }));
+  }
+  function renderNewExisting() {
+    var t = state.totals, table = $('newExisting');
+    var head = el('thead', {}, el('tr', {}, el('th', { text: 'Opt-in' }), el('th', { class: 'n', text: 'Opted in' }), el('th', { class: 'n', text: 'New to the list' }),
+      el('th', { class: 'n', text: 'Already on list' }), el('th', { class: 'n', text: 'Bought before' })));
+    var body = el('tbody');
+    t.optIns.forEach(function (o, i) {
+      var g = group(o.key);
+      var name = el('td', {}, el('span', { class: 'swatch', style: 'display:inline-block;margin-right:8px;background:' + colorFor(i) }), document.createTextNode(o.label));
+      body.append(el('tr', {}, name, el('td', { class: 'n', text: num(g.optedIn) }), cellWithPct(g.newToList, g.optedIn), cellWithPct(g.alreadyOnList, g.optedIn), cellWithPct(g.alreadyCustomers, g.optedIn)));
+    });
+    var a = group('all');
+    var foot = el('tfoot', {}, el('tr', {}, el('td', { text: 'All opt-ins (unique people)' }), el('td', { class: 'n', text: num(a.optedIn) }),
+      cellWithPct(a.newToList, a.optedIn), cellWithPct(a.alreadyOnList, a.optedIn), cellWithPct(a.alreadyCustomers, a.optedIn)));
+    table.replaceChildren(head, body, foot);
+  }
+
+  function renderFunnel() {
+    var t = state.totals, g = group(state.funnelGroup);
+    var buttons = [{ key: 'all', label: 'All' }].concat(t.optIns).map(function (o) {
+      var b = el('button', { type: 'button', 'aria-pressed': String(o.key === g.key), text: o.label });
+      b.addEventListener('click', function () { state.funnelGroup = o.key; renderFunnel(); });
+      return b;
+    });
+    $('funnelGroups').replaceChildren.apply($('funnelGroups'), buttons);
+
+    var max = Math.max.apply(null, t.funnelSteps.map(function (s) { return g.funnel[s.key]; }).concat([1]));
+    var color = g.key === 'all' ? 'var(--neutral-bar)' : colorFor(optInIndex(g.key));
+    var rows = t.funnelSteps.map(function (s, i) {
+      var v = g.funnel[s.key];
+      var top = el('div', { class: 'row-top' }, el('span', { text: (i + 1) + '. ' + s.label }),
+        el('span', { class: 'num' }, el('b', { text: num(v) }), document.createTextNode(' · ' + pct(v, g.optedIn) + ' of ' + num(g.optedIn) + ' opted in')));
+      return el('div', {}, top, el('div', { class: 'bar', style: 'background:' + color + ';width:' + (v / max) * 100 + '%' }));
+    });
+    $('funnel').replaceChildren.apply($('funnel'), rows);
+  }
+
+  var COLUMNS = [
+    { key: 'product', label: 'Product' }, { key: 'timing', label: 'Timing' },
+    { key: 'buyers', label: 'Buyers', n: true }, { key: 'charges', label: 'Charges', n: true }, { key: 'netRevenue', label: 'Net revenue', n: true },
+  ];
+  function renderProducts() {
+    var t = state.totals, g = group(state.productGroup), table = $('products');
+    var select = $('productGroup');
+    select.replaceChildren.apply(select, t.groups.map(function (x) { return el('option', { value: x.key, text: x.label }); }));
+    select.value = g.key;
+    document.querySelectorAll('#timing button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.timing === state.timing)); });
+
+    var q = state.search.trim().toLowerCase();
+    var rows = g.products.filter(function (r) {
+      return (state.timing === 'all' || r.timing === state.timing) && (!q || r.product.toLowerCase().indexOf(q) !== -1);
+    });
+    var k = state.sortKey, dir = state.sortDir;
+    rows.sort(function (a, b) {
+      var c = typeof a[k] === 'string' ? a[k].localeCompare(b[k], 'en', { sensitivity: 'base' }) : a[k] - b[k];
+      return (c || a.product.localeCompare(b.product)) * dir;
+    });
+
+    var headRow = el('tr');
+    COLUMNS.forEach(function (c) {
+      var active = c.key === k;
+      var btn = el('button', { type: 'button', text: c.label + (active ? (dir > 0 ? ' ▲' : ' ▼') : '') });
+      btn.addEventListener('click', function () {
+        if (active) state.sortDir = -dir; else { state.sortKey = c.key; state.sortDir = c.n ? -1 : 1; }
+        renderProducts();
+      });
+      var th = el('th', c.n ? { class: 'n' } : {}, btn);
+      if (active) th.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending');
+      headRow.append(th);
+    });
+
+    var body = el('tbody');
+    var shown = state.showAll ? rows : rows.slice(0, PAGE_SIZE);
+    shown.forEach(function (r) {
+      body.append(el('tr', {}, el('td', { class: 'product', text: r.product }), el('td', { text: r.timing === 'before' ? 'Before' : 'After' }),
+        el('td', { class: 'n', text: num(r.buyers) }), el('td', { class: 'n', text: num(r.charges) }), el('td', { class: 'n', text: money(r.netRevenue, r.currency) })));
+    });
+    if (!rows.length) body.append(el('tr', {}, el('td', { colspan: '5', class: 'empty', text: q ? 'No products match that search.' : 'No purchases found.' })));
+
+    var charges = 0, revenue = {};
+    rows.forEach(function (r) { charges += r.charges; revenue[r.currency] = (revenue[r.currency] || 0) + r.netRevenue; });
+    var revenueText = Object.keys(revenue).map(function (c) { return money(revenue[c], c); }).join(' + ');
+    var foot = el('tfoot', {}, el('tr', {}, el('td', { text: 'Total (' + num(rows.length) + (rows.length === 1 ? ' row)' : ' rows)') }), el('td'), el('td'),
+      el('td', { class: 'n', text: num(charges) }), el('td', { class: 'n', text: revenueText || money(0, 'usd') })));
+    table.replaceChildren(el('thead', {}, headRow), body, rows.length ? foot : '');
+
+    var more = $('productsMore');
+    more.hidden = rows.length <= PAGE_SIZE;
+    more.textContent = state.showAll ? 'Show top ' + PAGE_SIZE : 'Show all ' + num(rows.length) + ' rows';
+  }
+
+  function renderNotes() {
+    var t = state.totals;
+    var notes = [
+      'Totals only: this page and its data feed hold no emails, names or subscriber IDs. The detailed export stays on the computer running the dashboard.',
+      'Opted in = unique subscribers with the opt-in’s main tag or any of its channel tags, dated by the first of those tags. Channel = the first channel tag applied.',
+      'Purchases come from Stripe' + (t.stripeAccounts.length ? ' (' + t.stripeAccounts.join(', ') + ')' : '') +
+        ', matched through Stripe customers with the subscriber’s email. Guest charges with no Stripe customer are not found, so purchase counts are a floor.',
+      'Webinar steps count Collective webinar tags applied after the opt-in; "Not Attend" tags do not count as attended. Admin tags (imports, temp tags, resend flags, Welcome Sequence) are ignored.',
+    ];
+    $('notes').replaceChildren.apply($('notes'), notes.map(function (n) { return el('li', { text: n }); }));
+  }
+
+  function renderAll() {
+    $('content').hidden = false;
+    if (!state.totals.groups.some(function (g) { return g.key === state.funnelGroup; })) state.funnelGroup = 'all';
+    if (!state.totals.groups.some(function (g) { return g.key === state.productGroup; })) state.productGroup = 'all';
+    renderSummary(); renderTiles(); renderLegends(); renderDaily(); renderChannels();
+    renderNewExisting(); renderFunnel(); renderProducts(); renderNotes();
+  }
+
+  // --- status + polling ---
+  var latest = null, timer = null;
+  function renderStatus() {
+    if (!latest) return;
+    var s = latest;
+    $('updated').textContent = s.updatedAt
+      ? 'Last updated ' + new Date(s.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' (' + ago(s.updatedAt) + ')'
+      : 'No numbers yet';
+    $('updating').hidden = !s.refreshing;
+    if (s.refreshing) {
+      var mins = s.refreshStartedAt ? Math.floor((Date.now() - Date.parse(s.refreshStartedAt)) / 60000) : 0;
+      $('updatingText').textContent = 'Updating… ' + (s.progress ? s.progress + ' · ' : '') + (mins < 1 ? 'just started' : mins + ' min so far') + ', usually takes a few minutes';
+    }
+    $('refresh').disabled = s.refreshing;
+    $('refresh').textContent = s.refreshing ? 'Updating…' : 'Refresh now';
+    var err = $('error');
+    err.hidden = !s.lastError || s.refreshing;
+    if (s.lastError) {
+      err.replaceChildren(el('strong', { text: 'The last update failed' + (s.updatedAt ? ', so these are the last good numbers.' : '.') }),
+        document.createTextNode(s.lastError.message + ' (' + ago(s.lastError.at) + ')'));
+    }
+    if (!s.totals) $('summary').textContent = s.refreshing ? 'The first export is running. Numbers will appear here when it finishes.' : 'No numbers yet. Press "Refresh now" to run the export.';
+  }
+  function apply(s) {
+    latest = s;
+    if (s.totals && s.updatedAt !== state.renderedAt) {
+      state.totals = s.totals; state.renderedAt = s.updatedAt;
+      renderAll();
+    }
+    renderStatus();
+    clearTimeout(timer);
+    timer = setTimeout(load, s.refreshing ? 4000 : 60000);
+  }
+  function load() {
+    return fetch('/api/totals', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(apply).catch(function () {
+      $('updated').textContent = 'Cannot reach the dashboard server. Is "npm run dashboard" still running?';
+      clearTimeout(timer); timer = setTimeout(load, 10000);
+    });
+  }
+
+  $('refresh').addEventListener('click', function () {
+    $('refresh').disabled = true;
+    fetch('/api/refresh', { method: 'POST' }).then(function (r) { return r.json(); }).then(apply).catch(load);
+  });
+  $('productGroup').addEventListener('change', function (e) { state.productGroup = e.target.value; state.showAll = false; renderProducts(); });
+  $('timing').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    state.timing = b.dataset.timing; state.showAll = false; renderProducts();
+  });
+  $('productSearch').addEventListener('input', function (e) { state.search = e.target.value; renderProducts(); });
+  $('productsMore').addEventListener('click', function () { state.showAll = !state.showAll; renderProducts(); });
+
+  var resizeTimer = null, lastWidth = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { if (state.totals) renderDaily(); }, 150);
+  });
+  setInterval(renderStatus, 30000);
+  load();
+})();
+</script>
+</body>
+</html>

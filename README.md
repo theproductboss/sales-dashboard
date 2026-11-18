@@ -115,6 +115,48 @@ Dashboard → Run workflow**.
 
 ---
 
+## ManyChat opt-in journeys dashboard (local)
+
+A local page that shows what happened to people who came in through the
+tracked ManyChat opt-ins: how many were new, who was already a customer, and
+who went on to a Collective webinar, a call or a purchase.
+
+```bash
+npm install
+```
+
+```bash
+npm run dashboard
+```
+
+Then open <http://localhost:3000>. It needs `KIT_API_KEY` and every
+`STRIPE_*_API_KEY` (ClickFunnels, SamCart, FG Funnels) in the environment or
+in `.env`. Never commit keys or `.env`.
+
+- **First run:** there are no numbers yet, so the export starts by itself.
+  It takes a few minutes (Kit first, then Stripe); the page shows "Updating…"
+  and fills in when it finishes.
+- **After that:** the page loads instantly from the saved totals and shows
+  when they were last updated. Totals older than 6 hours are refreshed in the
+  background while the server is running. **Refresh now** pulls fresh numbers
+  on demand; only one refresh runs at a time.
+- **If a refresh fails:** the last good numbers stay on the page with the
+  error shown above them. It retries by itself after 15 minutes.
+- **Different port:** `PORT=4000 npm run dashboard`.
+
+**Privacy.** The page and `/api/totals` contain totals only: no emails,
+names, Kit IDs or per-subscriber rows. The raw export with personal data
+stays in `data/journey-raw.json`, and the totals in `data/totals-cache.json`;
+the whole `data/` folder is gitignored and the raw file is never served.
+
+**Adding an opt-in.** Add one entry to `OPT_INS` in `src/journey.js` (label,
+main tag, channel-tag prefix) and press **Refresh now**. The page picks it up
+with its own color; nothing else needs to change.
+
+Metric definitions are in `docs/subscriber-journey.md`.
+
+---
+
 ## Local testing
 
 ```bash

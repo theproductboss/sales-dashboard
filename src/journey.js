@@ -5,6 +5,7 @@
 // to a gitignored file.
 //
 // Usage: node src/journey.js [output.json]
+// Or from code: const { runJourneyExport } = require('./journey');
 
 require('dotenv').config();
 const fs = require('fs');
@@ -143,7 +144,7 @@ async function chargesForEmail(apiKey, email) {
   return [...byId.values()];
 }
 
-async function collectStripe(emails) {
+async function collectStripe(emails, log = console.error) {
   const keyNames = Object.keys(process.env).filter((k) => /^STRIPE_.*API_KEY$/.test(k));
   const purchases = [];
   for (const keyName of keyNames) {
@@ -168,26 +169,42 @@ async function collectStripe(emails) {
         }
       }
     }));
-    console.error(`${account}: ${count} matched charges`);
+    log(`${account}: ${count} matched charges`);
   }
   return { accounts: keyNames.map((k) => STRIPE_ACCOUNT_LABELS[k] || k), purchases };
 }
 
-async function main() {
-  const outPath = process.argv[2] || 'journey-data.json';
+// Runs the whole export and returns it. The result holds subscriber PII, so
+// callers must keep it server-side (see src/journey-totals.js for the
+// PII-free totals).
+async function runJourneyExport({ log = console.error } = {}) {
   const subscribers = await collectKit();
-  console.error(`Kit: ${subscribers.length} opt-in subscribers`);
+  log(`Kit: ${subscribers.length} opt-in subscribers`);
 
-  const { accounts, purchases } = await collectStripe(new Set(subscribers.map((s) => s.email)));
+  const { accounts, purchases } = await collectStripe(new Set(subscribers.map((s) => s.email)), log);
+  const byEmail = new Map();
+  for (const p of purchases) {
+    if (!byEmail.has(p.email)) byEmail.set(p.email, []);
+    byEmail.get(p.email).push(p);
+  }
   for (const sub of subscribers) {
-    sub.purchases = purchases.filter((p) => p.email === sub.email).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    sub.purchases = (byEmail.get(sub.email) || []).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
-  fs.writeFileSync(outPath, JSON.stringify({ generatedAt: new Date().toISOString(), optIns: OPT_INS, stripeAccounts: accounts, subscribers }, null, 2));
-  console.error(`Wrote ${outPath}`);
+  return { generatedAt: new Date().toISOString(), optIns: OPT_INS, stripeAccounts: accounts, subscribers };
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+module.exports = { OPT_INS, IGNORED_TAG_PATTERNS, runJourneyExport };
+
+if (require.main === module) {
+  const outPath = process.argv[2] || 'journey-data.json';
+  runJourneyExport()
+    .then((data) => {
+      fs.writeFileSync(outPath, JSON.stringify(data, null, 2));
+      console.error(`Wrote ${outPath}`);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
