@@ -74,6 +74,11 @@ tracked opt-in).
   2. Attended: such a tag ending with `Attended` (`Not Attend` tags do not match).
   3. Booked a Collective call: tag contains `Call Scheduled`.
   4. Bought after opting in: any paid charge on or after the opt-in.
+  5. Joined the Collective after opting in: a paid charge on or after the
+     opt-in for a product whose cleaned name contains "Collective", and no
+     such charge before the opt-in (existing members paying installments do
+     not count). Collective payments billed as plain `Invoice …` charges
+     cannot be recognized.
 
   Steps can be skipped, so the counts are not strictly decreasing.
 - **Opt-ins by day**: count per day (in `REPORT_TIMEZONE`, default

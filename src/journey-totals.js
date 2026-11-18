@@ -15,6 +15,7 @@ const FUNNEL_STEPS = [
   { key: 'webinarAttended', label: 'Attended a Collective webinar' },
   { key: 'callBooked', label: 'Booked a Collective call' },
   { key: 'boughtAfter', label: 'Bought after opting in' },
+  { key: 'joinedCollective', label: 'Joined the Collective after opting in' },
 ];
 
 const EMAIL_RE = /[^\s|<>()[\],;:]*@[^\s|<>()[\],;:]*/g;
@@ -77,6 +78,11 @@ function isCallBooked(name) {
   return name.includes('Call Scheduled');
 }
 
+// A Collective product = a cleaned Stripe product name containing "Collective".
+function isCollectiveProduct(label) {
+  return /collective/i.test(label);
+}
+
 function emptyGroup(key, label) {
   return {
     key,
@@ -108,6 +114,8 @@ function addToGroup(group, sub, optedInAt, day) {
 
   let before = false;
   let after = false;
+  let collectiveBefore = false;
+  let collectiveAfter = false;
   const seen = new Set();
   for (const p of sub.purchases || []) {
     const timing = Date.parse(p.createdAt) < optInMs ? 'before' : 'after';
@@ -115,6 +123,10 @@ function addToGroup(group, sub, optedInAt, day) {
     else after = true;
 
     const product = cleanProductLabel(p.product);
+    if (isCollectiveProduct(product)) {
+      if (timing === 'before') collectiveBefore = true;
+      else collectiveAfter = true;
+    }
     const currency = (p.currency || 'usd').toLowerCase();
     // Same product spelled with different capitals is one row.
     const rowKey = `${product.toLowerCase()}\u0000${timing}\u0000${currency}`;
@@ -132,6 +144,9 @@ function addToGroup(group, sub, optedInAt, day) {
   }
   if (before) group.alreadyCustomers++;
   if (after) group.funnel.boughtAfter++;
+  // "Joined" = first Collective charge comes after the opt-in. Members who
+  // were already paying for the Collective before opting in do not count.
+  if (collectiveAfter && !collectiveBefore) group.funnel.joinedCollective++;
 }
 
 function buildTotals(data, { timezone = process.env.REPORT_TIMEZONE || 'America/New_York' } = {}) {

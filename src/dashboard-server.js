@@ -47,10 +47,12 @@ function loadCache() {
   } catch (err) {
     if (err.code !== 'ENOENT') log(`Ignoring unreadable cache: ${err.message}`);
   }
-  if (cache) return;
-  // No cache but an earlier raw export is on disk: rebuild totals from it.
+  // Rebuild the totals from the last raw export when it is at least as new as
+  // the cache, so a changed metric definition applies on restart without
+  // waiting for a new export.
   try {
     const data = JSON.parse(fs.readFileSync(RAW_PATH, 'utf8'));
+    if (cache && data.generatedAt < cache.updatedAt) return;
     cache = { updatedAt: data.generatedAt, totals: buildTotals(data) };
     saveCache();
   } catch (err) {

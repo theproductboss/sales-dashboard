@@ -553,7 +553,7 @@
       'Opted in = unique subscribers with the opt-in’s main tag or any of its channel tags, dated by the first of those tags. Channel = the first channel tag applied.',
       'Purchases come from Stripe' + (t.stripeAccounts.length ? ' (' + t.stripeAccounts.join(', ') + ')' : '') +
         ', matched through Stripe customers with the subscriber’s email. Guest charges with no Stripe customer are not found, so purchase counts are a floor.',
-      'Webinar steps count Collective webinar tags applied after the opt-in; "Not Attend" tags do not count as attended. Admin tags (imports, temp tags, resend flags, Welcome Sequence) are ignored.',
+      'Joined the Collective = a paid charge for a product with "Collective" in its name after the opt-in, with no Collective charge before it; installments billed as plain invoices cannot be recognized. Webinar steps count Collective webinar tags applied after the opt-in; "Not Attend" tags do not count as attended. Admin tags (imports, temp tags, resend flags, Welcome Sequence) are ignored.',
     ];
     $('notes').replaceChildren.apply($('notes'), notes.map(function (n) { return el('li', { text: n }); }));
   }
