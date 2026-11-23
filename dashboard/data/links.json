@@ -1,32 +1,32 @@
 [
  {
   "id": "l-whop-8k",
-  "title": "$8K offer \u2014 pay in full (Whop)",
+  "title": "12 months \u2014 $8,000 paid in full (Whop)",
   "url": "https://whop.com/checkout/plan_Cpa9zJTedswZy/?session=chs_XDcN4gMWe03Ce4",
   "group": "Payment links",
-  "note": "Full-pay checkout for the $8K offer.",
+  "note": "Full year of the program. One payment of $8,000.",
   "order": 1,
   "createdAt": "2026-11-23T00:00:00.000Z",
-  "updatedAt": "2026-11-23T00:00:00.000Z"
+  "updatedAt": "2026-11-23T12:00:00.000Z"
  },
  {
   "id": "l-whop-8k-3pay",
-  "title": "$8K offer \u2014 3-month pay plan (Whop)",
+  "title": "3 months \u2014 $2,800 paid in full (Whop)",
   "url": "https://whop.com/checkout/plan_yW20cvjc9pIfs",
   "group": "Payment links",
-  "note": "3 monthly payments for the $8K offer.",
+  "note": "3-month membership. One payment of $2,800.",
   "order": 2,
   "createdAt": "2026-11-23T00:00:00.000Z",
-  "updatedAt": "2026-11-23T00:00:00.000Z"
+  "updatedAt": "2026-11-23T12:00:00.000Z"
  },
  {
   "id": "l-whop-8k-6pay",
-  "title": "$8K offer \u2014 6-month pay plan (Whop)",
+  "title": "6 months \u2014 $5,500 paid in full (Whop)",
   "url": "https://whop.com/checkout/plan_A9flUhcvaBHcj",
   "group": "Payment links",
-  "note": "6 monthly payments for the $8K offer.",
+  "note": "6-month membership. One payment of $5,500.",
   "order": 3,
   "createdAt": "2026-11-23T00:00:00.000Z",
-  "updatedAt": "2026-11-23T00:00:00.000Z"
+  "updatedAt": "2026-11-23T12:00:00.000Z"
  }
 ]
