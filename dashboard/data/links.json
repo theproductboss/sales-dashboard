@@ -18,5 +18,15 @@
   "order": 2,
   "createdAt": "2026-11-23T00:00:00.000Z",
   "updatedAt": "2026-11-23T00:00:00.000Z"
+ },
+ {
+  "id": "l-whop-8k-6pay",
+  "title": "$8K offer \u2014 6-month pay plan (Whop)",
+  "url": "https://whop.com/checkout/plan_A9flUhcvaBHcj",
+  "group": "Payment links",
+  "note": "6 monthly payments for the $8K offer.",
+  "order": 3,
+  "createdAt": "2026-11-23T00:00:00.000Z",
+  "updatedAt": "2026-11-23T00:00:00.000Z"
  }
 ]
