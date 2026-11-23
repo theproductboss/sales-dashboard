@@ -222,6 +222,17 @@ cloud environment needs the secrets listed below.
    - `WEBINARJAM_WEBINAR_IDS` (optional): comma-separated webinar IDs to use
      instead of matching by name.
 
+### Today & weekly tab (the first tab)
+
+Opens on today: new leads, how many came from Meta ads vs organic, calls
+booked and payments, each compared with the same point yesterday. Buttons
+switch to yesterday, this week or last week (compared with the same point of
+the week before), and a picker jumps to any past week or all time. Each
+period shows where leads came from, a day-by-day breakdown for weeks, the top
+Meta ads (by utm_content within each campaign) with how many of those leads
+have booked and paid, the webinars held, and a searchable list of the
+period's leads.
+
 ### Webinar performance tab
 
 A second tab compares every Collective webinar: registered, live, show rate,

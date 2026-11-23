@@ -85,7 +85,10 @@
   .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
   .banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
   .footnote { max-width: 90ch; margin: 0; }
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .tabs a { flex: 0 0 auto; white-space: nowrap; }
+  .wrap > * { min-width: 0; }
+  .examples button { white-space: normal; text-align: left; }
   .tabs a { padding: 10px 14px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
     letter-spacing: .08em; text-transform: uppercase; border-bottom: 3px solid transparent; margin-bottom: -1px; }
   .tabs a[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
@@ -112,6 +115,16 @@
   .note-box ul { margin: 6px 0 0; padding-left: 18px; }
   .goal-yes { color: var(--good); font-weight: 600; }
   .reg-tree { display: grid; gap: 12px; }
+  .period-bar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; }
+  .period-bar > * { min-width: 0; max-width: 100%; }
+  .period-bar label { display: flex; flex-direction: column; gap: 4px; flex: 0 1 auto; }
+  .period-bar select, .period-bar input { width: 100%; }
+  .period-search { flex: 1 1 220px; }
+  .period-title { font: 400 26px/1.2 var(--font-display); margin: 4px 0 0; }
+  .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .grid-2col > * { min-width: 0; }
+  .card h3:first-child { margin-top: 0; }
+  @media (max-width: 420px) { .grid-2col { grid-template-columns: 1fr; } }
   .reg-tree summary { cursor: pointer; padding: 6px 0; }
   .reg-month > summary h2 { display: inline; }
   .reg-week { margin: 6px 0 6px 6px; padding-left: 12px; border-left: 2px solid var(--border); }
@@ -192,12 +205,50 @@
   </section>
 
   <nav class="tabs" role="tablist" aria-label="Views">
+    <a href="#today" role="tab" id="tabToday" aria-controls="panelToday">Today &amp; weekly</a>
     <a href="#leads" role="tab" id="tabLeads" aria-controls="panelLeads">Leads</a>
     <a href="#webinars" role="tab" id="tabWebinars" aria-controls="panelWebinars">Webinar performance</a>
     <a href="#registrants" role="tab" id="tabRegistrants" aria-controls="panelRegistrants">Registrants by webinar</a>
   </nav>
 
-  <div class="panel" id="panelLeads" role="tabpanel" aria-labelledby="tabLeads">
+  <div class="panel" id="panelToday" role="tabpanel" aria-labelledby="tabToday">
+    <section class="card">
+      <div class="period-bar">
+        <div class="chips" id="periodChips">
+          <button type="button" class="chip" data-period="today">Today</button>
+          <button type="button" class="chip" data-period="yesterday">Yesterday</button>
+          <button type="button" class="chip" data-period="thisweek">This week</button>
+          <button type="button" class="chip" data-period="lastweek">Last week</button>
+        </div>
+        <label class="muted small period-pick">Or pick a week
+          <select id="periodWeek"></select>
+        </label>
+        <label class="muted small period-search">Search these leads
+          <input id="periodQ" type="search" placeholder="Name, email, ad or campaign">
+        </label>
+      </div>
+    </section>
+    <h2 class="period-title" id="periodTitle"></h2>
+    <div class="kpis" id="periodKpis"></div>
+    <div class="grid-2col">
+      <section class="card"><h3>Where today's leads came from</h3><div class="table-wrap"><table class="breakdown" id="periodSources"></table></div></section>
+      <section class="card" id="periodDaysCard"><h3>Day by day</h3><div class="table-wrap"><table class="breakdown" id="periodDays"></table></div></section>
+    </div>
+    <section class="card"><h3>Top Meta ads</h3><p class="muted small" id="periodAdsNote"></p><div class="table-wrap"><table class="breakdown" id="periodAds"></table></div></section>
+    <section class="card" id="periodWebinarsCard"><h3>Webinars in this period</h3><div class="table-wrap"><table class="breakdown" id="periodWebinars"></table></div></section>
+    <section class="card">
+      <div class="toolbar"><h2 id="periodLeadsTitle">Leads</h2></div>
+      <div class="table-wrap"><table id="periodLeads"></table></div>
+      <div style="text-align:center;margin-top:12px"><button id="periodMore" class="primary" type="button" hidden>Show more</button></div>
+    </section>
+    <p class="muted small footnote">
+      A lead counts on the day they first registered in the period. Booked and paid count calls booked and payments
+      that came in during the period, from #collective-calls-booked and #payments. "From Meta" is registrations tagged
+      utm_source meta, facebook or fb (or any UTM marked paid); registrations with no UTM are counted as Instagram.
+    </p>
+  </div>
+
+  <div class="panel" id="panelLeads" role="tabpanel" aria-labelledby="tabLeads" hidden>
   <section class="card">
     <div class="filters">
       <label class="wide">Search name, email, phone, or ad
@@ -1352,9 +1403,168 @@ $('regTree').addEventListener('click', (e) => {
 });
 ['regQ', 'regShow'].forEach((id) => $(id).addEventListener('input', () => { regState.open.clear(); regState.leadsOpen.clear(); renderRegistrants(); }));
 
-// Tabs: #leads (default), #webinars and #registrants.
+
+// ---- Today & weekly tab ----
+// Every registration, one per person per day, with the ad that brought them
+// to that registration.
+const REG_EVENTS = (() => {
+  const seen = new Set(), out = [];
+  for (const w of WEBINARS) for (const r of (w.registrants || [])) {
+    if (!r.registeredAt) continue;
+    const k = r.email + '|' + dayKey(r.registeredAt);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ email: r.email, registeredAt: r.registeredAt, utm: r.utm || {}, webinarDate: w.webinarDate, webinar: w });
+  }
+  return out.sort((a, b) => b.registeredAt.localeCompare(a.registeredAt));
+})();
+
+const mondayOf = (day) => { const d = new Date(day + 'T12:00:00Z'); return new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10); };
+const addDays = (day, n) => new Date(new Date(day + 'T12:00:00Z').getTime() + n * DAY_MS).toISOString().slice(0, 10);
+const shortDay = (day, opts) => new Intl.DateTimeFormat('en-US', Object.assign({ timeZone: 'UTC' }, opts || { weekday: 'short', month: 'short', day: 'numeric' })).format(new Date(day + 'T12:00:00Z'));
+
+const pstate = { key: 'today', limit: 100 };
+
+// A period is a first and last day (YYYY-MM-DD, Eastern), inclusive.
+function periodRange(key) {
+  const today = dayKey(new Date().toISOString());
+  if (key === 'today') return { from: today, to: today, label: `Today · ${shortDay(today)}`, prev: { from: addDays(today, -1), to: addDays(today, -1) }, shiftDays: 1, vs: 'yesterday by now' };
+  if (key === 'yesterday') { const y = addDays(today, -1); return { from: y, to: y, label: `Yesterday · ${shortDay(y)}`, prev: { from: addDays(y, -1), to: addDays(y, -1) }, vs: 'the day before' }; }
+  if (key === 'all') return { from: '', to: '', label: 'All time', all: true };
+  let monday = key === 'thisweek' ? mondayOf(today) : key === 'lastweek' ? addDays(mondayOf(today), -7) : key.slice(2);
+  const sunday = addDays(monday, 6);
+  const label = `${key === 'thisweek' ? 'This week' : key === 'lastweek' ? 'Last week' : 'Week'} · ${shortDay(monday, { month: 'short', day: 'numeric' })} – ${shortDay(sunday, { month: 'short', day: 'numeric' })}`;
+  return { from: monday, to: sunday, label, week: true, prev: { from: addDays(monday, -7), to: addDays(monday, -1) },
+    shiftDays: key === 'thisweek' ? 7 : 0, vs: key === 'thisweek' ? 'last week by now' : 'the week before' };
+}
+const inRange = (iso, r) => { if (!iso) return false; if (!r.from) return true; const d = dayKey(iso); return d >= r.from && d <= r.to; };
+
+// `until` (ISO) cuts the period off at a moment, so a period still in
+// progress is compared with the same stretch of the one before it.
+function periodStats(r, until) {
+  const ok = (iso) => inRange(iso, r) && (!until || iso <= until);
+  const regs = REG_EVENTS.filter((e) => ok(e.registeredAt));
+  const booked = DATA.leads.filter((l) => l.bookedCall && ok(l.bookedAt));
+  const paid = DATA.leads.filter((l) => l.paid && ok(l.paidAt));
+  return { regs, booked, paid, cash: paid.reduce((s, l) => s + (l.paidAmount || 0), 0), meta: regs.filter((e) => sourceGroup(e.utm).ad).length };
+}
+
+function delta(now, before) {
+  if (before === undefined) return '';
+  const d = now - before;
+  return d === 0 ? ' · same as before' : ` · <span class="${d > 0 ? 'goal-yes' : 'goal-no'}">${d > 0 ? '+' : ''}${d}</span>`;
+}
+
+function renderPeriod() {
+  const r = periodRange(pstate.key);
+  const s = periodStats(r);
+  // A period still under way compares with the one before up to this moment.
+  const p = r.prev ? periodStats(r.prev, r.shiftDays ? new Date(Date.now() - r.shiftDays * DAY_MS).toISOString() : null) : null;
+  $('periodTitle').textContent = r.label;
+  $('periodChips').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.period === pstate.key));
+  $('periodWeek').value = pstate.key.startsWith('w:') || pstate.key === 'all' ? pstate.key : '';
+  const vs = p ? ` vs ${r.vs}` : '';
+  const tile = (label, value, sub) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  const total = s.regs.length;
+  $('periodKpis').innerHTML = [
+    tile('New leads', total, p ? `${p.regs.length}${vs}${delta(total, p.regs.length)}` : 'registrations'),
+    tile('From Meta ads', s.meta, `${pct(s.meta, total)} of leads${p ? ` · ${p.meta}${vs}` : ''}`),
+    tile('Organic', total - s.meta, `${pct(total - s.meta, total)} of leads`),
+    tile('Calls booked', s.booked.length, p ? `${p.booked.length}${vs}${delta(s.booked.length, p.booked.length)}` : 'from #collective-calls-booked'),
+    tile('Paid', s.paid.length, `${money(s.cash)}${p ? ` · ${money(p.cash)}${vs}` : ''}`),
+  ].join('');
+
+  // Sources, with how many of those leads have booked and paid so far.
+  const groups = new Map();
+  for (const e of s.regs) { const g = sourceGroup(e.utm); if (!groups.has(g.key)) groups.set(g.key, { g, list: [] }); groups.get(g.key).list.push(e); }
+  const order = SOURCE_ORDER.filter((k) => groups.has(k));
+  const maxN = Math.max(1, ...order.map((k) => groups.get(k).list.length));
+  const leadOf = (e) => leadByEmail.get(e.email) || {};
+  $('periodSources').closest('section').querySelector('h3').textContent = `Where ${pstate.key === 'today' ? "today's" : 'these'} leads came from`;
+  $('periodSources').innerHTML = `<thead><tr><th></th><th class="bar-col"></th><th class="num">Leads</th><th class="num" title="Of these leads, how many have booked a call so far">Booked so far</th><th class="num">Paid so far</th></tr></thead><tbody>` +
+    (order.map((k) => {
+      const { g, list } = groups.get(k);
+      const bk = list.filter((e) => leadOf(e).bookedCall).length, pd = list.filter((e) => leadOf(e).paid).length;
+      return `<tr><td>${esc(g.label)}${k === 'none' ? ' <span class="pill warn">fix</span>' : ''}</td><td class="bar-col"><div class="bar" style="width:${(list.length / maxN) * 100}%"><div class="bar-book" style="width:100%"></div></div></td><td class="num">${list.length} <span class="muted small">${pct(list.length, total)}</span></td><td class="num">${bk || ''}</td><td class="num">${pd || ''}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="muted">No new leads ${pstate.key === 'today' ? 'yet today' : 'in this period'}.</td></tr>`) + '</tbody>';
+
+  // Day by day (weeks only).
+  $('periodDaysCard').hidden = !r.week;
+  if (r.week) {
+    const days = [...Array(7)].map((_, i) => addDays(r.from, i));
+    const today = dayKey(new Date().toISOString());
+    const rows = days.map((d) => {
+      const dr = { from: d, to: d };
+      const ds = periodStats(dr);
+      return { d, ds };
+    });
+    const maxD = Math.max(1, ...rows.map((x) => x.ds.regs.length));
+    $('periodDays').innerHTML = `<thead><tr><th></th><th class="bar-col"><span class="key"><i class="k-reg"></i>Leads <i class="k-book"></i>From Meta</span></th><th class="num">Leads</th><th class="num">Meta</th><th class="num">Booked</th><th class="num">Paid</th></tr></thead><tbody>` +
+      rows.map(({ d, ds }) => `<tr${d > today ? ' class="muted"' : ''}><td>${esc(shortDay(d, { weekday: 'short', month: 'short', day: 'numeric' }))}${d === today ? ' <span class="pill accent">today</span>' : ''}</td>
+        <td class="bar-col"><div class="bar" style="width:${(ds.regs.length / maxD) * 100}%"><div class="bar-book" style="width:${ds.regs.length ? (ds.meta / ds.regs.length) * 100 : 0}%"></div></div></td>
+        <td class="num">${d > today ? '' : ds.regs.length}</td><td class="num">${d > today ? '' : ds.meta}</td><td class="num">${ds.booked.length || ''}</td><td class="num">${ds.paid.length ? money(ds.cash) : ''}</td></tr>`).join('') + '</tbody>';
+  }
+
+  // Top Meta ads by leads in the period.
+  const ads = new Map();
+  for (const e of s.regs.filter((x) => sourceGroup(x.utm).ad)) {
+    const k = (e.utm.campaign || '(no campaign)') + '|' + (e.utm.content || '(no ad name)');
+    if (!ads.has(k)) ads.set(k, { campaign: e.utm.campaign || '(no campaign)', content: e.utm.content || '(no ad name)', list: [] });
+    ads.get(k).list.push(e);
+  }
+  const adRows = [...ads.values()].sort((a, b) => b.list.length - a.list.length).slice(0, 12);
+  $('periodAdsNote').textContent = adRows.length ? `By ad (utm_content), within each campaign. ${s.meta} Meta leads in all.` : '';
+  $('periodAds').innerHTML = `<thead><tr><th>Ad</th><th>Campaign</th><th class="num">Leads</th><th class="num">Booked so far</th><th class="num">Paid so far</th></tr></thead><tbody>` +
+    (adRows.map((a) => `<tr><td class="ad-cell">${esc(a.content)}</td><td class="ad-cell muted">${esc(a.campaign)}</td><td class="num">${a.list.length}</td><td class="num">${a.list.filter((e) => leadOf(e).bookedCall).length || ''}</td><td class="num">${a.list.filter((e) => leadOf(e).paid).length || ''}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="muted">No Meta leads in this period.</td></tr>') + '</tbody>';
+
+  // Webinars held in the period.
+  const ws = WEBINARS.filter((w) => inRange(w.webinarDate, r));
+  $('periodWebinarsCard').hidden = !ws.length;
+  $('periodWebinars').innerHTML = `<thead><tr><th>Webinar</th><th class="num">Registered</th><th class="num">Live</th><th class="num">Show %</th><th class="num">Booked</th><th class="num">Book %</th></tr></thead><tbody>` +
+    ws.map((w) => `<tr><td>${esc(wDay(w))}${w.happened ? '' : ' <span class="pill accent">upcoming</span>'}</td><td class="num">${w.registered}</td><td class="num">${w.happened ? w.attended : ''}</td><td class="num">${w.happened ? pctOrDash(w.showRate) : ''}</td><td class="num">${w.happened ? w.booked : ''}</td><td class="num">${w.happened ? pctOrDash(w.bookRate) : ''}</td></tr>`).join('') + '</tbody>';
+
+  // The leads themselves, searchable.
+  const q = $('periodQ').value.trim().toLowerCase();
+  const list = s.regs.filter((e) => {
+    if (!q) return true;
+    const l = leadOf(e);
+    return [l.name, e.email, l.phone, l.revenueLevel, ...Object.values(e.utm), ...(l.otherEmails || [])].join(' ').toLowerCase().includes(q);
+  });
+  $('periodLeadsTitle').textContent = `${q ? 'Matching leads' : 'Leads'} (${list.length.toLocaleString()})`;
+  const shown = list.slice(0, pstate.limit);
+  $('periodLeads').innerHTML = `<thead><tr><th>Lead</th><th>Registered</th><th>Came from</th><th>Revenue</th><th>Webinar</th><th>Live?</th><th>Booked</th><th class="num">Paid</th></tr></thead><tbody>` +
+    (shown.map((e) => {
+      const l = leadOf(e), g = sourceGroup(e.utm), w = e.webinar;
+      const live = !w.happened ? '<span class="pill">Not yet</span>' : (w.registrants.find((x) => x.email === e.email) || {}).attendedLive ? '<span class="pill good">Live</span>' : '<span class="pill warn">No-show</span>';
+      return `<tr><td><strong>${esc(l.name || '—')}</strong><div class="muted small">${esc(e.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
+        <td>${esc(fmtDate(e.registeredAt, true))}</td>
+        <td class="ad-cell">${g.key === 'none' ? '<span class="pill warn">No UTM · assumed Instagram</span>' : `${esc(g.label)}${e.utm.campaign ? `<div class="muted small">${esc(e.utm.campaign)}${e.utm.content ? ' · ' + esc(e.utm.content) : ''}</div>` : ''}`}</td>
+        <td>${esc(l.revenueLevel || '')}</td>
+        <td>${esc(wDay(w))}</td><td>${live}</td>
+        <td>${l.bookedCall ? `<span class="pill good">Booked</span> <span class="small">${esc(fmtDate(l.bookedAt))}</span>` : ''}</td>
+        <td class="num">${l.paid ? `<strong>${money(l.paidAmount)}</strong>` : ''}</td></tr>`;
+    }).join('') || `<tr><td colspan="8" class="muted">${q ? 'No one in this period matches.' : 'No new leads in this period yet.'}</td></tr>`) + '</tbody>';
+  $('periodMore').hidden = list.length <= pstate.limit;
+}
+
+(function fillWeeks() {
+  const weeks = [...new Set(REG_EVENTS.map((e) => mondayOf(dayKey(e.registeredAt))))].sort().reverse();
+  $('periodWeek').innerHTML = '<option value="">Choose a week…</option>' +
+    weeks.map((m) => `<option value="w:${m}">${esc(shortDay(m, { month: 'short', day: 'numeric' }))} – ${esc(shortDay(addDays(m, 6), { month: 'short', day: 'numeric', year: 'numeric' }))}</option>`).join('') +
+    '<option value="all">All time</option>';
+})();
+$('periodChips').addEventListener('click', (e) => { const b = e.target.closest('button[data-period]'); if (!b) return; pstate.key = b.dataset.period; pstate.limit = 100; renderPeriod(); });
+$('periodWeek').addEventListener('input', () => { if ($('periodWeek').value) { pstate.key = $('periodWeek').value; pstate.limit = 100; renderPeriod(); } });
+$('periodQ').addEventListener('input', () => { pstate.limit = 100; renderPeriod(); });
+$('periodMore').addEventListener('click', () => { pstate.limit += 100; renderPeriod(); });
+
+// Tabs: #today (default), #leads, #webinars and #registrants.
 function showTab() {
-  const tab = ['#webinars', '#registrants'].includes(location.hash) ? location.hash : '#leads';
+  const tab = ['#leads', '#webinars', '#registrants'].includes(location.hash) ? location.hash : '#today';
+  $('panelToday').hidden = tab !== '#today';
+  $('tabToday').setAttribute('aria-selected', String(tab === '#today'));
+  if (tab === '#today') renderPeriod();
   $('panelLeads').hidden = tab !== '#leads';
   $('panelWebinars').hidden = tab !== '#webinars';
   $('panelRegistrants').hidden = tab !== '#registrants';
