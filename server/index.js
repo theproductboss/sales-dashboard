@@ -29,6 +29,13 @@ async function seedIfEmpty(store) {
   await store.setMany(entries);
   console.log(`Seeded ${entries.length} documents from dashboard/data`);
 }
+// The cheat-sheet links were added after the first deploy: seed them on their own if none exist yet.
+async function seedLinks(store) {
+  if ((await store.all()).links.length) return;
+  const links = JSON.parse(fs.readFileSync(path.join(ROOT, "dashboard", "data", "links.json"), "utf8"));
+  await store.setMany(links.map(l => ["links", l.id, l]));
+  console.log(`Seeded ${links.length} cheat-sheet links`);
+}
 
 const loginPage = (err = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Closer Tracker</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kameron:wght@700&family=Montserrat:wght@400;600&display=swap">
@@ -52,6 +59,7 @@ ${page}
 (async () => {
   const store = await createStore();
   await seedIfEmpty(store);
+  await seedLinks(store);
   if (!PASSWORD) console.warn("TEAM_PASSWORD is not set: the tracker is open to anyone with the URL.");
 
   const app = express();

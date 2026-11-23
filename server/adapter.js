@@ -5,7 +5,7 @@
 (() => {
   const POLL_MS = 15000;
   let state = null, etag = null, timer = null, pulling = null;
-  const listeners = { calls: [], reviews: [], settings: [] };
+  const listeners = { calls: [], reviews: [], links: [], settings: [] };
   const meta = { fromCache: false, hasPendingWrites: false };
 
   const snapFor = c => c === "settings"
@@ -24,7 +24,7 @@
         const next = await r.json();
         const changed = !state || next.etag !== etag;
         etag = next.etag; state = next;
-        if (changed) { emit("calls"); emit("reviews"); emit("settings"); }
+        if (changed) { emit("calls"); emit("reviews"); emit("links"); emit("settings"); }
       } catch (e) { console.warn("Closer Tracker: could not refresh", e.message); }
       finally { pulling = null; }
     })();

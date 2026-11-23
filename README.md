@@ -182,6 +182,14 @@ lead box at the top of the Closer Tracker searches lead name, email, next
 steps, notes and bonuses across every month and closer, shows everything on
 record for each match, and jumps to the row. Bonuses also show in the pipeline.
 
+### Cheat Sheet tab
+
+A team-editable page of links closers need on a call (payment links first:
+the $8K Whop pay-in-full and 3-month checkouts). Stored in the `links`
+collection, seeded from `dashboard/data/links.json` when the store has none;
+anyone with write access can add, edit or delete a card, and each has Open
+and Copy link buttons.
+
 ### Call Reviews tab
 
 The second tab shows the qualitative side: the AI score, a one-line summary,

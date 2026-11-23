@@ -1,0 +1,22 @@
+[
+ {
+  "id": "l-whop-8k",
+  "title": "$8K offer \u2014 pay in full (Whop)",
+  "url": "https://whop.com/checkout/plan_Cpa9zJTedswZy/?session=chs_XDcN4gMWe03Ce4",
+  "group": "Payment links",
+  "note": "Full-pay checkout for the $8K offer.",
+  "order": 1,
+  "createdAt": "2026-11-23T00:00:00.000Z",
+  "updatedAt": "2026-11-23T00:00:00.000Z"
+ },
+ {
+  "id": "l-whop-8k-3pay",
+  "title": "$8K offer \u2014 3-month pay plan (Whop)",
+  "url": "https://whop.com/checkout/plan_yW20cvjc9pIfs",
+  "group": "Payment links",
+  "note": "3 monthly payments for the $8K offer.",
+  "order": 2,
+  "createdAt": "2026-11-23T00:00:00.000Z",
+  "updatedAt": "2026-11-23T00:00:00.000Z"
+ }
+]
