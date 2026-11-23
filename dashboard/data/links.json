@@ -28,5 +28,15 @@
   "order": 3,
   "createdAt": "2026-11-23T00:00:00.000Z",
   "updatedAt": "2026-11-23T12:00:00.000Z"
+ },
+ {
+  "id": "l-whop-12m-9800",
+  "title": "12 months \u2014 $9,800 paid in full (Whop)",
+  "url": "https://whop.com/checkout/plan_njTOyfO8vTsHw",
+  "group": "Payment links",
+  "note": "Full year of the program. One payment of $9,800.",
+  "order": 4,
+  "createdAt": "2026-11-23T13:00:00.000Z",
+  "updatedAt": "2026-11-23T13:00:00.000Z"
  }
 ]
