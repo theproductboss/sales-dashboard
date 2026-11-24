@@ -270,6 +270,11 @@ and, from Kit (set `KIT_API_KEY`):
 - how many Collective webinars Kit tagged them as attending before
 - "Not getting emails" when they've unsubscribed or bounced in Kit
 
+Each webinar opens with **Who showed up live**: registered → live → booked,
+with the show-up and book rates, for everyone, ads and organic; then two bar
+charts of the live attendees' revenue levels, one for ads and one for
+organic, with the part of each bar that booked a call shaded darker.
+
 Filters show only past customers, one program, returning attendees, people
 new to the list, or bookers, and a search finds a person across webinars.
 

@@ -115,13 +115,23 @@
   .note-box ul { margin: 6px 0 0; padding-left: 18px; }
   .goal-yes { color: var(--good); font-weight: 600; }
   .reg-tree { display: grid; gap: 12px; }
+  .showed-up .grid-2col { margin-top: 8px; }
+  .rev-chart { background: var(--bg); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .rev-chart h4 { margin: 0 0 4px; font-size: 14px; }
+  .rev-sum { margin: 0 0 6px; }
+  .rev-table td { padding: 3px 6px; border-bottom: 0; }
+  .rev-table .rev-label { white-space: nowrap; width: 1%; }
+  .rev-table tr.hi .rev-label { font-weight: 700; }
+  .rev-table .bar-col { width: 55%; min-width: 60px; }
+  table.funnel td, table.funnel th { padding: 6px 8px; }
+  .chart-key { margin: 8px 0 0; }
   .period-bar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; }
   .period-bar > * { min-width: 0; max-width: 100%; }
   .period-bar label { display: flex; flex-direction: column; gap: 4px; flex: 0 1 auto; }
   .period-bar select, .period-bar input { width: 100%; }
   .period-search { flex: 1 1 220px; }
   .period-title { font: 400 26px/1.2 var(--font-display); margin: 4px 0 0; }
-  .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
   .grid-2col > * { min-width: 0; }
   .card h3:first-child { margin-top: 0; }
   @media (max-width: 420px) { .grid-2col { grid-template-columns: 1fr; } }
@@ -151,11 +161,11 @@
   .dash-grid h3 { margin-top: 4px; }
   table.breakdown td, table.breakdown th { padding: 6px 8px; }
   table.breakdown .bar-col { width: 34%; min-width: 120px; }
-  .bar { height: 14px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; min-width: 2px; }
+  .bar { height: 14px; background: var(--accent-soft); background: color-mix(in srgb, var(--accent) 30%, var(--surface)); border-radius: 3px; overflow: hidden; min-width: 2px; }
   .bar-book { height: 100%; background: var(--accent); }
   .key { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
   .key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
-  .key i.k-reg { background: var(--accent-soft); border: 1px solid var(--accent); }
+  .key i.k-reg { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
   .key i.k-book { background: var(--accent); margin-left: 6px; }
   .lead-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1247,6 +1257,67 @@ function webinarSummary(views, w) {
   return parts.join(' · ');
 }
 
+// Revenue answers from the registration form, in the team's order. Matched
+// by their numbers because the wording varies ("$25,000-$50,000" vs "to").
+const REV_LEVELS = [
+  { key: 'zero', label: 'Zero', test: (s) => /^zero$|^\$?0$/.test(s) },
+  { key: 'u5k', label: 'Under $5K', test: (s) => /under\s*\$?5/.test(s) },
+  { key: '5-10k', label: '$5K–10K', test: (s) => /5,?000\s*(-|to)\s*\$?10,?000/.test(s) },
+  { key: '10-25k', label: '$10K–25K', test: (s) => /10,?000\s*(-|to)\s*\$?25,?000/.test(s) },
+  { key: '25-50k', label: '$25K–50K', hi: true, test: (s) => /25,?000\s*(-|to)\s*\$?50,?000/.test(s) },
+  { key: '50-100k', label: '$50K–100K', hi: true, test: (s) => /50,?000\s*(-|to)\s*\$?100,?000/.test(s) },
+  { key: '100-500k', label: '$100K–500K', hi: true, test: (s) => /100,?000\s*(-|to)\s*\$?500,?000/.test(s) },
+  { key: '500k-1m', label: '$500K–1M', hi: true, test: (s) => /500,?000\s*(-|to)\s*\$?1,?000,?000/.test(s) },
+  { key: '1m-5m', label: '$1M–5M', hi: true, test: (s) => /1,?000,?000\s*(-|to)\s*\$?5,?000,?000/.test(s) },
+  { key: '5m+', label: '$5M+', hi: true, test: (s) => /5,?000,?000\s*\+|over\s*\$?5,?000,?000/.test(s) },
+];
+const revLevelOf = (answer) => { const s = String(answer || '').toLowerCase().trim(); return (s && REV_LEVELS.find((r) => r.test(s))) || { key: 'none', label: 'Not given' }; };
+
+// One group's live attendees by revenue level: a bar per level, the whole bar
+// is how many showed up, the dark part how many of them booked.
+function revenueChartHtml(title, live, groupTotal) {
+  const levels = [...REV_LEVELS, { key: 'none', label: 'Not given' }];
+  const rows = levels.map((lv) => {
+    const here = live.filter((v) => revLevelOf(v.lead.revenueLevel).key === lv.key);
+    return { lv, n: here.length, booked: here.filter((v) => v.r.bookedForThis).length };
+  }).filter((r) => r.n || !['5m+', 'none'].includes(r.lv.key));
+  const max = Math.max(1, ...rows.map((r) => r.n));
+  const hi = live.filter((v) => revLevelOf(v.lead.revenueLevel).hi);
+  const under5 = live.filter((v) => ['zero', 'u5k'].includes(revLevelOf(v.lead.revenueLevel).key)).length;
+  const bookedHi = hi.filter((v) => v.r.bookedForThis).length;
+  return `<div class="rev-chart">
+    <h4>${title} <span class="muted small">· ${live.length} showed up live${groupTotal !== undefined ? ` of ${groupTotal} registered` : ''}</span></h4>
+    ${live.length ? `<p class="small rev-sum"><strong>${pct(hi.length, live.length)}</strong> were $25K+ (${hi.length}) · <strong>${pct(under5, live.length)}</strong> under $5K or zero (${under5})${hi.length ? ` · ${bookedHi} of the $25K+ booked (${pct(bookedHi, hi.length)})` : ''}</p>
+    <div class="table-wrap"><table class="breakdown rev-table"><tbody>${rows.map((r) => `<tr class="${r.lv.hi ? 'hi' : ''}">
+      <td class="rev-label">${esc(r.lv.label)}</td>
+      <td class="bar-col">${r.n ? `<div class="bar" style="width:${(r.n / max) * 100}%" title="${r.n} live, ${r.booked} booked"><div class="bar-book" style="width:${(r.booked / r.n) * 100}%"></div></div>` : ''}</td>
+      <td class="num">${r.n ? `${r.n} <span class="muted small">${pct(r.n, live.length)}</span>` : '<span class="muted">0</span>'}</td>
+      <td class="num">${r.booked ? `<strong>${r.booked}</strong> <span class="muted small">booked</span>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small">No one from this group showed up live.</p>'}
+  </div>`;
+}
+
+// Registered → live → booked, overall and for ads vs organic, then the
+// revenue mix of the people who actually showed up, ads vs organic.
+function showedUpHtml(w, views) {
+  if (!w.happened) return '';
+  const line = (label, list) => {
+    const live = list.filter((v) => v.r.attendedLive), booked = live.filter((v) => v.r.bookedForThis).length;
+    return `<tr><td><strong>${label}</strong></td><td class="num">${list.length}</td><td class="num">${live.length}</td><td class="num"><strong>${pct(live.length, list.length)}</strong></td><td class="num">${booked}</td><td class="num"><strong>${live.length ? pct(booked, live.length) : '—'}</strong></td></tr>`;
+  };
+  const ads = views.filter((v) => v.source.ad), org = views.filter((v) => !v.source.ad);
+  const liveAds = ads.filter((v) => v.r.attendedLive), liveOrg = org.filter((v) => v.r.attendedLive);
+  return `<section class="who-booked showed-up">
+    <h3>Who showed up live</h3>
+    <div class="table-wrap"><table class="breakdown funnel"><thead><tr><th></th><th class="num">Registered</th><th class="num">Live</th><th class="num">Show-up %</th><th class="num">Booked</th><th class="num" title="Booked ÷ live">Book % of live</th></tr></thead>
+      <tbody>${line('Everyone', views)}${line('From ads', ads)}${line('Organic', org)}</tbody></table></div>
+    <p class="muted small chart-key"><span class="key"><i class="k-reg"></i>Showed up live <i class="k-book"></i>Of those, booked a call</span> · $25K+ rows are in bold</p>
+    <div class="grid-2col">
+      ${revenueChartHtml('From ads', liveAds, ads.length)}
+      ${revenueChartHtml('Organic (email, Instagram, no UTM, other)', liveOrg, org.length)}
+    </div>
+  </section>`;
+}
+
 // Who booked a call from this webinar: how many were brand new to the list
 // (and whether an ad or something organic brought them), and how many had
 // been on the list before (how long, and where they came from this time).
@@ -1306,6 +1377,7 @@ function dashHtml(w, views, key) {
 
   const warn = noUtm ? `<div class="banner small"><strong>${noUtm} registration${noUtm === 1 ? '' : 's'} had no UTM</strong> and ${noUtm === 1 ? 'is' : 'are'} counted as Instagram. Add a UTM to the Instagram link (for example <code>?utm_source=instagram&amp;utm_medium=bio</code>) so these are tracked for real.</div>` : '';
   const bookedHtml = whoBookedHtml(w, views);
+  const showedHtml = showedUpHtml(w, views);
 
   const leadsOpen = regState.leadsOpen.has(key);
   const chip = regState.chip.get(key) || 'all';
@@ -1320,6 +1392,7 @@ function dashHtml(w, views, key) {
 
   return `<div class="reg-dash">
     <div class="kpis mini">${tiles.join('')}</div>
+    ${showedHtml}
     ${bookedHtml}
     ${warn}
     <div class="lead-bar">
