@@ -166,6 +166,14 @@ td button.jump:hover { text-decoration-style: solid; }
 .link .row .btn { padding: 6px 10px; font-size: 13px; text-decoration: none; }
 .link .row .edit { margin-left: auto; color: var(--muted); border-color: transparent; }
 .link .row .btn.copied { color: var(--good-text); border-color: var(--good-text); }
+.srcctl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.srcctl select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); margin-left: 6px; }
+.two-tables { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 1000px) { .two-tables { grid-template-columns: 1fr 1fr; } }
+.two-tables h3.th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 6px; }
+#sources td.share { color: var(--muted); }
+.col-src { width: 10%; } .col-rev { width: 10%; }
+table.grid select.auto { color: var(--muted); font-style: italic; }
 .wkblock.flash { background: var(--blush); box-shadow: 0 0 0 8px var(--blush); }
 table.grid tr.flash td { background: var(--blush); }
 td button.jump.open { font-size: 13px; }
@@ -173,7 +181,7 @@ td button.jump.open { font-size: 13px; }
 .wk:first-child { margin-top: 4px; }
 .wk h3 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
 .wk h3 span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 6px; }
-table.grid { min-width: 1760px; }
+table.grid { min-width: 2040px; }
 table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 4px 6px; white-space: normal; line-height: 1.2; vertical-align: bottom; border-bottom: 1px solid var(--line-strong); position: static; background: transparent; }
 table.grid th.c, table.grid td.c { text-align: center; }
 table.grid th.r { text-align: right; }
@@ -290,6 +298,18 @@ footer.defs b { color: var(--ink); }
 
   <section class="kpis" id="kpis" aria-label="Headline numbers" data-views="dashboard"></section>
 
+  <section class="panel" id="sources" data-views="dashboard">
+    <div class="panel-head">
+      <div><p class="eyebrow">Lead source</p><h2>Where the calls came from</h2><p class="status-line" id="sources-sub"></p></div>
+      <div class="srcctl"><label>Revenue level for <select id="src-filter"></select></label><button type="button" class="btn" id="attr-refresh" title="Pull the latest bookings and webinar registrations now">Refresh sources</button></div>
+    </div>
+    <div class="two-tables">
+      <div><h3 class="th">By source</h3><div class="tablewrap" id="by-source"></div></div>
+      <div><h3 class="th" id="by-rev-title">By revenue level</h3><div class="tablewrap" id="by-rev"></div></div>
+    </div>
+    <p class="status-line" id="attr-status"></p>
+  </section>
+
   <section class="panel" id="reviews" data-views="reviews" hidden>
     <div class="panel-head">
       <div><p class="eyebrow">Qualitative</p><h2>Call Reviews</h2><p class="status-line" id="reviews-sub"></p></div>
@@ -348,7 +368,7 @@ footer.defs b { color: var(--ink); }
   </section>
 
   <footer class="defs">
-    <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”. <b>Average deal size</b> = revenue generated ÷ wins that have a revenue amount entered; wins logged without revenue are counted separately so they don’t pull the average down.</p>
+    <p><b>Booked</b> = every call on the calendar for the period, by call date. <b>Completed</b> = booked − no-shows − lead cancels − rescheduled. <b>Show rate</b> = completed ÷ (booked − rescheduled). <b>Offer rate</b> = offers ÷ completed. <b>Close rate</b> = wins ÷ completed; the “of booked” line is wins ÷ booked, which is what the spreadsheet called “close rate (% of booked calls)”. <b>Average deal size</b> = revenue generated ÷ wins that have a revenue amount entered; wins logged without revenue are counted separately so they don’t pull the average down. <b>Source</b> and <b>revenue level</b> come from the booking in #collective-calls-booked and the webinar registration (UTM source meta/fb = Meta ads; no UTM = Instagram link), matched to the row by email, or by name when the email is blank; a value picked on the row overrides the match.</p>
     <p>Weeks inside a month follow the spreadsheet: week 1 runs from the 1st through the first Sunday, then Monday–Sunday. A row in the Closer Tracker becomes a call as soon as it has a lead name; leave the date blank and it takes today (or the first day of that week). A nurturing lead counts as <b>overdue</b> when its follow-up date has passed, or when it has no follow-up date and nothing has been changed on it for more than 7 days. Historical rows were imported from the September, October and November trackers; 21 of them had no call date in the sheet and were placed on the first day of their sheet week.</p>
   </footer>
 </div>
@@ -495,6 +515,7 @@ function renderTop() {
   const names = visibleClosers();
   const rows = calls.filter(r => inRange(r, P) && names.includes(r.closer));
   renderKpis(rows, P);
+  renderSources(rows, P);
   renderPipeline(names);
   renderBookedChart(P, names);
   renderRateCharts(P, names);
@@ -573,6 +594,36 @@ function renderKpis(rows, P) {
   $("#kpis").innerHTML = tiles.map(([k, v, d]) => `<div class="kpi"><p class="eyebrow">${k}</p><div class="v">${v}</div><div class="d">${d}</div></div>`).join("");
 }
 
+// Where the calls came from: by source, and by revenue level within one source (ads by default).
+function renderSources(rows, P) {
+  const srcSel = $("#src-filter");
+  const bySrc = {};
+  for (const r of rows) (bySrc[srcOf(r) || "Unknown"] ||= []).push(r);
+  const order = Object.keys(bySrc).sort((a, b) => a === "Unknown" ? 1 : b === "Unknown" ? -1 : bySrc[b].length - bySrc[a].length);
+  const want = srcSel.dataset.v ?? "Meta ads";
+  srcSel.innerHTML = `<option value="">All sources</option>` + order.filter(k => k !== "Unknown").map(k => `<option value="${esc(k)}"${k === want ? " selected" : ""}>${esc(k)}</option>`).join("");
+  if (![...srcSel.options].some(o => o.selected)) srcSel.value = "";
+  const sel = srcSel.value;
+  const line = (label, list, total) => { const m = metrics(list); return `<tr><td>${label}</td><td>${m.booked}</td><td class="share">${total ? fmtPct(m.booked / total) : ""}</td><td>${m.held}</td><td>${fmtPct(m.showRate)}</td><td>${m.offers}</td><td>${m.wins}</td><td>${fmtPct(m.closeRate)}</td><td>${m.revenue ? fmtMoney(m.revenue) : "—"}</td><td>${m.cash ? fmtMoney(m.cash) : "—"}</td></tr>`; };
+  const head = `<thead><tr><th></th><th>Booked</th><th>Share</th><th>Completed</th><th>Show %</th><th>Offers</th><th>Wins</th><th>Close %</th><th>Revenue</th><th>Cash</th></tr></thead>`;
+  $("#by-source").innerHTML = rows.length ? `<table>${head}<tbody>${order.map(k => line(esc(k), bySrc[k], rows.length)).join("")}<tr class="total">${line("All calls", rows, 0).slice(4)}</tr></tbody></table>` : `<div class="empty">No calls in ${esc(P.label)} yet.</div>`;
+  const pool = sel ? rows.filter(r => srcOf(r) === sel) : rows;
+  const byRev = {};
+  for (const r of pool) (byRev[revOf(r) || "Not known"] ||= []).push(r);
+  const rorder = Object.keys(byRev).sort((a, b) => (a === "Not known" ? 99 : revRank(a)) - (b === "Not known" ? 99 : revRank(b)));
+  $("#by-rev-title").textContent = sel ? `${sel} leads by revenue level` : "All calls by revenue level";
+  $("#by-rev").innerHTML = pool.length ? `<table>${head}<tbody>${rorder.map(k => line(esc(k), byRev[k], pool.length)).join("")}<tr class="total">${line(sel ? `All ${sel}` : "All calls", pool, 0).slice(4)}</tr></tbody></table>` : `<div class="empty">No ${sel ? esc(sel) + " " : ""}calls in ${esc(P.label)}.</div>`;
+  const unknown = (bySrc.Unknown || []).length;
+  $("#sources-sub").textContent = `${P.label} · ${rows.length} call${rows.length === 1 ? "" : "s"}${unknown ? ` · ${unknown} with no source yet (add the lead's email in the tracker, or pick a source on the row)` : ""}`;
+  $("#attr-status").textContent = attribution ? (attribution.ok ? `Sources last refreshed ${new Date(attribution.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} from ${attribution.bookings} bookings in #collective-calls-booked and ${attribution.registrants} webinar registrations · ${attribution.matched} of ${attribution.calls} calls matched.` : `Source refresh failed: ${attribution.error}`) : "Sources come from Slack bookings and webinar registrations once the hourly refresh has run.";
+}
+$("#src-filter").addEventListener("change", e => { e.target.dataset.v = e.target.value; renderTop(); });
+$("#attr-refresh").addEventListener("click", async e => {
+  e.target.disabled = true; e.target.textContent = "Refreshing…";
+  try { const r = await fetch("/api/attribution/refresh", { method: "POST" }); const st = await r.json(); attribution = st; if (!st.ok) setStatus(`Source refresh failed: ${st.error}`, true); }
+  catch (err) { setStatus("Source refresh isn't available in this copy of the tracker.", true); }
+  e.target.disabled = false; e.target.textContent = "Refresh sources"; renderTop();
+});
 // Pipeline: every lead still marked NURTURING (or rescheduled / open), whatever the period selected.
 // Each lead is overdue (follow-up date passed, or no follow-up date and more than a week since the call),
 // due this week, or scheduled for later.
@@ -784,15 +835,16 @@ function renderSearch() {
   const q = searchBox.value.trim().toLowerCase();
   searchClear.hidden = !q;
   if (q.length < 2) { searchOut.hidden = true; searchOut.innerHTML = ""; return; }
-  const hits = calls.filter(r => [r.lead, r.email, r.notes, r.memo, r.bonuses].some(v => (v || "").toLowerCase().includes(q)))
+  const hits = calls.filter(r => [r.lead, r.email, r.attr && r.attr.email, r.notes, r.memo, r.bonuses, srcOf(r), revOf(r), r.attr && r.attr.campaign].some(v => (v || "").toLowerCase().includes(q)))
     .sort((a, b) => a.date < b.date ? 1 : -1);
   searchOut.hidden = false;
-  if (!hits.length) { searchOut.innerHTML = `<p class="none">No lead matches “${esc(searchBox.value.trim())}”. Search looks at lead name, email, next steps, notes and bonuses.</p>`; return; }
+  if (!hits.length) { searchOut.innerHTML = `<p class="none">No lead matches “${esc(searchBox.value.trim())}”. Search looks at lead name, email, source, campaign, revenue level, next steps, notes and bonuses.</p>`; return; }
   const field = (k, v, long) => `<div class="${long ? "long" : ""}"><dt>${k}</dt><dd>${v}</dd></div>`;
   searchOut.innerHTML = `<p class="status-line">${hits.length} match${hits.length === 1 ? "" : "es"}${hits.length > 25 ? ", showing the 25 most recent" : ""}</p>` + hits.slice(0, 25).map(r => { const w = weekFor(r), st = STATUSES.find(x => x[0] === r.status)?.[1] || r.status;
-    return `<article class="hit"><header><b>${esc(r.lead)}</b>${r.email ? `<span class="email">${esc(r.email)}</span>` : ""}<span class="status ${esc(r.status)}">${esc(st === "—" ? "Open" : st)}</span>
+    return `<article class="hit"><header><b>${esc(r.lead)}</b>${r.email || r.attr?.email ? `<span class="email">${esc(r.email || r.attr.email)}</span>` : ""}<span class="status ${esc(r.status)}">${esc(st === "—" ? "Open" : st)}</span>
       <button type="button" class="jump open" data-closer="${esc(r.closer)}" data-from="${w.from}" data-to="${w.to}" data-id="${esc(r.id)}">Open in ${esc(r.closer)}’s ${MON3[parse(r.date).getMonth()]} tracker →</button></header>
       <dl>${field("Closer", `<span class="closer-dot" style="background:${closerColor(r.closer)}"></span>${esc(r.closer)}`)}${field("Call date", shortDate(r.date) + " " + parse(r.date).getFullYear())}${field("Call type", esc(r.callType || ""))}
+      ${field("Source", esc(srcOf(r)) + (r.attr?.campaign ? `<br><span class="status-line">${esc(r.attr.campaign)}${r.attr.ad ? " · " + esc(r.attr.ad) : ""}</span>` : ""))}${field("Revenue level", esc(revOf(r)))}
       ${field("Offer made", r.offer ? "Yes" : "No")}${field("Showed", r.noShow ? "No-show" : r.cxl ? "Cancelled" : "Yes")}${field("Deposit", r.deposit ? "Yes" : "No")}
       ${field("Revenue generated", r.revenue ? fmtMoney(r.revenue) : "")}${field("Cash collected", r.cash ? fmtMoney(r.cash) : "")}${field("Follow-up date", r.followUp ? shortDate(r.followUp) + " " + parse(r.followUp).getFullYear() : "")}
       ${field("Next steps", esc(r.notes || ""), true)}${field("Notes", esc(r.memo || ""), true)}${field("Bonuses promised", esc(r.bonuses || ""), true)}</dl></article>`; }).join("");
@@ -806,6 +858,13 @@ searchOut.addEventListener("click", e => {
 });
 // ---------- Closer Tracker grid (the spreadsheet tab, editable in place) ----------
 const STATUSES = [["OPEN", "—"], ["WIN", "WIN"], ["LOST", "LOST"], ["NURTURING", "NURTURING"], ["NO-SHOW", "NO-SHOW"], ["CXL'D", "CXL'D"], ["RESCHEDULED", "RESCHEDULED"], ["SET TO JILL", "SET TO JILL"], ["UNQUALIFIED", "UNQUALIFIED"]];
+const SOURCES = ["Meta ads", "Instagram", "Instagram (no UTM)", "Email list", "Website", "Podcast", "Invite", "Referral", "Booked directly", "Other"];
+const REV_LEVELS = ["Zero", "Under $5000", "$5000-$10,000", "$10,000 to $25,000", "$25,000-$50,000", "$50,000 to $100,000", "$100,000 to $500,000", "$500,000 to $1,000,000", "$1,000,000 to $5,000,000"];
+// Hand-entered value wins; otherwise what the hourly attribution matched from Slack bookings and webinar registrations.
+const srcOf = r => r.leadSource || (r.attr && r.attr.source) || "";   // `source` on a record is import provenance, not the lead source
+const revOf = r => r.revenueLevel || (r.attr && (r.attr.revenueLevel || r.attr.bookingRevenue)) || "";
+const revRank = v => { const i = REV_LEVELS.indexOf(v); if (i >= 0) return i; if (/under 5k/i.test(v)) return 1.5; if (/under 25k/i.test(v)) return 3.5; if (/under 50k/i.test(v)) return 4.5; return 50; };
+let attribution = null;        // status of the last source refresh (attribution/status)
 const trackerHost = $("#tracker-body");
 let trackerStale = false;
 const trackerMonth = () => state.tmonth;
@@ -834,7 +893,7 @@ function renderTracker(force) {
   $("#tracker-sub").textContent = `${monthLabel} · ${state.tab}. ${canWrite === false ? "Read-only for your account." : "Pick the month and the closer, then type into a row; it saves when you leave the cell."}`;
   const weeks = monthWeeks(ym);
   const rows = calls.filter(r => r.closer === state.tab && r.date.slice(0, 7) === ym);
-  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-email">Email</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="col-wide">Notes</th><th class="col-wide">Bonuses promised</th><th class="x"></th></tr></thead>`;
+  const head = `<thead><tr><th class="col-lead">Lead name</th><th class="col-email">Email</th><th class="col-src">Source</th><th class="col-rev">Revenue level</th><th class="col-date">Date of call</th><th class="c col-chk">Offer made?</th><th class="c col-chk">No show?</th><th class="c col-chk">Lead cxl?</th><th class="col-status">Sales status</th><th class="c col-chk">Deposit received?</th><th class="r col-num">Total revenue generated</th><th class="r col-num">Cash collected today</th><th class="col-type">Call type</th><th>Next steps</th><th class="col-date">Follow-up date</th><th class="col-wide">Notes</th><th class="col-wide">Bonuses promised</th><th class="x"></th></tr></thead>`;
   trackerHost.innerHTML = weeks.map((w, i) => {
     const wr = rows.filter(r => inRange(r, w)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "").localeCompare(b.createdAt || ""));
     const m = metrics(wr);
@@ -854,7 +913,9 @@ function rowHtml(r, w) {
   const st = r?.status || "OPEN";
   return `<tr data-id="${esc(r?.id || "")}" data-from="${w.from}" data-to="${w.to}" class="${r ? "" : "new"}">
     <td><input data-f="lead" type="text" autocomplete="off" value="${esc(r?.lead || "")}" placeholder="${r ? "" : "+ add a lead"}" aria-label="Lead name"${dis}></td>
-    <td><input data-f="email" type="email" autocomplete="off" value="${esc(r?.email || "")}" aria-label="Email"${dis}></td>
+    <td><input data-f="email" type="email" autocomplete="off" value="${esc(r?.email || "")}" placeholder="${r?.attr?.email && !r?.email ? esc(r.attr.email) : ""}" aria-label="Email"${dis}></td>
+    <td>${autoSelect("leadSource", r, SOURCES, r?.attr?.source, r?.attr ? `Matched by ${r.attr.matchedBy}${r.attr.campaign ? " · " + r.attr.campaign : ""}` : "")}</td>
+    <td>${autoSelect("revenueLevel", r, REV_LEVELS, r?.attr?.revenueLevel || r?.attr?.bookingRevenue, r?.attr?.revenueLevel ? "From the webinar registration form" : r?.attr?.bookingRevenue ? "From the booking form" : "")}</td>
     <td><input data-f="date" type="date" value="${r?.date || ""}" aria-label="Date of call"${dis}></td>
     <td class="c"><input data-f="offer" type="checkbox"${chk(r?.offer)} aria-label="Offer made"${dis}></td>
     <td class="c"><input data-f="noShow" type="checkbox"${chk(r?.noShow)} aria-label="No show"${dis}></td>
@@ -870,10 +931,16 @@ function rowHtml(r, w) {
     <td><input data-f="bonuses" type="text" autocomplete="off" value="${esc(r?.bonuses || "")}" placeholder="${r ? "" : "e.g. 2 extra 1:1s, free month"}" aria-label="Bonuses promised"${dis}></td>
     <td class="x">${r && canWrite !== false ? `<button type="button" class="x" data-del title="Delete this row" aria-label="Delete row">×</button>` : ""}</td></tr>`;
 }
+// A select whose blank option shows the automatic value in italics; picking a value overrides it.
+function autoSelect(f, r, opts, auto, title) {
+  const dis = canWrite === false ? " disabled" : "", v = r?.[f] || "";
+  const list = v && !opts.includes(v) ? [...opts, v] : opts;
+  return `<select data-f="${f}" class="${v ? "" : "auto"}" title="${esc(title || "")}" aria-label="${f === "leadSource" ? "Lead source" : "Revenue level"}"${dis}><option value="">${auto ? esc(auto) : "—"}</option>${list.map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+}
 function readRow(tr) {
   const g = f => tr.querySelector(`[data-f="${f}"]`);
   const prev = calls.find(c => c.id === tr.dataset.id) || {};
-  const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), email: g("email").value.trim(), date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
+  const rec = { ...prev, id: tr.dataset.id, closer: state.tab, lead: g("lead").value.trim(), email: g("email").value.trim(), leadSource: g("leadSource").value, revenueLevel: g("revenueLevel").value, date: g("date").value, offer: g("offer").checked, noShow: g("noShow").checked, cxl: g("cxl").checked,
     status: g("status").value, deposit: g("deposit").checked, revenue: +g("revenue").value || 0, cash: +g("cash").value || 0, callType: g("callType").value, notes: g("notes").value.trim(), followUp: g("followUp").value || "", memo: g("memo").value.trim(), bonuses: g("bonuses").value.trim(),
     confirmed: prev.confirmed ?? false, source: prev.source || "dashboard", createdAt: prev.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   if (rec.date !== prev.date) rec.dateEstimated = false;
@@ -894,6 +961,7 @@ trackerHost.addEventListener("change", e => {
   if ((f === "noShow" || f === "cxl") && inp.checked && q("status").value === "OPEN") q("status").value = f === "noShow" ? "NO-SHOW" : "CXL'D";
   if ((f === "noShow" || f === "cxl") && !inp.checked && q("status").value === (f === "noShow" ? "NO-SHOW" : "CXL'D")) q("status").value = "OPEN";
   q("status").className = q("status").value;
+  if (f === "leadSource" || f === "revenueLevel") inp.classList.toggle("auto", !inp.value);
   const isNew = !tr.dataset.id;
   if (isNew) {
     if (!q("lead").value.trim()) return;             // a blank row only becomes a call once it has a lead
@@ -943,6 +1011,7 @@ render();
   let timer = setTimeout(() => setStatus("Still reaching the call log… numbers may be out of date.", true), 10000);
   db.doc("settings/main").onSnapshot(s => { if (s.exists) { const d = s.data(); settings = { ...DEFAULT_SETTINGS, ...d, kpis: { ...DEFAULT_SETTINGS.kpis, ...(d.kpis || {}) }, cashGoals: { ...DEFAULT_SETTINGS.cashGoals, ...(d.cashGoals || {}) } }; render(); } }, () => {});
   db.collection("reviews").onSnapshot(snap => { reviews = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer && r.score != null); renderTop(); }, () => {});
+  db.doc("attribution/status").onSnapshot(s => { attribution = s.exists ? s.data() : null; renderTop(); }, () => {});
   db.collection("links").onSnapshot(snap => { links = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(l => l.url && l.title); renderCheat(); }, () => {});
   db.collection("calls").onSnapshot(snap => {
     calls = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.date && r.closer);

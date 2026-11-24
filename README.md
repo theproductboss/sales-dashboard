@@ -182,6 +182,17 @@ lead box at the top of the Closer Tracker searches lead name, email, next
 steps, notes and bonuses across every month and closer, shows everything on
 record for each match, and jumps to the row. Bonuses also show in the pipeline.
 
+**Lead source and revenue level** (`server/attribution.js`): every hour the
+server pulls #collective-calls-booked from Slack (every Calendly booking, with
+the revenue range picked on the form) and the Collective webinar registrations
+from WebinarJam (UTMs and the projected-revenue answer), matches each tracker
+row by email, then by name, and writes the match as `attr` on the call. The
+dashboard's "Where the calls came from" panel breaks the period down by source
+and, within one source, by revenue level. Closers can pick a Source or Revenue
+level on the row to override the match. Needs `SLACK_BOT_TOKEN` and
+`WEBINARJAM_API_KEY` on the service (optional `CALLS_BOOKED_CHANNEL_ID`,
+`WEBINARJAM_NAME_INCLUDES`); without them the panel stays empty.
+
 ### Cheat Sheet tab
 
 A team-editable page of links closers need on a call (payment links first:

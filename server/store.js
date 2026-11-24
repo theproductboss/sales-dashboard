@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const COLLECTIONS = new Set(["calls", "reviews", "links", "settings"]);
+const COLLECTIONS = new Set(["calls", "reviews", "links", "settings", "attribution"]);
 
 async function createStore() {
   if (process.env.DATABASE_URL) return pgStore(process.env.DATABASE_URL);
@@ -86,7 +86,7 @@ async function fileStore(file) {
 
 // Group rows into {calls:[], reviews:[], links:[], settings:{...}} plus an etag for cheap polling.
 function shape(rows) {
-  const out = { calls: [], reviews: [], links: [], settings: null, etag: "" };
+  const out = { calls: [], reviews: [], links: [], settings: null, attribution: null, etag: "" };
   let latest = "";
   for (const r of rows) {
     const d = { ...r.data, id: r.id };
@@ -94,6 +94,7 @@ function shape(rows) {
     else if (r.collection === "reviews") out.reviews.push(d);
     else if (r.collection === "links") out.links.push(d);
     else if (r.collection === "settings" && r.id === "main") out.settings = r.data;
+    else if (r.collection === "attribution" && r.id === "status") out.attribution = r.data;
     const u = new Date(r.updated_at).toISOString(); if (u > latest) latest = u;
   }
   out.etag = `"${rows.length}-${latest}"`;

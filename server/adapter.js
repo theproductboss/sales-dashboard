@@ -5,11 +5,11 @@
 (() => {
   const POLL_MS = 15000;
   let state = null, etag = null, timer = null, pulling = null;
-  const listeners = { calls: [], reviews: [], links: [], settings: [] };
+  const listeners = { calls: [], reviews: [], links: [], settings: [], attribution: [] };
   const meta = { fromCache: false, hasPendingWrites: false };
 
-  const snapFor = c => c === "settings"
-    ? { exists: !!state.settings, data: () => state.settings, metadata: meta }
+  const snapFor = c => c === "settings" || c === "attribution"
+    ? { exists: !!state[c], data: () => state[c], metadata: meta }
     : { docs: state[c].map(d => ({ id: d.id, exists: true, data: () => d, metadata: meta })), size: state[c].length, empty: !state[c].length, docChanges: () => [], metadata: meta };
   const emit = c => { if (!state) return; for (const fn of listeners[c]) { try { fn(snapFor(c)); } catch (e) { console.error(e); } } };
 
@@ -24,7 +24,7 @@
         const next = await r.json();
         const changed = !state || next.etag !== etag;
         etag = next.etag; state = next;
-        if (changed) { emit("calls"); emit("reviews"); emit("links"); emit("settings"); }
+        if (changed) { emit("calls"); emit("reviews"); emit("links"); emit("settings"); emit("attribution"); }
       } catch (e) { console.warn("Closer Tracker: could not refresh", e.message); }
       finally { pulling = null; }
     })();
@@ -46,10 +46,10 @@
   const docRef = (c, id) => ({
     id, path: c + "/" + id,
     set: data => write("PUT", c, id, data),
-    update: data => { const cur = c === "settings" ? state?.settings : state?.[c].find(d => d.id === id); return write("PUT", c, id, { ...(cur || {}), ...data }); },
+    update: data => { const cur = c === "settings" || c === "attribution" ? state?.[c] : state?.[c].find(d => d.id === id); return write("PUT", c, id, { ...(cur || {}), ...data }); },
     delete: () => write("DELETE", c, id),
-    get: async () => { await pull(); const cur = c === "settings" ? state.settings : state[c].find(d => d.id === id); return { id, exists: !!cur, data: () => cur, metadata: meta }; },
-    onSnapshot: fn => sub(c, s => fn(c === "settings" ? s : { id, exists: !!state[c].find(d => d.id === id), data: () => state[c].find(d => d.id === id), metadata: meta })),
+    get: async () => { await pull(); const cur = c === "settings" || c === "attribution" ? state[c] : state[c].find(d => d.id === id); return { id, exists: !!cur, data: () => cur, metadata: meta }; },
+    onSnapshot: fn => sub(c, s => fn(c === "settings" || c === "attribution" ? s : { id, exists: !!state[c].find(d => d.id === id), data: () => state[c].find(d => d.id === id), metadata: meta })),
   });
   const db = {
     collection: c => ({ path: c, doc: id => docRef(c, id || "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), onSnapshot: fn => sub(c, fn), get: async () => { await pull(); return snapFor(c); }, where() { return this; }, orderBy() { return this; }, limit() { return this; } }),

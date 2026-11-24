@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { createStore, COLLECTIONS } = require("./store");
+const attribution = require("./attribution");
 
 const ROOT = path.join(__dirname, "..");
 const PAGE = path.join(ROOT, "dashboard", "closer-tracker.html");
@@ -60,6 +61,7 @@ ${page}
   const store = await createStore();
   await seedIfEmpty(store);
   await seedLinks(store);
+  attribution.schedule(store);
   if (!PASSWORD) console.warn("TEAM_PASSWORD is not set: the tracker is open to anyone with the URL.");
 
   const app = express();
@@ -92,6 +94,7 @@ ${page}
     await store.set(req.params.collection, req.params.id, { ...req.body, id: req.params.id });
     res.json({ ok: true });
   });
+  app.post("/api/attribution/refresh", async (req, res) => res.json(await attribution.refresh(store)));
   app.delete("/api/:collection/:id", okCollection, async (req, res) => { await store.remove(req.params.collection, req.params.id); res.json({ ok: true }); });
 
   const port = process.env.PORT || 3000;
